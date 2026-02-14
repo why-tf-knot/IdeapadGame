@@ -12,6 +12,7 @@ import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
 import MyIdeasScreen from './src/screens/MyIdeasScreen';
 import CreateIdeaScreen from './src/screens/CreateIdeaScreen';
+import IdeaDetailScreen from './src/screens/IdeaDetailScreen';
 import PaperTossScreen from './src/screens/PaperTossScreen';
 import SavedIdeasScreen from './src/screens/SavedIdeasScreen';
 import WalletScreen from './src/screens/WalletScreen';
@@ -91,6 +92,11 @@ function MainStack({ userRole }: { userRole: string | null }) {
             name="CreateIdea" 
             component={CreateIdeaScreen}
             options={{ title: 'New Idea' }}
+          />
+          <Stack.Screen 
+            name="IdeaDetail" 
+            component={IdeaDetailScreen}
+            options={{ title: 'Idea Details' }}
           />
         </>
       ) : (
