@@ -13,6 +13,9 @@ import RegisterScreen from './src/screens/RegisterScreen';
 import MyIdeasScreen from './src/screens/MyIdeasScreen';
 import CreateIdeaScreen from './src/screens/CreateIdeaScreen';
 import PaperTossScreen from './src/screens/PaperTossScreen';
+import SavedIdeasScreen from './src/screens/SavedIdeasScreen';
+import WalletScreen from './src/screens/WalletScreen';
+import IdeaEquityScreen from './src/screens/IdeaEquityScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -49,8 +52,24 @@ function InvestorTabs() {
         name="Review" 
         component={PaperTossScreen}
         options={{ 
-          tabBarLabel: 'Review Ideas',
+          tabBarLabel: 'Review',
           title: 'Review Ideas'
+        }}
+      />
+      <Tab.Screen 
+        name="Saved" 
+        component={SavedIdeasScreen}
+        options={{ 
+          tabBarLabel: 'Saved',
+          title: 'Saved Ideas'
+        }}
+      />
+      <Tab.Screen 
+        name="Wallet" 
+        component={WalletScreen}
+        options={{ 
+          tabBarLabel: 'Wallet',
+          title: 'My Wallet'
         }}
       />
     </Tab.Navigator>
@@ -75,11 +94,18 @@ function MainStack({ userRole }: { userRole: string | null }) {
           />
         </>
       ) : (
-        <Stack.Screen 
-          name="InvestorHome" 
-          component={InvestorTabs}
-          options={{ headerShown: false }}
-        />
+        <>
+          <Stack.Screen 
+            name="InvestorHome" 
+            component={InvestorTabs}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen 
+            name="IdeaEquity" 
+            component={IdeaEquityScreen}
+            options={{ title: 'Equity Breakdown' }}
+          />
+        </>
       )}
     </Stack.Navigator>
   );
