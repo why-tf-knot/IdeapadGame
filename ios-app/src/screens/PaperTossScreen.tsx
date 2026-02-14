@@ -20,6 +20,19 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH * 0.9;
 const CARD_HEIGHT = SCREEN_HEIGHT * 0.6;
 
+// Centralized animation configuration
+const ANIMATION_CONFIG = {
+  CRUMPLE_DURATION: 300,
+  FLYING_DURATION: 400,
+  SPRING_FRICTION: 7,
+  SPRING_TENSION: 40,
+  REJECT_THRESHOLD_Y: 120,
+  REJECT_VELOCITY: 0.7,
+  SAVE_THRESHOLD_X: 150,
+  SAVE_VELOCITY_X: 0.7,
+  SAVE_MIN_X: 100,
+};
+
 const hapticOptions = {
   enableVibrateFallback: true,
   ignoreAndroidSystemSettings: false,
@@ -42,6 +55,15 @@ const PaperTossScreen: React.FC = () => {
     outputRange: ['-30deg', '0deg', '30deg'],
   });
 
+  // Cleanup animated values on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      pan.removeAllListeners();
+      scale.removeAllListeners();
+      opacity.removeAllListeners();
+    };
+  }, [pan, scale, opacity]);
+
   useEffect(() => {
     loadNextIdea();
   }, []);
@@ -63,8 +85,8 @@ const PaperTossScreen: React.FC = () => {
       if (response.idea) {
         Animated.spring(scale, {
           toValue: 1,
-          friction: 8,
-          tension: 40,
+          friction: ANIMATION_CONFIG.SPRING_FRICTION,
+          tension: ANIMATION_CONFIG.SPRING_TENSION,
           useNativeDriver: true,
         }).start();
       }
@@ -131,13 +153,13 @@ const PaperTossScreen: React.FC = () => {
     Animated.parallel([
       Animated.spring(pan, {
         toValue: { x: 0, y: 0 },
-        friction: 7,
-        tension: 40,
+        friction: ANIMATION_CONFIG.SPRING_FRICTION,
+        tension: ANIMATION_CONFIG.SPRING_TENSION,
         useNativeDriver: false,
       }),
       Animated.spring(scale, {
         toValue: 1,
-        friction: 7,
+        friction: ANIMATION_CONFIG.SPRING_FRICTION,
         useNativeDriver: true,
       }),
     ]).start();
@@ -153,7 +175,7 @@ const PaperTossScreen: React.FC = () => {
         // Slight scale down when grabbed
         Animated.spring(scale, {
           toValue: 0.95,
-          friction: 7,
+          friction: ANIMATION_CONFIG.SPRING_FRICTION,
           useNativeDriver: true,
         }).start();
       },
@@ -166,27 +188,27 @@ const PaperTossScreen: React.FC = () => {
         // Restore scale
         Animated.spring(scale, {
           toValue: 1,
-          friction: 7,
+          friction: ANIMATION_CONFIG.SPRING_FRICTION,
           useNativeDriver: true,
         }).start();
 
         // Reject: Swipe down with velocity
-        if (dy > 120 && vy > 0.7) {
+        if (dy > ANIMATION_CONFIG.REJECT_THRESHOLD_Y && vy > ANIMATION_CONFIG.REJECT_VELOCITY) {
           // Crumple effect - shrink and fade
           Animated.parallel([
             Animated.timing(pan, {
               toValue: { x: dx, y: SCREEN_HEIGHT + 100 },
-              duration: 300,
+              duration: ANIMATION_CONFIG.CRUMPLE_DURATION,
               useNativeDriver: false,
             }),
             Animated.timing(scale, {
               toValue: 0.3,
-              duration: 300,
+              duration: ANIMATION_CONFIG.CRUMPLE_DURATION,
               useNativeDriver: true,
             }),
             Animated.timing(opacity, {
               toValue: 0,
-              duration: 300,
+              duration: ANIMATION_CONFIG.CRUMPLE_DURATION,
               useNativeDriver: true,
             }),
           ]).start(() => {
@@ -194,22 +216,22 @@ const PaperTossScreen: React.FC = () => {
           });
         }
         // Save: Swipe right with velocity
-        else if (dx > 150 || (dx > 100 && vx > 0.7)) {
+        else if (dx > ANIMATION_CONFIG.SAVE_THRESHOLD_X || (dx > ANIMATION_CONFIG.SAVE_MIN_X && vx > ANIMATION_CONFIG.SAVE_VELOCITY_X)) {
           // Flying paper effect
           Animated.parallel([
             Animated.timing(pan, {
               toValue: { x: SCREEN_WIDTH + 100, y: dy - 50 },
-              duration: 400,
+              duration: ANIMATION_CONFIG.FLYING_DURATION,
               useNativeDriver: false,
             }),
             Animated.timing(scale, {
               toValue: 0.8,
-              duration: 400,
+              duration: ANIMATION_CONFIG.FLYING_DURATION,
               useNativeDriver: true,
             }),
             Animated.timing(opacity, {
               toValue: 0.5,
-              duration: 400,
+              duration: ANIMATION_CONFIG.FLYING_DURATION,
               useNativeDriver: true,
             }),
           ]).start(() => {
