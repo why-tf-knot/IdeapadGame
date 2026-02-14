@@ -6,6 +6,7 @@ import { AiCreditTransaction } from '../models/AiCreditTransaction';
 import { Idea } from '../models/Idea';
 import { authMiddleware, roleMiddleware, AuthRequest } from '../middleware/auth';
 import { runAiTool } from '../services/aiService';
+import aiCacheService from '../services/cacheService';
 
 const router = express.Router();
 
@@ -170,6 +171,19 @@ router.post(
         return res.status(400).json({ error: 'Insufficient AI credits for this idea' });
       }
 
+      // Check cache first
+      const cachedResult = aiCacheService.get(ideaId, service);
+      if (cachedResult) {
+        console.log(`[AI Cache] Returning cached result for ${service} on idea ${ideaId}`);
+        return res.json({
+          message: 'Credits spent successfully',
+          newBalance: ideaBalance.balance,
+          result: cachedResult.text,
+          tokensUsed: cachedResult.tokensUsed,
+          cached: true,
+        });
+      }
+
       // Decrease idea balance
       ideaBalance.balance -= amount;
       await ideaBalance.save();
@@ -187,11 +201,15 @@ router.post(
       // Call AI service
       const aiServiceResult = await runAiTool(service, idea);
 
+      // Cache the result for 1 hour
+      aiCacheService.set(ideaId, service, aiServiceResult);
+
       res.json({
         message: 'Credits spent successfully',
         newBalance: ideaBalance.balance,
         result: aiServiceResult.text,
         tokensUsed: aiServiceResult.tokensUsed,
+        cached: false,
       });
     } catch (error) {
       console.error('Spend credits error:', error);
