@@ -5,6 +5,7 @@ import { AiCreditAllocation } from '../models/AiCreditAllocation';
 import { AiCreditTransaction } from '../models/AiCreditTransaction';
 import { Idea } from '../models/Idea';
 import { authMiddleware, roleMiddleware, AuthRequest } from '../middleware/auth';
+import { runAiTool } from '../services/aiService';
 
 const router = express.Router();
 
@@ -183,13 +184,14 @@ router.post(
       });
       await transaction.save();
 
-      // Call AI service (placeholder - would call actual AI API)
-      const aiResult = await callAiService(service, idea);
+      // Call AI service
+      const aiServiceResult = await runAiTool(service, idea);
 
       res.json({
         message: 'Credits spent successfully',
         newBalance: ideaBalance.balance,
-        result: aiResult,
+        result: aiServiceResult.text,
+        tokensUsed: aiServiceResult.tokensUsed,
       });
     } catch (error) {
       console.error('Spend credits error:', error);
@@ -197,18 +199,5 @@ router.post(
     }
   }
 );
-
-// Placeholder AI service function
-async function callAiService(service: string, idea: any): Promise<string> {
-  // This would call actual AI APIs (OpenAI, etc.)
-  // For now, return a mock response
-  const responses: Record<string, string> = {
-    LLM_PITCH_DRAFT: `Enhanced pitch for "${idea.title}":\n\nSlide 1: The Problem\n${idea.problem}\n\nSlide 2: Our Solution\n${idea.solution}\n\nSlide 3: Target Market\n${idea.targetUser}\n\nSlide 4: Business Model\n${idea.monetization}\n\nSlide 5: Competitive Advantage\n${idea.differentiation}\n\nSlide 6: Roadmap\n${idea.roadmap}`,
-    LLM_SUMMARY_IMPROVE: `Improved summary: ${idea.title} - ${idea.solution} for ${idea.targetUser}, solving ${idea.problem}`,
-    LLM_ROADMAP_GENERATE: `3-Month Roadmap:\n- Month 1: ${idea.stage} validation and user feedback\n- Month 2: Core feature development\n- Month 3: Beta launch and iteration`,
-  };
-
-  return responses[service] || 'AI service result placeholder';
-}
 
 export default router;
