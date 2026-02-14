@@ -15,6 +15,19 @@ interface AIServiceResult {
   tokensUsed?: number;
 }
 
+/**
+ * Sanitize user input to prevent prompt injection attacks
+ */
+function sanitizeInput(text: string, maxLength: number = 5000): string {
+  if (!text) return '';
+  
+  return text
+    .replace(/[<>{}]/g, '') // Remove potential injection characters
+    .replace(/\n{3,}/g, '\n\n') // Limit excessive newlines
+    .substring(0, maxLength) // Enforce length limit
+    .trim();
+}
+
 // Service definitions with prompts
 const AI_SERVICES: Record<string, { name: string; promptTemplate: (idea: any) => string }> = {
   LLM_SUMMARY_IMPROVE: {
@@ -22,11 +35,11 @@ const AI_SERVICES: Record<string, { name: string; promptTemplate: (idea: any) =>
     promptTemplate: (idea) => `
 You are an expert pitch consultant. Improve the following one-line pitch summary to be more compelling and concise (max 140 characters):
 
-Current summary: "${idea.oneLineSummary}"
+Current summary: "${sanitizeInput(idea.oneLineSummary, 200)}"
 
-Problem: ${idea.problem}
-Solution: ${idea.solution}
-Target user: ${idea.targetUser}
+Problem: ${sanitizeInput(idea.problem, 1000)}
+Solution: ${sanitizeInput(idea.solution, 1000)}
+Target user: ${sanitizeInput(idea.targetUser, 200)}
 
 Provide an improved one-line summary that is:
 - Concise (max 140 characters)
@@ -43,15 +56,15 @@ Return only the improved summary, nothing else.
     promptTemplate: (idea) => `
 You are a pitch deck expert. Create a 6-slide pitch deck structure for this idea:
 
-Title: ${idea.title}
-Category: ${idea.category}
-Stage: ${idea.stage}
-Target User: ${idea.targetUser}
-Problem: ${idea.problem}
-Solution: ${idea.solution}
-Differentiation: ${idea.differentiation}
-Monetization: ${idea.monetization}
-Roadmap: ${idea.roadmap}
+Title: ${sanitizeInput(idea.title, 200)}
+Category: ${sanitizeInput(idea.category, 100)}
+Stage: ${sanitizeInput(idea.stage, 50)}
+Target User: ${sanitizeInput(idea.targetUser, 200)}
+Problem: ${sanitizeInput(idea.problem, 1000)}
+Solution: ${sanitizeInput(idea.solution, 1000)}
+Differentiation: ${sanitizeInput(idea.differentiation, 1000)}
+Monetization: ${sanitizeInput(idea.monetization, 1000)}
+Roadmap: ${sanitizeInput(idea.roadmap, 1000)}
 
 Create a well-structured 6-slide pitch deck outline with:
 - Slide 1: Problem Statement (hook the audience)
@@ -79,11 +92,11 @@ Visual: [description]
     promptTemplate: (idea) => `
 You are a product strategy consultant. Create a detailed 3-6 month development roadmap for this product:
 
-Title: ${idea.title}
-Category: ${idea.category}
-Current Stage: ${idea.stage}
-Solution: ${idea.solution}
-Current Roadmap Input: ${idea.roadmap}
+Title: ${sanitizeInput(idea.title, 200)}
+Category: ${sanitizeInput(idea.category, 100)}
+Current Stage: ${sanitizeInput(idea.stage, 50)}
+Solution: ${sanitizeInput(idea.solution, 1000)}
+Current Roadmap Input: ${sanitizeInput(idea.roadmap, 1000)}
 
 Generate a month-by-month roadmap with:
 - Specific milestones and deliverables

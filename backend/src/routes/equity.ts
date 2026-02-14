@@ -1,4 +1,5 @@
 import express, { Response } from 'express';
+import { Types } from 'mongoose';
 import { AiCreditAllocation } from '../models/AiCreditAllocation';
 import { AiCreditTransaction } from '../models/AiCreditTransaction';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
@@ -9,6 +10,11 @@ const router = express.Router();
 router.get('/idea/:ideaId', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const { ideaId } = req.params;
+
+    // Validate ObjectId
+    if (!Types.ObjectId.isValid(ideaId)) {
+      return res.status(400).json({ error: 'Invalid idea ID format' });
+    }
 
     // Get all allocations for this idea
     const allocations = await AiCreditAllocation.find({ ideaId }).populate(
