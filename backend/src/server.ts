@@ -34,19 +34,86 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Root endpoint
+app.get('/', (req, res) => {
+  res.json({
+    message: 'BuildPaper API',
+    version: '1.0.0',
+    endpoints: {
+      health: '/health',
+      auth: '/api/auth',
+      ideas: '/api/ideas',
+      review: '/api/review',
+      credits: '/api/credits',
+      chat: '/api/chat',
+      equity: '/api/equity',
+      batch: '/api/batch'
+    }
+  });
+});
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({ error: 'Endpoint not found' });
+});
+
+// Error handler
+app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error('Error:', err.message);
+  console.error('Stack:', err.stack);
+  res.status(500).json({
+    error: 'Internal server error',
+    message: process.env.NODE_ENV === 'development' ? err.message : undefined
+  });
+});
+
 // Connect to MongoDB and start server
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/buildpaper';
+
+console.log('🚀 Starting BuildPaper server...');
+console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
+console.log(`🔌 MongoDB URI: ${MONGODB_URI.replace(/\/\/.*@/, '//***@')}`); // Hide credentials
+console.log(`🌐 Port: ${PORT}`);
 
 mongoose
   .connect(MONGODB_URI)
   .then(() => {
-    console.log('Connected to MongoDB');
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
+    console.log('✅ Connected to MongoDB');
+    const server = app.listen(PORT, () => {
+      console.log(`✅ Server running on http://localhost:${PORT}`);
+      console.log(`🏥 Health check: http://localhost:${PORT}/health`);
+      console.log('📡 Ready to accept requests!');
+    });
+
+    // Graceful shutdown
+    process.on('SIGTERM', () => {
+      console.log('⚠️  SIGTERM received, shutting down gracefully...');
+      server.close(() => {
+        console.log('👋 Server closed');
+        mongoose.connection.close(false).then(() => {
+          console.log('👋 MongoDB connection closed');
+          process.exit(0);
+        });
+      });
+    });
+
+    process.on('SIGINT', () => {
+      console.log('\n⚠️  SIGINT received, shutting down gracefully...');
+      server.close(() => {
+        console.log('👋 Server closed');
+        mongoose.connection.close(false).then(() => {
+          console.log('👋 MongoDB connection closed');
+          process.exit(0);
+        });
+      });
     });
   })
   .catch((error) => {
-    console.error('MongoDB connection error:', error);
+    console.error('❌ MongoDB connection error:', error.message);
+    console.error('💡 Troubleshooting:');
+    console.error('   - Is MongoDB running? Try: mongod');
+    console.error('   - Check your MONGODB_URI in .env');
+    console.error('   - For MongoDB Atlas, verify your connection string and IP whitelist');
     process.exit(1);
   });
 

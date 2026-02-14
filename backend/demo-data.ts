@@ -4,7 +4,7 @@
  */
 
 import mongoose from 'mongoose';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import User from './src/models/User';
 import Idea from './src/models/Idea';
 import AiCreditWallet from './src/models/AiCreditWallet';
