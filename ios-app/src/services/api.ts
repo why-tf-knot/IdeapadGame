@@ -119,4 +119,12 @@ export const equityAPI = {
   },
 };
 
+// Batch API - For optimized data fetching
+export const batchAPI = {
+  enrichIdeas: async (ideaIds: string[]): Promise<{ ideas: any[] }> => {
+    const response = await api.post('/batch/batch-enrich', { ideaIds });
+    return response.data;
+  },
+};
+
 export default api;

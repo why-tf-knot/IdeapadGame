@@ -8,6 +8,7 @@ import reviewRoutes from './routes/review';
 import creditsRoutes from './routes/credits';
 import chatRoutes from './routes/chat';
 import equityRoutes from './routes/equity';
+import batchRoutes from './routes/batch';
 
 dotenv.config();
 
@@ -26,6 +27,7 @@ app.use('/api/review', reviewRoutes);
 app.use('/api/credits', creditsRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/equity', equityRoutes);
+app.use('/api/batch', batchRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

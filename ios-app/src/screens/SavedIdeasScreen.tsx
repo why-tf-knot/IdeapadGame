@@ -8,7 +8,7 @@ import {
   RefreshControl,
   Alert,
 } from 'react-native';
-import { reviewAPI, creditsAPI, equityAPI } from '../services/api';
+import { reviewAPI, batchAPI } from '../services/api';
 import { Idea } from '../types';
 
 interface SavedIdeasScreenProps {
@@ -34,38 +34,16 @@ const SavedIdeasScreen: React.FC<SavedIdeasScreenProps> = ({ navigation }) => {
     try {
       const response = await reviewAPI.getSavedIdeas();
       
-      // Enrich each idea with credit and equity information
-      const enrichedIdeas = await Promise.all(
-        response.ideas.map(async (idea) => {
-          try {
-            const creditInfo = await creditsAPI.getIdeaCredits(idea._id);
-            const equityInfo = await equityAPI.getIdeaEquity(idea._id);
-            
-            // Find my allocation
-            const myAllocation = creditInfo.allocations?.find(
-              (alloc: any) => alloc.investor?.id
-            );
-            
-            // Find my equity
-            const myEquity = equityInfo.investorEquity?.find(
-              (inv: any) => inv.investorId
-            );
-
-            return {
-              ...idea,
-              myCredits: myAllocation?.amount || 0,
-              totalCredits: creditInfo.balance || 0,
-              equityPercent: myEquity?.estimatedEquityPercent || 0,
-            };
-          } catch (error) {
-            console.error('Error enriching idea:', error);
-            return idea;
-          }
-        })
-      );
-
-      setIdeas(enrichedIdeas);
+      // Use batch API to enrich all ideas in a single call (fixes N+1 query issue)
+      if (response.ideas.length > 0) {
+        const ideaIds = response.ideas.map(idea => idea._id);
+        const enrichedResponse = await batchAPI.enrichIdeas(ideaIds);
+        setIdeas(enrichedResponse.ideas);
+      } else {
+        setIdeas([]);
+      }
     } catch (error) {
+      console.error('Error loading saved ideas:', error);
       Alert.alert('Error', 'Failed to load saved ideas');
     } finally {
       setLoading(false);
