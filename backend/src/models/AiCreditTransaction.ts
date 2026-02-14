@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document, ObjectId } from 'mongoose';
+import mongoose, { Schema, Document, Types } from 'mongoose';
 
 export type AiCreditTransactionType = 
   | 'GRANT_TO_INVESTOR' 
@@ -6,10 +6,9 @@ export type AiCreditTransactionType =
   | 'SPEND_ON_AI_SERVICE';
 
 export interface IAiCreditTransaction extends Document {
-  _id: ObjectId;
-  fromUserId?: ObjectId | null;
-  toUserId?: ObjectId | null;
-  ideaId?: ObjectId | null;
+  fromUserId?: Types.ObjectId | null;
+  toUserId?: Types.ObjectId | null;
+  ideaId?: Types.ObjectId | null;
   type: AiCreditTransactionType;
   amount: number;
   memo?: string;

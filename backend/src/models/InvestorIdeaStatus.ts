@@ -1,11 +1,10 @@
-import mongoose, { Schema, Document, ObjectId } from 'mongoose';
+import mongoose, { Schema, Document, Types } from 'mongoose';
 
 export type InvestorIdeaStatusType = 'UNSEEN' | 'SAVED' | 'REJECTED';
 
 export interface IInvestorIdeaStatus extends Document {
-  _id: ObjectId;
-  investorId: ObjectId;
-  ideaId: ObjectId;
+  investorId: Types.ObjectId;
+  ideaId: Types.ObjectId;
   status: InvestorIdeaStatusType;
   createdAt: Date;
   updatedAt: Date;

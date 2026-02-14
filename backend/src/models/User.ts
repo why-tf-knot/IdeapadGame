@@ -1,9 +1,8 @@
-import mongoose, { Schema, Document, ObjectId } from 'mongoose';
+import mongoose, { Schema, Document } from 'mongoose';
 
 export type UserRole = 'FOUNDER' | 'INVESTOR';
 
 export interface IUser extends Document {
-  _id: ObjectId;
   name: string;
   email: string;
   passwordHash: string;

@@ -1,8 +1,7 @@
-import mongoose, { Schema, Document, ObjectId } from 'mongoose';
+import mongoose, { Schema, Document, Types } from 'mongoose';
 
 export interface IAiCreditWallet extends Document {
-  _id: ObjectId;
-  userId: ObjectId;
+  userId: Types.ObjectId;
   totalBalance: number;
   createdAt: Date;
   updatedAt: Date;

@@ -1,9 +1,8 @@
-import mongoose, { Schema, Document, ObjectId } from 'mongoose';
+import mongoose, { Schema, Document, Types } from 'mongoose';
 
 export interface IAiCreditAllocation extends Document {
-  _id: ObjectId;
-  ideaId: ObjectId;
-  investorId: ObjectId;
+  ideaId: Types.ObjectId;
+  investorId: Types.ObjectId;
   amount: number;
   createdAt: Date;
   updatedAt: Date;

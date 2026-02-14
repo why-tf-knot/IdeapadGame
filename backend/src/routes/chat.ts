@@ -68,8 +68,8 @@ router.get('/threads/:threadId', authMiddleware, async (req: AuthRequest, res: R
 
     // Check if user is part of the thread
     const isParticipant =
-      thread.investorId._id.toString() === req.userId?.toString() ||
-      thread.founderId._id.toString() === req.userId?.toString();
+      thread.investorId.toString() === req.userId?.toString() ||
+      thread.founderId.toString() === req.userId?.toString();
 
     if (!isParticipant) {
       return res.status(403).json({ error: 'Access denied' });

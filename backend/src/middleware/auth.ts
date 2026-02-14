@@ -1,9 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { ObjectId } from 'mongoose';
+import { Types } from 'mongoose';
 
 export interface AuthRequest extends Request {
-  userId?: ObjectId;
+  userId?: Types.ObjectId;
   userRole?: string;
 }
 
@@ -16,7 +16,7 @@ export const authMiddleware = (req: AuthRequest, res: Response, next: NextFuncti
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as {
-      userId: ObjectId;
+      userId: Types.ObjectId;
       role: string;
     };
 

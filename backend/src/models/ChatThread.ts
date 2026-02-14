@@ -1,16 +1,15 @@
-import mongoose, { Schema, Document, ObjectId } from 'mongoose';
+import mongoose, { Schema, Document, Types } from 'mongoose';
 
 export interface IChatMessage {
-  senderId: ObjectId;
+  senderId: Types.ObjectId;
   text: string;
   createdAt: Date;
 }
 
 export interface IChatThread extends Document {
-  _id: ObjectId;
-  ideaId: ObjectId;
-  founderId: ObjectId;
-  investorId: ObjectId;
+  ideaId: Types.ObjectId;
+  founderId: Types.ObjectId;
+  investorId: Types.ObjectId;
   messages: IChatMessage[];
   createdAt: Date;
   updatedAt: Date;

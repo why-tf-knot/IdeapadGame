@@ -1,12 +1,11 @@
-import mongoose, { Schema, Document, ObjectId } from 'mongoose';
+import mongoose, { Schema, Document, Types } from 'mongoose';
 
 export type IdeaCategory = 'App' | 'Website' | 'SaaS' | 'AI Tool' | 'Content/Productized Service' | 'Other';
 export type IdeaStage = 'Idea' | 'Prototype' | 'MVP' | 'Launched';
 export type IdeaStatus = 'PENDING_REVIEW' | 'ACTIVE' | 'ARCHIVED';
 
 export interface IIdea extends Document {
-  _id: ObjectId;
-  founderId: ObjectId;
+  founderId: Types.ObjectId;
   title: string;
   oneLineSummary: string;
   category: IdeaCategory;

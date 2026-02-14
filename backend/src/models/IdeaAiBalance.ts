@@ -1,8 +1,7 @@
-import mongoose, { Schema, Document, ObjectId } from 'mongoose';
+import mongoose, { Schema, Document, Types } from 'mongoose';
 
 export interface IIdeaAiBalance extends Document {
-  _id: ObjectId;
-  ideaId: ObjectId;
+  ideaId: Types.ObjectId;
   balance: number;
   createdAt: Date;
   updatedAt: Date;

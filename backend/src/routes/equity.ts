@@ -33,14 +33,15 @@ router.get('/idea/:ideaId', authMiddleware, async (req: AuthRequest, res: Respon
       process.env.CREDITS_PER_EQUITY_PERCENT || '10000'
     );
 
-    const equityMappings = allocations.map((alloc) => {
+      const equityMappings = allocations.map((alloc) => {
       const investorShare = totalInvested > 0 ? alloc.amount / totalInvested : 0;
       const totalEquityPercent = (totalSpent / creditsPerEquityPercent) * 1.0;
       const investorEquityPercent = investorShare * totalEquityPercent;
+      const investorDoc = alloc.investorId as any;
 
       return {
-        investorId: alloc.investorId._id,
-        investorName: (alloc.investorId as any).name,
+        investorId: investorDoc._id,
+        investorName: investorDoc.name,
         creditsAllocated: alloc.amount,
         estimatedEquityPercent: investorEquityPercent,
       };
