@@ -196,10 +196,10 @@ PORT=3001
 ### Issue: "Demo data script fails"
 **Solutions:**
 1. Make sure MongoDB is running
-2. Check the `MONGO_URI` variable in demo-data.ts
+2. Check the `MONGODB_URI` variable in .env file
 3. Try with explicit URI:
    ```bash
-   MONGO_URI=mongodb://localhost:27017/buildpaper-demo npx ts-node demo-data.ts
+   MONGODB_URI=mongodb://localhost:27017/buildpaper npx ts-node demo-data.ts
    ```
 
 ### Issue: "Permission denied: ./start.sh"
