@@ -7,6 +7,7 @@ import { Idea } from '../models/Idea';
 import { authMiddleware, roleMiddleware, AuthRequest } from '../middleware/auth';
 import { runAiTool } from '../services/aiService';
 import aiCacheService from '../services/cacheService';
+import analyticsService from '../services/analyticsService';
 
 const router = express.Router();
 
@@ -102,12 +103,19 @@ router.post(
       });
       await transaction.save();
 
+      // Track analytics
+      analyticsService.trackCreditsAllocated(ideaId, amount, req.userId!.toString());
+
       res.json({
         message: 'Credits invested successfully',
         newBalance: wallet.totalBalance,
         ideaBalance: ideaBalance.balance,
       });
     } catch (error) {
+      analyticsService.trackError(error as Error, { 
+        route: '/credits/invest',
+        userId: req.userId?.toString() 
+      });
       console.error('Invest credits error:', error);
       res.status(500).json({ error: 'Internal server error' });
     }
@@ -175,6 +183,11 @@ router.post(
       const cachedResult = aiCacheService.get(ideaId, service);
       if (cachedResult) {
         console.log(`[AI Cache] Returning cached result for ${service} on idea ${ideaId}`);
+        
+        // Track analytics for cached response
+        analyticsService.trackAiToolUsed(ideaId, service, amount, true);
+        analyticsService.trackCacheHit(service, ideaId);
+        
         return res.json({
           message: 'Credits spent successfully',
           newBalance: ideaBalance.balance,
@@ -183,6 +196,9 @@ router.post(
           cached: true,
         });
       }
+
+      // Track cache miss
+      analyticsService.trackCacheMiss(service, ideaId);
 
       // Decrease idea balance
       ideaBalance.balance -= amount;
@@ -203,6 +219,10 @@ router.post(
 
       // Cache the result for 1 hour
       aiCacheService.set(ideaId, service, aiServiceResult);
+
+      // Track analytics for new AI request
+      analyticsService.trackAiToolUsed(ideaId, service, amount, false);
+      analyticsService.trackCreditsSpent(ideaId, amount, service, false);
 
       res.json({
         message: 'Credits spent successfully',

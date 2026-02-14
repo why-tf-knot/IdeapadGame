@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import { User } from '../models/User';
 import { AiCreditWallet } from '../models/AiCreditWallet';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
+import analyticsService from '../services/analyticsService';
 
 const router = express.Router();
 
@@ -56,6 +57,9 @@ router.post('/register', async (req: Request, res: Response) => {
       { expiresIn: '30d' }
     );
 
+    // Track registration event
+    analyticsService.trackUserRegistered(user._id.toString(), user.role as 'FOUNDER' | 'INVESTOR');
+
     res.status(201).json({
       token,
       user: {
@@ -66,6 +70,7 @@ router.post('/register', async (req: Request, res: Response) => {
       },
     });
   } catch (error) {
+    analyticsService.trackError(error as Error, { route: '/auth/register' });
     console.error('Registration error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
@@ -100,6 +105,9 @@ router.post('/login', async (req: Request, res: Response) => {
       { expiresIn: '30d' }
     );
 
+    // Track login event
+    analyticsService.trackUserLogin(user._id.toString(), user.role as 'FOUNDER' | 'INVESTOR');
+
     res.json({
       token,
       user: {
@@ -110,6 +118,7 @@ router.post('/login', async (req: Request, res: Response) => {
       },
     });
   } catch (error) {
+    analyticsService.trackError(error as Error, { route: '/auth/login' });
     console.error('Login error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }

@@ -2,6 +2,7 @@ import express, { Response } from 'express';
 import { Idea } from '../models/Idea';
 import { InvestorIdeaStatus } from '../models/InvestorIdeaStatus';
 import { authMiddleware, roleMiddleware, AuthRequest } from '../middleware/auth';
+import analyticsService from '../services/analyticsService';
 
 const router = express.Router();
 
@@ -68,8 +69,16 @@ router.post(
         await idea.save();
       }
 
+      // Track analytics
+      analyticsService.trackIdeaReviewed(ideaId, 'saved');
+      analyticsService.trackPaperToss(ideaId, 'save', 'swipe_right');
+
       res.json({ message: 'Idea saved successfully' });
     } catch (error) {
+      analyticsService.trackError(error as Error, { 
+        route: '/review/:ideaId/save',
+        userId: req.userId?.toString() 
+      });
       console.error('Save idea error:', error);
       res.status(500).json({ error: 'Internal server error' });
     }
@@ -98,8 +107,16 @@ router.post(
         { upsert: true, new: true }
       );
 
+      // Track analytics
+      analyticsService.trackIdeaReviewed(ideaId, 'rejected');
+      analyticsService.trackPaperToss(ideaId, 'reject', 'swipe_down');
+
       res.json({ message: 'Idea rejected' });
     } catch (error) {
+      analyticsService.trackError(error as Error, { 
+        route: '/review/:ideaId/reject',
+        userId: req.userId?.toString() 
+      });
       console.error('Reject idea error:', error);
       res.status(500).json({ error: 'Internal server error' });
     }
