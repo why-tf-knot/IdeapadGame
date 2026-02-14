@@ -48,7 +48,7 @@ router.post(
   roleMiddleware(['INVESTOR']),
   async (req: AuthRequest, res: Response) => {
     try {
-      const { ideaId } = req.params;
+      const ideaId = req.params.ideaId as string;
 
       // Check if idea exists
       const idea = await Idea.findById(ideaId);
@@ -92,7 +92,7 @@ router.post(
   roleMiddleware(['INVESTOR']),
   async (req: AuthRequest, res: Response) => {
     try {
-      const { ideaId } = req.params;
+      const ideaId = req.params.ideaId as string;
 
       // Check if idea exists
       const idea = await Idea.findById(ideaId);
