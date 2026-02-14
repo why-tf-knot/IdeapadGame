@@ -9,9 +9,10 @@ import {
   Alert,
   Modal,
   TouchableOpacity,
-  Image,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
+import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import { reviewAPI, creditsAPI } from '../services/api';
 import { Idea } from '../types';
 
@@ -19,14 +20,23 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH * 0.9;
 const CARD_HEIGHT = SCREEN_HEIGHT * 0.6;
 
+const hapticOptions = {
+  enableVibrateFallback: true,
+  ignoreAndroidSystemSettings: false,
+};
+
 const PaperTossScreen: React.FC = () => {
   const [currentIdea, setCurrentIdea] = useState<Idea | null>(null);
   const [loading, setLoading] = useState(true);
   const [showDetails, setShowDetails] = useState(false);
   const [showCreditModal, setShowCreditModal] = useState(false);
   const [selectedAmount, setSelectedAmount] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
 
   const pan = useRef(new Animated.ValueXY()).current;
+  const scale = useRef(new Animated.Value(1)).current;
+  const opacity = useRef(new Animated.Value(1)).current;
+  
   const rotate = pan.x.interpolate({
     inputRange: [-SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2],
     outputRange: ['-30deg', '0deg', '30deg'],
@@ -38,9 +48,26 @@ const PaperTossScreen: React.FC = () => {
 
   const loadNextIdea = async () => {
     setLoading(true);
+    setIsAnimating(false);
+    
+    // Reset animations
+    pan.setValue({ x: 0, y: 0 });
+    scale.setValue(1);
+    opacity.setValue(1);
+    
     try {
       const response = await reviewAPI.getNext();
       setCurrentIdea(response.idea);
+      
+      // Entrance animation
+      if (response.idea) {
+        Animated.spring(scale, {
+          toValue: 1,
+          friction: 8,
+          tension: 40,
+          useNativeDriver: true,
+        }).start();
+      }
     } catch (error) {
       Alert.alert('Error', 'Failed to load idea');
     } finally {
@@ -49,25 +76,38 @@ const PaperTossScreen: React.FC = () => {
   };
 
   const handleReject = async () => {
-    if (!currentIdea) return;
+    if (!currentIdea || isAnimating) return;
+
+    setIsAnimating(true);
+    
+    // Haptic feedback for rejection
+    ReactNativeHapticFeedback.trigger('notificationWarning', hapticOptions);
 
     try {
       await reviewAPI.rejectIdea(currentIdea._id);
-      resetCardPosition();
       loadNextIdea();
     } catch (error) {
+      setIsAnimating(false);
       Alert.alert('Error', 'Failed to reject idea');
+      resetCardPosition();
     }
   };
 
   const handleSave = async () => {
-    if (!currentIdea) return;
+    if (!currentIdea || isAnimating) return;
+
+    setIsAnimating(true);
+    
+    // Haptic feedback for saving
+    ReactNativeHapticFeedback.trigger('notificationSuccess', hapticOptions);
 
     try {
       await reviewAPI.saveIdea(currentIdea._id);
       setShowCreditModal(true);
     } catch (error) {
+      setIsAnimating(false);
       Alert.alert('Error', 'Failed to save idea');
+      resetCardPosition();
     }
   };
 
@@ -75,54 +115,110 @@ const PaperTossScreen: React.FC = () => {
     if (selectedAmount > 0 && currentIdea) {
       try {
         await creditsAPI.invest(currentIdea._id, selectedAmount);
+        ReactNativeHapticFeedback.trigger('impactHeavy', hapticOptions);
         Alert.alert('Success', `Allocated ${selectedAmount} credits!`);
       } catch (error: any) {
+        ReactNativeHapticFeedback.trigger('notificationError', hapticOptions);
         Alert.alert('Error', error.response?.data?.error || 'Failed to allocate credits');
       }
     }
     setShowCreditModal(false);
-    resetCardPosition();
+    setSelectedAmount(0);
     loadNextIdea();
   };
 
   const resetCardPosition = () => {
-    Animated.spring(pan, {
-      toValue: { x: 0, y: 0 },
-      useNativeDriver: false,
-    }).start();
+    Animated.parallel([
+      Animated.spring(pan, {
+        toValue: { x: 0, y: 0 },
+        friction: 7,
+        tension: 40,
+        useNativeDriver: false,
+      }),
+      Animated.spring(scale, {
+        toValue: 1,
+        friction: 7,
+        useNativeDriver: true,
+      }),
+    ]).start();
   };
 
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
+      onStartShouldSetPanResponder: () => !isAnimating,
+      onPanResponderGrant: () => {
+        // Light haptic on touch
+        ReactNativeHapticFeedback.trigger('impactLight', hapticOptions);
+        
+        // Slight scale down when grabbed
+        Animated.spring(scale, {
+          toValue: 0.95,
+          friction: 7,
+          useNativeDriver: true,
+        }).start();
+      },
       onPanResponderMove: Animated.event([null, { dx: pan.x, dy: pan.y }], {
         useNativeDriver: false,
       }),
       onPanResponderRelease: (_, gestureState) => {
-        const { dx, dy, vy } = gestureState;
+        const { dx, dy, vy, vx } = gestureState;
+
+        // Restore scale
+        Animated.spring(scale, {
+          toValue: 1,
+          friction: 7,
+          useNativeDriver: true,
+        }).start();
 
         // Reject: Swipe down with velocity
-        if (dy > 100 && vy > 0.5) {
-          Animated.timing(pan, {
-            toValue: { x: dx, y: SCREEN_HEIGHT },
-            duration: 200,
-            useNativeDriver: false,
-          }).start(() => {
+        if (dy > 120 && vy > 0.7) {
+          // Crumple effect - shrink and fade
+          Animated.parallel([
+            Animated.timing(pan, {
+              toValue: { x: dx, y: SCREEN_HEIGHT + 100 },
+              duration: 300,
+              useNativeDriver: false,
+            }),
+            Animated.timing(scale, {
+              toValue: 0.3,
+              duration: 300,
+              useNativeDriver: true,
+            }),
+            Animated.timing(opacity, {
+              toValue: 0,
+              duration: 300,
+              useNativeDriver: true,
+            }),
+          ]).start(() => {
             handleReject();
           });
         }
-        // Save: Swipe right
-        else if (dx > 120) {
-          Animated.timing(pan, {
-            toValue: { x: SCREEN_WIDTH, y: dy },
-            duration: 200,
-            useNativeDriver: false,
-          }).start(() => {
+        // Save: Swipe right with velocity
+        else if (dx > 150 || (dx > 100 && vx > 0.7)) {
+          // Flying paper effect
+          Animated.parallel([
+            Animated.timing(pan, {
+              toValue: { x: SCREEN_WIDTH + 100, y: dy - 50 },
+              duration: 400,
+              useNativeDriver: false,
+            }),
+            Animated.timing(scale, {
+              toValue: 0.8,
+              duration: 400,
+              useNativeDriver: true,
+            }),
+            Animated.timing(opacity, {
+              toValue: 0.5,
+              duration: 400,
+              useNativeDriver: true,
+            }),
+          ]).start(() => {
             handleSave();
           });
         }
         // Snap back
         else {
+          ReactNativeHapticFeedback.trigger('impactMedium', hapticOptions);
           resetCardPosition();
         }
       },
@@ -132,7 +228,8 @@ const PaperTossScreen: React.FC = () => {
   if (loading) {
     return (
       <View style={styles.container}>
-        <Text style={styles.loadingText}>Loading...</Text>
+        <ActivityIndicator size="large" color="#007AFF" />
+        <Text style={styles.loadingText}>Loading next idea...</Text>
       </View>
     );
   }
@@ -140,7 +237,9 @@ const PaperTossScreen: React.FC = () => {
   if (!currentIdea) {
     return (
       <View style={styles.container}>
+        <Text style={styles.emptyIcon}>🎉</Text>
         <Text style={styles.emptyText}>No more ideas to review!</Text>
+        <Text style={styles.emptySubtext}>Check back later for new submissions</Text>
       </View>
     );
   }
@@ -148,16 +247,54 @@ const PaperTossScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       {/* Trash bin indicator */}
-      <View style={styles.trashBin}>
+      <Animated.View
+        style={[
+          styles.trashBin,
+          {
+            opacity: pan.y.interpolate({
+              inputRange: [0, 120],
+              outputRange: [0.3, 1],
+              extrapolate: 'clamp',
+            }),
+            transform: [
+              {
+                scale: pan.y.interpolate({
+                  inputRange: [0, 120],
+                  outputRange: [1, 1.2],
+                  extrapolate: 'clamp',
+                }),
+              },
+            ],
+          },
+        ]}>
         <Text style={styles.trashIcon}>🗑️</Text>
         <Text style={styles.trashText}>Swipe down to reject</Text>
-      </View>
+      </Animated.View>
 
       {/* Saved tray indicator */}
-      <View style={styles.savedTray}>
+      <Animated.View
+        style={[
+          styles.savedTray,
+          {
+            opacity: pan.x.interpolate({
+              inputRange: [0, 150],
+              outputRange: [0.3, 1],
+              extrapolate: 'clamp',
+            }),
+            transform: [
+              {
+                scale: pan.x.interpolate({
+                  inputRange: [0, 150],
+                  outputRange: [1, 1.2],
+                  extrapolate: 'clamp',
+                }),
+              },
+            ],
+          },
+        ]}>
         <Text style={styles.savedIcon}>📥</Text>
         <Text style={styles.savedText}>Swipe right to save</Text>
-      </View>
+      </Animated.View>
 
       {/* Paper card */}
       <Animated.View
@@ -168,7 +305,9 @@ const PaperTossScreen: React.FC = () => {
               { translateX: pan.x },
               { translateY: pan.y },
               { rotate },
+              { scale },
             ],
+            opacity,
           },
         ]}
         {...panResponder.panHandlers}>
@@ -277,11 +416,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    fontSize: 18,
+    marginTop: 10,
+    fontSize: 16,
     color: '#666',
   },
+  emptyIcon: {
+    fontSize: 64,
+    marginBottom: 15,
+  },
   emptyText: {
-    fontSize: 18,
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 8,
+  },
+  emptySubtext: {
+    fontSize: 16,
     color: '#666',
     textAlign: 'center',
   },
