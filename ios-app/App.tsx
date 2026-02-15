@@ -13,6 +13,9 @@ import RegisterScreen from './src/screens/RegisterScreen';
 import MyIdeasScreen from './src/screens/MyIdeasScreen';
 import CreateIdeaScreen from './src/screens/CreateIdeaScreen';
 import IdeaDetailScreen from './src/screens/IdeaDetailScreen';
+import IdeaWizardScreen from './src/screens/IdeaWizardScreen';
+import PitchGeneratingScreen from './src/screens/PitchGeneratingScreen';
+import PitchSummaryScreen from './src/screens/PitchSummaryScreen';
 import PaperTossScreen from './src/screens/PaperTossScreen';
 import SavedIdeasScreen from './src/screens/SavedIdeasScreen';
 import WalletScreen from './src/screens/WalletScreen';
@@ -90,8 +93,18 @@ function MainStack({ userRole }: { userRole: string | null }) {
           />
           <Stack.Screen 
             name="CreateIdea" 
-            component={CreateIdeaScreen}
-            options={{ title: 'New Idea' }}
+            component={IdeaWizardScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen 
+            name="PitchGenerating" 
+            component={PitchGeneratingScreen}
+            options={{ headerShown: false, gestureEnabled: false }}
+          />
+          <Stack.Screen 
+            name="PitchSummary" 
+            component={PitchSummaryScreen}
+            options={{ headerShown: false, gestureEnabled: false }}
           />
           <Stack.Screen 
             name="IdeaDetail" 

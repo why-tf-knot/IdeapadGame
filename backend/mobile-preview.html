@@ -1,0 +1,3101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BuildPaper - iPhone Preview</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .preview-container {
+            display: flex;
+            gap: 40px;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-width: 1400px;
+        }
+        
+        .iphone-frame {
+            width: 375px;
+            height: 812px;
+            background: #000;
+            border-radius: 40px;
+            padding: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.6),
+                        0 0 0 2px #1a1a1a,
+                        inset 0 0 0 1px rgba(255,255,255,0.1);
+            position: relative;
+        }
+        
+        .iphone-notch {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 150px;
+            height: 30px;
+            background: #000;
+            border-bottom-left-radius: 20px;
+            border-bottom-right-radius: 20px;
+            z-index: 10;
+        }
+        
+        .iphone-screen {
+            width: 100%;
+            height: 100%;
+            background: #f0f0f0;
+            border-radius: 32px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .status-bar {
+            height: 44px;
+            background: #f8f8f8;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            padding-top: 10px;
+            font-size: 14px;
+        }
+        
+        .time {
+            font-weight: 600;
+        }
+        
+        .signal-icons {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+        
+        .screen-content {
+            height: calc(100% - 44px);
+            background: #f0f0f0;
+            position: relative;
+            overflow: hidden;
+            perspective: 1200px;
+            perspective-origin: 50% 40%;
+        }
+        
+        /* ========================================
+           3D ROOM - Immersive Cozy Study/Office
+           ======================================== */
+
+        /* --- Room Container --- */
+        .room-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+        }
+
+        /* --- 1. FLOOR: Rich Hardwood --- */
+        .room-floor {
+            position: absolute;
+            width: 140%;
+            height: 120%;
+            left: -20%;
+            bottom: -10%;
+            background:
+                /* Wax shine / reflection */
+                linear-gradient(180deg,
+                    rgba(255,255,255,0.07) 0%,
+                    rgba(255,255,255,0.02) 30%,
+                    transparent 60%),
+                /* Plank color variation (staggered) */
+                repeating-linear-gradient(90deg,
+                    #7B5B3A 0px, #7B5B3A 48px,
+                    #6D5034 48px, #6D5034 50px,
+                    #6A4C30 50px, #6A4C30 98px,
+                    #75553A 98px, #75553A 100px,
+                    #5F4428 100px, #5F4428 148px,
+                    #6D5034 148px, #6D5034 150px),
+                /* Base depth gradient */
+                linear-gradient(180deg,
+                    #7B5B3A 0%,
+                    #6B4E32 40%,
+                    #5A3E28 100%);
+            transform: rotateX(60deg) translateZ(-300px);
+            transform-origin: bottom center;
+        }
+
+        /* Plank lines + wood grain */
+        .room-floor::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background:
+                /* Horizontal plank seams */
+                repeating-linear-gradient(180deg,
+                    transparent 0px,
+                    transparent 78px,
+                    rgba(0,0,0,0.15) 78px,
+                    rgba(0,0,0,0.08) 80px),
+                /* Vertical plank dividers */
+                repeating-linear-gradient(90deg,
+                    transparent 0px,
+                    transparent 48px,
+                    rgba(0,0,0,0.10) 48px,
+                    rgba(0,0,0,0.10) 50px),
+                /* Wood grain — thin horizontal streaks */
+                repeating-linear-gradient(180deg,
+                    transparent 0px,
+                    transparent 3px,
+                    rgba(0,0,0,0.03) 3px,
+                    rgba(0,0,0,0.03) 4px,
+                    transparent 4px,
+                    transparent 9px,
+                    rgba(0,0,0,0.02) 9px,
+                    rgba(0,0,0,0.02) 10px),
+                /* Second grain layer — offset */
+                repeating-linear-gradient(178deg,
+                    transparent 0px,
+                    transparent 5px,
+                    rgba(60,35,12,0.04) 5px,
+                    rgba(60,35,12,0.04) 6px,
+                    transparent 6px,
+                    transparent 14px);
+        }
+
+        /* Wax sheen highlight overlay */
+        .room-floor::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background:
+                radial-gradient(ellipse 80% 40% at 50% 20%,
+                    rgba(255,235,200,0.10) 0%,
+                    transparent 70%);
+            pointer-events: none;
+        }
+
+        /* --- 2. BACK WALL --- */
+        .room-back-wall {
+            position: absolute;
+            width: 100%;
+            height: 60%;
+            top: 0;
+            left: 0;
+            background:
+                /* Subtle wall texture (noise-like) */
+                repeating-linear-gradient(135deg,
+                    transparent 0px,
+                    transparent 2px,
+                    rgba(180,170,155,0.04) 2px,
+                    rgba(180,170,155,0.04) 3px),
+                repeating-linear-gradient(45deg,
+                    transparent 0px,
+                    transparent 3px,
+                    rgba(160,150,135,0.03) 3px,
+                    rgba(160,150,135,0.03) 4px),
+                /* Wall base gradient */
+                linear-gradient(180deg,
+                    #EDE9E3 0%,
+                    #E5E0D8 40%,
+                    #D8D2C8 100%);
+            box-shadow:
+                inset 0 -20px 40px rgba(0,0,0,0.08),
+                inset 0 2px 0 rgba(255,255,255,0.5);
+        }
+
+        /* Crown molding (top decorative border) */
+        .room-back-wall::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 14px;
+            background:
+                linear-gradient(180deg,
+                    #F5F2ED 0%,
+                    #DDD8D0 3px,
+                    #C8C2B8 5px,
+                    #E0DBD4 7px,
+                    #F0ECE6 9px,
+                    #D5D0C8 11px,
+                    #E8E4DD 14px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        }
+
+        /* Baseboard / wainscoting (bottom panel) */
+        .room-back-wall::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 36px;
+            background:
+                /* Panel detail */
+                repeating-linear-gradient(90deg,
+                    transparent 0px,
+                    transparent 60px,
+                    rgba(0,0,0,0.04) 60px,
+                    rgba(0,0,0,0.04) 61px),
+                /* Baseboard gradient */
+                linear-gradient(180deg,
+                    #C8C0B4 0%,
+                    #B8AFA2 4px,
+                    #C2BAB0 8px,
+                    #AEA698 60%,
+                    #9E9688 100%);
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.3),
+                0 -1px 3px rgba(0,0,0,0.06);
+        }
+
+        /* --- 3. LEFT WALL --- */
+        .room-left-wall {
+            position: absolute;
+            width: 50%;
+            height: 100%;
+            left: 0;
+            top: 0;
+            background:
+                /* Lighting: darker toward corner */
+                linear-gradient(90deg,
+                    rgba(0,0,0,0.12) 0%,
+                    rgba(0,0,0,0.03) 60%,
+                    transparent 100%),
+                /* Wall texture */
+                repeating-linear-gradient(120deg,
+                    transparent 0px,
+                    transparent 3px,
+                    rgba(170,160,145,0.04) 3px,
+                    rgba(170,160,145,0.04) 4px),
+                /* Wall color */
+                linear-gradient(90deg,
+                    #D5D0C8 0%,
+                    #E2DDD6 50%,
+                    #EBE7E1 100%);
+            transform: rotateY(60deg) translateX(-100%) translateZ(100px);
+            transform-origin: right center;
+            opacity: 0.7;
+        }
+
+        /* Left wall baseboard */
+        .room-left-wall::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 30px;
+            background:
+                linear-gradient(180deg,
+                    #B8B0A4 0%,
+                    #A8A094 4px,
+                    #B2AAA0 8px,
+                    #9E968A 100%);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.25);
+        }
+
+        /* --- 4. RIGHT WALL (NEW) --- */
+        .room-right-wall {
+            position: absolute;
+            width: 50%;
+            height: 100%;
+            right: 0;
+            top: 0;
+            background:
+                /* Lighting: darker toward corner */
+                linear-gradient(-90deg,
+                    rgba(0,0,0,0.10) 0%,
+                    rgba(0,0,0,0.02) 50%,
+                    transparent 100%),
+                /* Wall texture */
+                repeating-linear-gradient(60deg,
+                    transparent 0px,
+                    transparent 3px,
+                    rgba(170,160,145,0.04) 3px,
+                    rgba(170,160,145,0.04) 4px),
+                /* Wall color */
+                linear-gradient(-90deg,
+                    #D5D0C8 0%,
+                    #E0DBD4 50%,
+                    #E8E4DD 100%);
+            transform: rotateY(-60deg) translateX(100%) translateZ(100px);
+            transform-origin: left center;
+            opacity: 0.55;
+        }
+
+        /* Right wall baseboard */
+        .room-right-wall::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 30px;
+            background:
+                linear-gradient(180deg,
+                    #B8B0A4 0%,
+                    #A8A094 4px,
+                    #B2AAA0 8px,
+                    #9E968A 100%);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.25);
+        }
+
+        /* --- 5. DOOR on Left Wall (NEW) --- */
+        .room-door-frame {
+            position: absolute;
+            left: 4%;
+            top: 18%;
+            width: 60px;
+            height: 150px;
+            background:
+                linear-gradient(90deg,
+                    #9E8B74 0%,
+                    #B8A48C 30%,
+                    #A89478 100%);
+            border-radius: 2px 2px 0 0;
+            box-shadow:
+                inset 0 0 0 3px #8B7860,
+                0 2px 8px rgba(0,0,0,0.2);
+            transform: rotateY(15deg);
+            transform-origin: left center;
+            z-index: 2;
+        }
+
+        .room-door {
+            position: absolute;
+            left: 5%;
+            top: 19%;
+            width: 54px;
+            height: 146px;
+            background:
+                /* 6-panel detail */
+                linear-gradient(180deg,
+                    transparent 0%,
+                    transparent 4%,
+                    rgba(255,255,255,0.06) 4%,
+                    rgba(255,255,255,0.06) 5%,
+                    transparent 5%,
+                    transparent 30%,
+                    rgba(255,255,255,0.06) 30%,
+                    rgba(255,255,255,0.06) 31%,
+                    transparent 31%,
+                    transparent 35%,
+                    rgba(255,255,255,0.06) 35%,
+                    rgba(255,255,255,0.06) 36%,
+                    transparent 36%,
+                    transparent 64%,
+                    rgba(255,255,255,0.06) 64%,
+                    rgba(255,255,255,0.06) 65%,
+                    transparent 65%,
+                    transparent 68%,
+                    rgba(255,255,255,0.06) 68%,
+                    rgba(255,255,255,0.06) 69%,
+                    transparent 69%,
+                    transparent 95%,
+                    rgba(255,255,255,0.06) 95%,
+                    rgba(255,255,255,0.06) 96%,
+                    transparent 96%),
+                /* Vertical center divider */
+                linear-gradient(90deg,
+                    transparent 0%,
+                    transparent 46%,
+                    rgba(255,255,255,0.05) 46%,
+                    rgba(255,255,255,0.05) 54%,
+                    transparent 54%),
+                /* Door wood grain */
+                repeating-linear-gradient(180deg,
+                    transparent 0px,
+                    transparent 4px,
+                    rgba(0,0,0,0.02) 4px,
+                    rgba(0,0,0,0.02) 5px),
+                /* Door base color */
+                linear-gradient(180deg,
+                    #5A4535 0%,
+                    #4A3728 40%,
+                    #3E2E20 100%);
+            border-radius: 2px 2px 0 0;
+            transform: rotateY(15deg);
+            transform-origin: left center;
+            box-shadow:
+                inset 2px 0 6px rgba(0,0,0,0.3),
+                -2px 0 8px rgba(0,0,0,0.2);
+            z-index: 3;
+        }
+
+        /* Door panels (recessed look) */
+        .room-door::before {
+            content: '';
+            position: absolute;
+            /* Top panels */
+            top: 8%; left: 12%; width: 76%; height: 24%;
+            background:
+                linear-gradient(180deg,
+                    rgba(0,0,0,0.12) 0%,
+                    rgba(0,0,0,0.04) 50%,
+                    rgba(0,0,0,0.10) 100%);
+            border-radius: 1px;
+            box-shadow:
+                0 52px 0 rgba(0,0,0,0.08),
+                inset 0 1px 0 rgba(0,0,0,0.15),
+                inset 0 -1px 0 rgba(255,255,255,0.05);
+        }
+
+        /* Brass doorknob */
+        .room-door::after {
+            content: '';
+            position: absolute;
+            right: 7px;
+            top: 50%;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background:
+                radial-gradient(circle at 35% 35%,
+                    #E8D28C 0%,
+                    #C5A44A 40%,
+                    #8B7335 70%,
+                    #6B5525 100%);
+            box-shadow:
+                0 0 2px rgba(0,0,0,0.4),
+                0 1px 1px rgba(0,0,0,0.3),
+                inset 0 0 1px rgba(255,255,255,0.3);
+        }
+
+        /* --- 6. CEILING HINT (NEW) --- */
+        .room-ceiling {
+            position: absolute;
+            width: 100%;
+            height: 30px;
+            top: 0;
+            left: 0;
+            background:
+                linear-gradient(180deg,
+                    #F8F6F2 0%,
+                    #F2EFE9 40%,
+                    rgba(237,233,227,0.6) 70%,
+                    transparent 100%);
+            z-index: 1;
+        }
+
+        /* Ceiling-wall edge line */
+        .room-ceiling::after {
+            content: '';
+            position: absolute;
+            bottom: 4px;
+            left: 0; right: 0;
+            height: 1px;
+            background: rgba(200,195,185,0.4);
+        }
+
+        /* --- 7. AMBIENT LIGHTING OVERLAY (NEW) --- */
+        .room-light {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            background:
+                /* Warm overhead glow */
+                radial-gradient(ellipse 70% 50% at 50% 10%,
+                    rgba(255,230,170,0.12) 0%,
+                    rgba(255,220,150,0.06) 30%,
+                    rgba(255,210,130,0.02) 55%,
+                    transparent 80%),
+                /* Secondary warm fill from top-left */
+                radial-gradient(ellipse 50% 40% at 30% 20%,
+                    rgba(255,235,190,0.06) 0%,
+                    transparent 70%);
+            pointer-events: none;
+            z-index: 6;
+        }
+
+        /* --- 8. FLOOR SHADOWS from furniture (NEW) --- */
+        .room-floor-shadow {
+            position: absolute;
+            width: 140%;
+            height: 120%;
+            left: -20%;
+            bottom: -10%;
+            background:
+                /* Shadow under desk area (right) */
+                radial-gradient(ellipse 35% 20% at 75% 35%,
+                    rgba(0,0,0,0.18) 0%,
+                    rgba(0,0,0,0.06) 40%,
+                    transparent 70%),
+                /* Shadow under dustbin area (bottom-right) */
+                radial-gradient(ellipse 15% 12% at 70% 60%,
+                    rgba(0,0,0,0.14) 0%,
+                    rgba(0,0,0,0.04) 50%,
+                    transparent 75%),
+                /* Subtle ambient occlusion along walls */
+                linear-gradient(180deg,
+                    rgba(0,0,0,0.06) 0%,
+                    transparent 20%);
+            transform: rotateX(60deg) translateZ(-299px);
+            transform-origin: bottom center;
+            pointer-events: none;
+        }
+
+        /* ========================================
+           WALL DECORATIONS - Artistic Details
+           ======================================== */
+
+        /* --- PAINTING 1: Abstract Kandinsky-style (back wall, upper-left) --- */
+        .wall-painting-1 {
+            position: absolute;
+            top: 8%;
+            left: 12%;
+            width: 80px;
+            height: 60px;
+            z-index: 2;
+            /* Dark wood frame */
+            border: 6px solid #3E2B1A;
+            /* Inner gold border via outline */
+            outline: 2px solid #C5A55A;
+            outline-offset: -8px;
+            /* Canvas with abstract art - overlapping shapes via gradients */
+            background:
+                /* Orange circle top-left */
+                radial-gradient(circle 14px at 22% 30%,
+                    #E8652A 0%, #E8652A 60%, transparent 61%),
+                /* Deep red circle center-right */
+                radial-gradient(circle 10px at 68% 45%,
+                    #B52D2D 0%, #B52D2D 55%, transparent 56%),
+                /* Yellow circle bottom */
+                radial-gradient(circle 8px at 45% 75%,
+                    #E8C33A 0%, #E8C33A 50%, transparent 51%),
+                /* Blue arc top-right */
+                radial-gradient(circle 20px at 85% 15%,
+                    transparent 50%, #2A5FAA 51%, #2A5FAA 65%, transparent 66%),
+                /* Diagonal line (thin gradient) */
+                linear-gradient(135deg,
+                    transparent 30%, #2E2E2E 30.5%, #2E2E2E 31.5%, transparent 32%),
+                /* Crossing line */
+                linear-gradient(45deg,
+                    transparent 55%, #5E3B8A 55.5%, #5E3B8A 56.5%, transparent 57%),
+                /* Small green dot */
+                radial-gradient(circle 5px at 30% 55%,
+                    #3A8B4E 0%, #3A8B4E 45%, transparent 46%),
+                /* Warm cream canvas base */
+                linear-gradient(160deg, #F5ECD7 0%, #EDE0C4 50%, #E8D8B4 100%);
+            box-shadow:
+                /* Frame shadow on wall */
+                3px 4px 10px rgba(0,0,0,0.35),
+                /* Tiny highlight on frame top edge */
+                inset 0 -1px 0 rgba(255,255,255,0.15);
+        }
+
+        /* Frame inner bevel highlight */
+        .wall-painting-1::before {
+            content: '';
+            position: absolute;
+            top: -4px; left: -4px; right: -4px; bottom: -4px;
+            border: 1px solid rgba(255,255,255,0.08);
+            pointer-events: none;
+        }
+
+        /* Tiny hanging wire */
+        .wall-painting-1::after {
+            content: '';
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 20px;
+            height: 8px;
+            border-bottom: 1.5px solid #888;
+            border-radius: 0 0 50% 50%;
+        }
+
+        /* --- PAINTING 2: Landscape impression (back wall, right) --- */
+        .wall-painting-2 {
+            position: absolute;
+            top: 11%;
+            right: 18%;
+            width: 60px;
+            height: 50px;
+            z-index: 2;
+            /* Thin gold/brass frame */
+            border: 3px solid #B89B4A;
+            /* Landscape scene */
+            background:
+                /* Sun glow */
+                radial-gradient(circle 8px at 75% 28%,
+                    rgba(255,230,140,0.8) 0%, rgba(255,210,100,0.3) 60%, transparent 70%),
+                /* Distant mountains */
+                linear-gradient(155deg,
+                    transparent 48%, #7A9B6E 48.5%, #6B8E5C 55%, #5A7A4E 58%, transparent 58.5%),
+                /* Horizon tree line */
+                linear-gradient(180deg,
+                    transparent 54%,
+                    #4A6B3A 54%, #4A6B3A 58%,
+                    transparent 58.5%),
+                /* Water/field reflection */
+                linear-gradient(180deg,
+                    transparent 58%,
+                    #7BAF6A 58%, #8BBE7A 65%,
+                    #9ECB8E 75%, #A8D4A0 100%),
+                /* Sky gradient */
+                linear-gradient(180deg,
+                    #87BFEA 0%, #A8D4F0 30%, #C8E4F5 50%,
+                    #DFF0FA 60%, #F0F7FB 72%,
+                    transparent 72%);
+            box-shadow:
+                2px 3px 8px rgba(0,0,0,0.3),
+                inset 0 0 0 1px rgba(197,165,90,0.4);
+            transform: rotate(-1.5deg);
+        }
+
+        /* Frame gloss edge */
+        .wall-painting-2::before {
+            content: '';
+            position: absolute;
+            top: -1px; left: -1px; right: -1px; bottom: -1px;
+            border-top: 1px solid rgba(255,255,255,0.3);
+            border-left: 1px solid rgba(255,255,255,0.2);
+            pointer-events: none;
+        }
+
+        /* Hanging wire */
+        .wall-painting-2::after {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 16px;
+            height: 6px;
+            border-bottom: 1.5px solid #999;
+            border-radius: 0 0 50% 50%;
+        }
+
+        /* --- WALL CLOCK: Analog clock on back wall --- */
+        .wall-clock {
+            position: absolute;
+            top: 6%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            z-index: 2;
+            /* Clock face */
+            background:
+                /* Center dot */
+                radial-gradient(circle 2px at 50% 50%,
+                    #333 0%, #333 80%, transparent 81%),
+                /* Cream face */
+                radial-gradient(circle at 50% 50%,
+                    #FDF8EE 0%, #F5EFE0 70%, #EDE6D4 100%);
+            border: 2.5px solid #4A3C2E;
+            box-shadow:
+                2px 3px 8px rgba(0,0,0,0.3),
+                inset 0 0 4px rgba(0,0,0,0.08),
+                0 0 0 1px rgba(197,165,90,0.5);
+        }
+
+        /* Hour markers (12 and 6 o'clock) */
+        .wall-clock::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 1.5px;
+            height: 5px;
+            top: 3px;
+            background: #333;
+            box-shadow:
+                /* 6 o'clock marker */
+                0 28px 0 #333,
+                /* 3 o'clock marker (rotated via positioning) */
+                14px 14px 0 #333,
+                /* 9 o'clock marker */
+                -14px 14px 0 #333;
+        }
+
+        /* 3 and 9 o'clock markers */
+        .wall-clock::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 5px;
+            height: 1.5px;
+            right: 3px;
+            background: #333;
+            box-shadow:
+                /* 9 o'clock */
+                -30px 0 0 #333;
+        }
+
+        /* Hour hand */
+        .clock-hand-hour {
+            position: absolute;
+            bottom: 50%;
+            left: 50%;
+            width: 2px;
+            height: 12px;
+            margin-left: -1px;
+            background: linear-gradient(to top, #333 0%, #555 100%);
+            transform-origin: bottom center;
+            transform: rotate(60deg);
+            border-radius: 1px;
+            z-index: 1;
+        }
+
+        /* Minute hand */
+        .clock-hand-minute {
+            position: absolute;
+            bottom: 50%;
+            left: 50%;
+            width: 1.5px;
+            height: 16px;
+            margin-left: -0.75px;
+            background: linear-gradient(to top, #222 0%, #444 100%);
+            transform-origin: bottom center;
+            transform: rotate(180deg);
+            border-radius: 1px;
+            z-index: 2;
+            animation: clockTick 10s linear infinite;
+        }
+
+        @keyframes clockTick {
+            from { transform: rotate(0deg); }
+            to   { transform: rotate(360deg); }
+        }
+
+        /* --- WALL SHELF: Decorative shelf on left wall area --- */
+        .wall-shelf {
+            position: absolute;
+            left: 2%;
+            top: 35%;
+            width: 50px;
+            height: 6px;
+            z-index: 2;
+            /* Wooden plank */
+            background:
+                linear-gradient(180deg,
+                    #A08060 0%, #8B6E50 40%, #7A5F42 100%);
+            border-radius: 1px;
+            box-shadow:
+                0 2px 6px rgba(0,0,0,0.25),
+                inset 0 1px 0 rgba(255,255,255,0.2);
+            transform: rotateY(60deg) translateZ(102px) perspective(400px);
+            transform-origin: right center;
+            opacity: 0.7;
+        }
+
+        /* Shelf brackets */
+        .wall-shelf::before {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 8px;
+            width: 8px;
+            height: 10px;
+            /* Right-triangle bracket shape */
+            background: linear-gradient(135deg,
+                #7A5F42 50%, transparent 50.5%);
+            box-shadow: 26px 0 0 0 #7A5F42;
+        }
+
+        /* Plant pot on shelf */
+        .wall-shelf::after {
+            content: '';
+            position: absolute;
+            bottom: 6px;
+            left: 18px;
+            width: 12px;
+            height: 8px;
+            /* Brown pot */
+            background: #8B5E3C;
+            border-radius: 1px 1px 2px 2px;
+            /* Green plant on top via box-shadow */
+            box-shadow:
+                /* Main foliage ball */
+                0 -8px 0 4px #4A8B3A,
+                /* Highlight leaf cluster */
+                -2px -10px 0 2px #5DA04A,
+                2px -9px 0 3px #3E7A30,
+                /* Pot shadow */
+                1px 2px 3px rgba(0,0,0,0.2);
+        }
+
+        /* --- COAT HOOK: Small brass hook near door --- */
+        .coat-hook {
+            position: absolute;
+            left: 11%;
+            top: 24%;
+            width: 6px;
+            height: 15px;
+            z-index: 4;
+            /* Hook stem */
+            background: linear-gradient(90deg,
+                #C5A44A 0%, #E8D28C 40%, #B89838 100%);
+            border-radius: 2px 2px 0 0;
+            transform: rotateY(15deg);
+            transform-origin: left center;
+            box-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+        }
+
+        /* Hook curved part */
+        .coat-hook::after {
+            content: '';
+            position: absolute;
+            bottom: -6px;
+            left: -2px;
+            width: 10px;
+            height: 10px;
+            border: 2.5px solid transparent;
+            border-bottom: 2.5px solid #C5A44A;
+            border-right: 2.5px solid #C5A44A;
+            border-radius: 0 0 50% 0;
+            /* Gold sheen */
+            background: transparent;
+        }
+
+        /* Hook mounting plate */
+        .coat-hook::before {
+            content: '';
+            position: absolute;
+            top: -3px;
+            left: -2px;
+            width: 10px;
+            height: 6px;
+            background: linear-gradient(180deg,
+                #D4B85C 0%, #B89838 100%);
+            border-radius: 2px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        }
+
+        /* --- LIGHT SWITCH: Near door on wall --- */
+        .light-switch {
+            position: absolute;
+            left: 9.5%;
+            top: 40%;
+            width: 12px;
+            height: 20px;
+            z-index: 4;
+            /* Switch plate */
+            background: linear-gradient(180deg,
+                #F0EDE8 0%, #E8E5E0 50%, #E0DDD8 100%);
+            border: 1px solid #CCC8C0;
+            border-radius: 1.5px;
+            box-shadow:
+                1px 1px 3px rgba(0,0,0,0.15),
+                inset 0 0 1px rgba(255,255,255,0.5);
+            transform: rotateY(15deg);
+            transform-origin: left center;
+        }
+
+        /* Toggle switch */
+        .light-switch::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 4px;
+            height: 7px;
+            background: linear-gradient(180deg,
+                #E0DDD5 0%, #D0CCC4 100%);
+            border: 0.5px solid #BBB8B0;
+            border-radius: 1px;
+            box-shadow: 0 0.5px 1px rgba(0,0,0,0.1);
+        }
+
+        /* Screw holes in plate */
+        .light-switch::before {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 2px;
+            height: 2px;
+            border-radius: 50%;
+            background: #BBB8B0;
+            box-shadow:
+                /* Bottom screw */
+                0 11px 0 #BBB8B0;
+        }
+
+        /* Paper Toss Game Area */
+        .game-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            transform-style: preserve-3d;
+        }
+        
+        /* ==========================================
+           3D DESK — Realistic Dark Walnut Desk
+           ========================================== */
+        .desk-container {
+            position: absolute;
+            right: -20px;
+            top: 32%;
+            width: 220px;
+            height: 280px;
+            transform-style: preserve-3d;
+            transform: rotateY(-25deg) rotateX(5deg) scale(0.88);
+            z-index: 5;
+        }
+
+        /* --- DESK TOP (rich walnut surface with grain) --- */
+        .desk-top {
+            position: absolute;
+            width: 220px;
+            height: 130px;
+            border-radius: 3px 3px 2px 2px;
+            /* Multi-layer walnut wood grain */
+            background:
+                /* horizontal grain */
+                repeating-linear-gradient(
+                    90deg,
+                    transparent 0px,
+                    transparent 11px,
+                    rgba(0,0,0,0.04) 11px,
+                    rgba(0,0,0,0.04) 12px
+                ),
+                /* vertical subtle grain */
+                repeating-linear-gradient(
+                    0deg,
+                    transparent 0px,
+                    transparent 28px,
+                    rgba(255,220,160,0.06) 28px,
+                    rgba(255,220,160,0.06) 30px
+                ),
+                /* diagonal accent grain */
+                repeating-linear-gradient(
+                    135deg,
+                    transparent 0px,
+                    transparent 20px,
+                    rgba(0,0,0,0.025) 20px,
+                    rgba(0,0,0,0.025) 22px
+                ),
+                /* base walnut gradient */
+                linear-gradient(
+                    160deg,
+                    #7a4a2a 0%,
+                    #5c3317 35%,
+                    #4a2810 65%,
+                    #3e210c 100%
+                );
+            box-shadow:
+                /* depth underneath */
+                0 6px 14px rgba(0,0,0,0.45),
+                0 2px 4px rgba(0,0,0,0.25),
+                /* bevel: light top edge */
+                inset 0 2px 0 rgba(255,220,180,0.22),
+                /* bevel: dark bottom edge */
+                inset 0 -2px 0 rgba(0,0,0,0.25),
+                /* polish highlight */
+                inset 40px 20px 60px rgba(255,255,255,0.06);
+            transform: rotateX(60deg) translateZ(20px);
+        }
+
+        /* thin edge highlight strip */
+        .desk-top::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            background: linear-gradient(90deg,
+                rgba(180,130,80,0.0) 0%,
+                rgba(180,130,80,0.35) 30%,
+                rgba(200,160,110,0.45) 50%,
+                rgba(180,130,80,0.35) 70%,
+                rgba(180,130,80,0.0) 100%
+            );
+            border-radius: 3px 3px 0 0;
+        }
+
+        /* subtle reflection/polish bar */
+        .desk-top::after {
+            content: '';
+            position: absolute;
+            top: 18px; left: 30px;
+            width: 100px; height: 6px;
+            background: linear-gradient(90deg,
+                transparent,
+                rgba(255,255,255,0.07),
+                transparent
+            );
+            border-radius: 3px;
+            transform: rotate(-2deg);
+        }
+
+        /* --- DESK FRONT PANEL (vertical face with drawer) --- */
+        .desk-front {
+            position: absolute;
+            width: 220px;
+            height: 70px;
+            top: 48px;
+            left: 0;
+            background:
+                /* grain */
+                repeating-linear-gradient(
+                    0deg,
+                    transparent 0px,
+                    transparent 9px,
+                    rgba(0,0,0,0.05) 9px,
+                    rgba(0,0,0,0.05) 10px
+                ),
+                repeating-linear-gradient(
+                    90deg,
+                    transparent 0px,
+                    transparent 30px,
+                    rgba(255,200,140,0.04) 30px,
+                    rgba(255,200,140,0.04) 32px
+                ),
+                /* slightly darker front face */
+                linear-gradient(
+                    180deg,
+                    #5a3015 0%,
+                    #4a2810 40%,
+                    #3a1e0a 100%
+                );
+            border-radius: 0 0 2px 2px;
+            box-shadow:
+                inset 0 1px 0 rgba(180,130,80,0.15),
+                inset 0 -1px 0 rgba(0,0,0,0.3),
+                0 4px 10px rgba(0,0,0,0.3);
+            transform: translateZ(-10px);
+        }
+
+        /* molding / trim strip across front panel */
+        .desk-front::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 8px; right: 8px;
+            height: 2px;
+            background: linear-gradient(90deg,
+                rgba(120,80,40,0.3),
+                rgba(160,110,60,0.5),
+                rgba(120,80,40,0.3)
+            );
+            transform: translateY(-50%);
+            border-radius: 1px;
+        }
+
+        /* brass drawer handle */
+        .desk-front::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 22px;
+            height: 5px;
+            background: linear-gradient(180deg, #d4a843 0%, #b8922e 40%, #a07d28 100%);
+            border-radius: 3px;
+            transform: translate(-50%, -50%);
+            box-shadow:
+                0 1px 2px rgba(0,0,0,0.4),
+                inset 0 1px 0 rgba(255,230,160,0.4);
+        }
+
+        /* --- DESK LEFT SIDE PANEL --- */
+        .desk-side {
+            position: absolute;
+            width: 70px;
+            height: 70px;
+            top: 48px;
+            left: -35px;
+            background:
+                repeating-linear-gradient(
+                    0deg,
+                    transparent 0px,
+                    transparent 9px,
+                    rgba(0,0,0,0.05) 9px,
+                    rgba(0,0,0,0.05) 10px
+                ),
+                linear-gradient(
+                    135deg,
+                    #4a2810 0%,
+                    #3a1e0a 60%,
+                    #2e1608 100%
+                );
+            transform: rotateY(70deg) translateZ(10px);
+            box-shadow:
+                inset 2px 0 4px rgba(255,200,140,0.08),
+                inset -2px 0 4px rgba(0,0,0,0.2);
+            border-radius: 2px;
+        }
+
+        /* --- DESK LEGS (tapered) --- */
+        .desk-leg {
+            position: absolute;
+            width: 14px;
+            height: 90px;
+            border-radius: 2px 2px 3px 3px;
+            /* tapered: wider top, narrower bottom via clip */
+            clip-path: polygon(0% 0%, 100% 0%, 88% 100%, 12% 100%);
+            background: linear-gradient(
+                180deg,
+                #5c3317 0%,
+                #4a2810 40%,
+                #3a1e0a 75%,
+                #2a1508 100%
+            );
+            box-shadow:
+                1px 0 2px rgba(0,0,0,0.3),
+                -1px 0 2px rgba(0,0,0,0.2);
+        }
+
+        /* front-left leg */
+        .desk-leg:nth-child(2) {
+            left: 12px;
+            top: 70px;
+        }
+
+        /* front-right leg */
+        .desk-leg:nth-child(3) {
+            right: 12px;
+            top: 70px;
+        }
+
+        /* back-left leg (partially visible) */
+        .desk-leg-back {
+            position: absolute;
+            width: 12px;
+            height: 85px;
+            clip-path: polygon(0% 0%, 100% 0%, 88% 100%, 12% 100%);
+            background: linear-gradient(
+                180deg,
+                #4a2810 0%,
+                #3a1e0a 50%,
+                #2a1508 100%
+            );
+            opacity: 0.55;
+            border-radius: 2px;
+        }
+
+        .desk-leg-back:nth-of-type(1) {
+            left: 14px;
+            top: 55px;
+            transform: translateZ(-55px);
+        }
+
+        .desk-leg-back:nth-of-type(2) {
+            right: 14px;
+            top: 55px;
+            transform: translateZ(-55px);
+        }
+
+        /* --- DESK LAMP (on left side of desk top) --- */
+        .desk-lamp {
+            position: absolute;
+            top: -42px;
+            left: 18px;
+            width: 30px;
+            height: 50px;
+            transform: rotateX(-60deg) translateZ(22px);
+            z-index: 6;
+        }
+
+        /* lamp base — brass disc */
+        .desk-lamp::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 22px;
+            height: 22px;
+            transform: translateX(-50%);
+            background: radial-gradient(circle at 40% 35%,
+                #e8c84a 0%,
+                #c9a832 40%,
+                #a08020 100%
+            );
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+        }
+
+        /* lamp arm + shade */
+        .desk-lamp::after {
+            content: '';
+            position: absolute;
+            bottom: 16px;
+            left: 50%;
+            width: 3px;
+            height: 28px;
+            background: linear-gradient(180deg, #b89830, #a08020);
+            transform: translateX(-50%) rotate(-8deg);
+            transform-origin: bottom center;
+            border-radius: 1px;
+            /* shade as box-shadow trick */
+            box-shadow:
+                -8px -2px 0 6px rgba(60,80,50,0.85),
+                -7px -3px 0 6px rgba(70,95,55,0.9),
+                -6px -1px 0 7px rgba(50,70,40,0.7),
+                -8px -4px 8px 2px rgba(255,240,180,0.15);
+        }
+
+        /* --- PENCIL CUP on desk top --- */
+        .desk-pencil-cup {
+            position: absolute;
+            top: -16px;
+            right: 30px;
+            width: 16px;
+            height: 22px;
+            background: linear-gradient(180deg,
+                #6b6b6b 0%,
+                #555 40%,
+                #444 100%
+            );
+            border-radius: 2px 2px 3px 3px;
+            transform: rotateX(-60deg) translateZ(22px);
+            box-shadow:
+                inset 0 -4px 6px rgba(0,0,0,0.3),
+                0 2px 4px rgba(0,0,0,0.3);
+            z-index: 6;
+        }
+
+        /* pencils sticking up */
+        .desk-pencil-cup::before {
+            content: '';
+            position: absolute;
+            top: -12px;
+            left: 3px;
+            width: 2px;
+            height: 14px;
+            background: linear-gradient(180deg, #e8c32a, #d4a017);
+            border-radius: 1px;
+            box-shadow:
+                4px 1px 0 0 #d04040,
+                7px -2px 0 0 #3080d0,
+                3px -3px 0 0 #30a050;
+        }
+
+        /* pencil tips */
+        .desk-pencil-cup::after {
+            content: '';
+            position: absolute;
+            top: -15px;
+            left: 3px;
+            width: 0;
+            height: 0;
+            border-left: 1px solid transparent;
+            border-right: 1px solid transparent;
+            border-bottom: 3px solid #2a2a2a;
+            box-shadow:
+                4px 4px 0 0 #2a2a2a,
+                7px 1px 0 0 #2a2a2a;
+        }
+        
+        .saved-paper-stack {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%) rotateX(60deg);
+            transform-style: preserve-3d;
+        }
+        
+        .saved-paper {
+            width: 60px;
+            height: 80px;
+            background: white;
+            border-radius: 2px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            position: absolute;
+            font-size: 8px;
+            padding: 4px;
+            overflow: hidden;
+            animation: paperLand 0.5s ease-out;
+        }
+        
+        @keyframes paperLand {
+            from {
+                transform: translateY(-200px) translateZ(50px) rotateZ(45deg) scale(1.5);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0) translateZ(0) rotateZ(0deg) scale(1);
+                opacity: 1;
+            }
+        }
+        
+        .desk-label {
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 11px;
+            color: #34C759;
+            font-weight: 600;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+            white-space: nowrap;
+        }
+        
+        /* ==========================================
+           DUSTBIN — 3D Cylindrical Wire Mesh Bin
+           ========================================== */
+        .dustbin-container {
+            position: absolute;
+            bottom: 28px;
+            right: 18px;
+            transform: translateZ(-120px) rotateX(12deg) rotateY(-15deg) scale(0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transform-style: preserve-3d;
+            z-index: 4;
+            perspective: 800px;
+            transition: transform 0.3s ease;
+        }
+
+        .dustbin {
+            width: 100px;
+            height: 115px;
+            position: relative;
+            transform-style: preserve-3d;
+        }
+
+        /* --- Rim / lip at top (wider than body) --- */
+        .dustbin-top {
+            width: 108px;
+            height: 108px;
+            position: absolute;
+            top: -4px;
+            left: -4px;
+            border: 4px solid #606060;
+            border-radius: 50%;
+            background:
+                conic-gradient(from 0deg,
+                    transparent 0deg, transparent 9deg,
+                    rgba(100,100,100,0.3) 9deg, rgba(100,100,100,0.3) 18deg,
+                    transparent 18deg, transparent 27deg,
+                    rgba(100,100,100,0.3) 27deg, rgba(100,100,100,0.3) 36deg,
+                    transparent 36deg, transparent 45deg,
+                    rgba(100,100,100,0.3) 45deg, rgba(100,100,100,0.3) 54deg,
+                    transparent 54deg, transparent 63deg,
+                    rgba(100,100,100,0.3) 63deg, rgba(100,100,100,0.3) 72deg,
+                    transparent 72deg, transparent 81deg,
+                    rgba(100,100,100,0.3) 81deg, rgba(100,100,100,0.3) 90deg,
+                    transparent 90deg, transparent 360deg
+                ),
+                radial-gradient(circle, transparent 25%, rgba(0,0,0,0.55) 100%);
+            transform: rotateX(80deg) translateZ(6px);
+            box-shadow:
+                inset 0 0 15px rgba(0,0,0,0.5),
+                0 3px 8px rgba(0,0,0,0.3),
+                /* metallic rim shine */
+                inset 0 2px 0 rgba(200,200,200,0.25);
+        }
+
+        /* --- Body: trapezoid shape (wider top, narrower bottom) --- */
+        .dustbin-body {
+            width: 100px;
+            height: 105px;
+            position: absolute;
+            top: 8px;
+            left: 0;
+            /* trapezoid illusion: wider top, narrower bottom */
+            border-radius: 48% 48% 42% 42% / 50% 50% 40% 40%;
+            background:
+                /* horizontal wire mesh */
+                repeating-linear-gradient(
+                    0deg,
+                    transparent 0px,
+                    transparent 5px,
+                    rgba(80,80,80,0.65) 5px,
+                    rgba(80,80,80,0.65) 7px,
+                    transparent 7px,
+                    transparent 12px
+                ),
+                /* vertical wire mesh */
+                repeating-linear-gradient(
+                    90deg,
+                    transparent 0px,
+                    transparent 7px,
+                    rgba(90,90,90,0.45) 7px,
+                    rgba(90,90,90,0.45) 9px
+                ),
+                /* cylindrical shading */
+                linear-gradient(90deg,
+                    rgba(0,0,0,0.35) 0%,
+                    rgba(80,80,80,0.15) 20%,
+                    rgba(120,120,120,0.1) 50%,
+                    rgba(80,80,80,0.15) 80%,
+                    rgba(0,0,0,0.35) 100%
+                ),
+                /* top-to-bottom darken */
+                linear-gradient(180deg,
+                    rgba(100,100,100,0.25) 0%,
+                    rgba(70,70,70,0.4) 50%,
+                    rgba(45,45,45,0.6) 100%
+                );
+            transform: translateZ(-50px) scale(0.95);
+            border: 2px solid #505050;
+            box-shadow:
+                inset 0 0 25px rgba(0,0,0,0.55),
+                inset -8px 0 18px rgba(0,0,0,0.25),
+                inset 8px 0 18px rgba(255,255,255,0.08),
+                /* floor shadow beneath bin */
+                0 12px 20px -4px rgba(0,0,0,0.5);
+        }
+
+        /* wire line overlay inside body */
+        .dustbin-lines {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 48% 48% 42% 42% / 50% 50% 40% 40%;
+            background:
+                repeating-conic-gradient(
+                    from 0deg,
+                    transparent 0deg,
+                    transparent 18deg,
+                    rgba(90,90,90,0.5) 18deg,
+                    rgba(90,90,90,0.5) 20deg,
+                    transparent 20deg
+                );
+            transform: translateZ(-25px);
+        }
+
+        .dustbin-line {
+            position: absolute;
+            width: 2px;
+            height: 100%;
+            background: linear-gradient(to bottom,
+                rgba(100,100,100,0.7) 0%,
+                rgba(75,75,75,0.85) 50%,
+                rgba(55,55,55,0.6) 100%
+            );
+            left: 50%;
+            transform-origin: center center;
+            box-shadow: 0 0 1px rgba(0,0,0,0.4);
+        }
+
+        .dustbin-line:nth-child(1) { transform: translateX(-50%) rotateZ(0deg); }
+        .dustbin-line:nth-child(2) { transform: translateX(-50%) rotateZ(30deg); }
+        .dustbin-line:nth-child(3) { transform: translateX(-50%) rotateZ(60deg); }
+        .dustbin-line:nth-child(4) { transform: translateX(-50%) rotateZ(90deg); }
+
+        .dustbin.active {
+            animation: binShake 0.3s ease-in-out;
+        }
+
+        @keyframes binShake {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-5deg); }
+            75% { transform: rotate(5deg); }
+        }
+        
+        .indicator-text {
+            font-size: 11px;
+            color: #666;
+            margin-top: 8px;
+            opacity: 0.7;
+        }
+        
+        /* Trajectory Line */
+        .trajectory-line {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 3px;
+            height: 0;
+            background: linear-gradient(to top, rgba(255, 59, 48, 0.8), transparent);
+            border-radius: 2px;
+            transform-origin: bottom center;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        
+        .trajectory-line.visible {
+            opacity: 1;
+        }
+        
+        .trajectory-dot {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: radial-gradient(circle, rgba(255, 59, 48, 0.9) 0%, rgba(255, 59, 48, 0.4) 70%, transparent 100%);
+            border-radius: 50%;
+            pointer-events: none;
+            box-shadow: 0 0 6px rgba(255, 59, 48, 0.6), 0 0 12px rgba(255, 59, 48, 0.3);
+            transition: transform 0.1s ease, opacity 0.1s ease;
+        }
+        
+        .power-meter {
+            position: absolute;
+            bottom: 140px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 140px;
+            height: 24px;
+            background: rgba(0,0,0,0.3);
+            border: 2px solid rgba(255,255,255,0.4);
+            border-radius: 12px;
+            overflow: hidden;
+            opacity: 0;
+            transition: opacity 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2), inset 0 1px 2px rgba(0,0,0,0.3);
+        }
+        
+        .power-meter.visible {
+            opacity: 1;
+        }
+        
+        .power-fill {
+            height: 100%;
+            background: linear-gradient(90deg, 
+                #34C759 0%, 
+                #5DD879 25%, 
+                #FFD60A 50%, 
+                #FFB340 75%, 
+                #FF3B30 100%);
+            width: 0%;
+            transition: width 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+            border-radius: 10px;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.4), 
+                        0 0 8px rgba(52, 199, 89, 0.5);
+        }
+        
+        .save-indicator {
+            position: absolute;
+            right: 40px;
+            top: 38%;
+            text-align: center;
+            opacity: 0.6;
+            transition: all 0.3s ease;
+            z-index: 4;
+            transform: scale(0.9);
+        }
+        
+        .save-icon {
+            font-size: 35px;
+        }
+        
+        /* Paper Card */
+        .paper-card {
+            width: 340px;
+            height: 480px;
+            background: 
+                radial-gradient(ellipse at 20% 30%, rgba(255,255,255,0.9) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 70%, rgba(240,240,235,0.5) 0%, transparent 50%),
+                linear-gradient(135deg, transparent 0%, rgba(0,0,0,0.015) 50%, transparent 100%),
+                linear-gradient(45deg, #fcfcfa 0%, #f5f5f0 30%, #fafaf8 70%, #fcfcfa 100%);
+            background-size: 100% 100%, 100% 100%, 100% 100%, 200% 200%;
+            border-radius: 2px;
+            box-shadow: 
+                0 25px 60px rgba(0,0,0,0.3),
+                0 12px 25px rgba(0,0,0,0.18),
+                0 5px 10px rgba(0,0,0,0.12),
+                inset 0 1px 0 rgba(255,255,255,0.95),
+                inset 0 0 80px rgba(255,255,255,0.4),
+                inset -1px -1px 2px rgba(0,0,0,0.03);
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+            cursor: grab;
+            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), 
+                        box-shadow 0.4s ease;
+            user-select: none;
+            touch-action: none;
+            transform-style: preserve-3d;
+            z-index: 10;
+            border: 1px solid rgba(218,210,195,0.4);
+            filter: 
+                contrast(1.02) 
+                brightness(1.03)
+                drop-shadow(0 0 1px rgba(0,0,0,0.05));
+        }
+        
+        .paper-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                repeating-linear-gradient(
+                    0deg,
+                    transparent,
+                    transparent 30.5px,
+                    rgba(160,180,200,0.08) 30.5px,
+                    rgba(160,180,200,0.08) 31.5px
+                ),
+                repeating-linear-gradient(
+                    90deg,
+                    transparent,
+                    transparent 1px,
+                    rgba(0,0,0,0.003) 1px,
+                    rgba(0,0,0,0.003) 2px
+                ),
+                repeating-linear-gradient(
+                    45deg,
+                    transparent,
+                    transparent 3px,
+                    rgba(0,0,0,0.002) 3px,
+                    rgba(0,0,0,0.002) 4px
+                ),
+                url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23noise)" opacity="0.03"/></svg>');
+            pointer-events: none;
+            border-radius: 2px;
+            opacity: 0.6;
+            mix-blend-mode: multiply;
+        }
+        
+        .paper-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(ellipse at 0% 0%, rgba(255,255,255,0.6) 0%, transparent 15%),
+                radial-gradient(ellipse at 100% 0%, rgba(255,255,255,0.4) 0%, transparent 15%),
+                radial-gradient(ellipse at 0% 100%, rgba(0,0,0,0.035) 0%, transparent 20%),
+                radial-gradient(ellipse at 100% 100%, rgba(0,0,0,0.04) 0%, transparent 20%),
+                linear-gradient(135deg, 
+                    rgba(255,255,255,0.4) 0%, 
+                    transparent 25%, 
+                    transparent 75%, 
+                    rgba(0,0,0,0.025) 100%);
+            border-radius: 2px;
+            pointer-events: none;
+            opacity: 0.8;
+            clip-path: polygon(
+                1% 0.5%,
+                99.5% 0%,
+                100% 1%,
+                100% 99%,
+                99.2% 100%,
+                0.8% 99.5%,
+                0% 98.5%,
+                0% 1.5%
+            );
+        }
+        
+        .paper-card:active {
+            cursor: grabbing;
+        }
+        
+        .paper-card:hover {
+            box-shadow: 
+                0 25px 60px rgba(0,0,0,0.3),
+                0 15px 25px rgba(0,0,0,0.2),
+                inset 0 1px 0 rgba(255,255,255,0.9);
+        }
+        
+        .paper-card.crumpling {
+            background: 
+                radial-gradient(ellipse at 25% 30%, rgba(0,0,0,0.18) 0%, transparent 15%),
+                radial-gradient(ellipse at 75% 25%, rgba(0,0,0,0.14) 0%, transparent 12%),
+                radial-gradient(ellipse at 60% 70%, rgba(0,0,0,0.16) 0%, transparent 18%),
+                radial-gradient(ellipse at 35% 75%, rgba(0,0,0,0.12) 0%, transparent 14%),
+                radial-gradient(ellipse at 50% 50%, rgba(0,0,0,0.08) 0%, transparent 30%),
+                radial-gradient(ellipse at 15% 60%, rgba(0,0,0,0.10) 0%, transparent 10%),
+                radial-gradient(ellipse at 80% 45%, rgba(0,0,0,0.09) 0%, transparent 11%),
+                linear-gradient(135deg, #eae8e4 0%, #d5d0c8 30%, #e0dbd5 50%, #c8c2ba 70%, #ddd8d2 100%);
+            box-shadow: 
+                0 8px 20px rgba(0,0,0,0.4),
+                2px 3px 6px rgba(0,0,0,0.25),
+                -2px 2px 5px rgba(0,0,0,0.2),
+                inset 4px 4px 10px rgba(0,0,0,0.25),
+                inset -4px -3px 8px rgba(0,0,0,0.2),
+                inset 2px -2px 6px rgba(0,0,0,0.15),
+                inset -1px 3px 4px rgba(0,0,0,0.12);
+            transition: background 0.12s ease, box-shadow 0.12s ease, border-radius 0.15s ease, width 0.15s ease, height 0.15s ease;
+            filter: contrast(1.05) brightness(0.95);
+        }
+
+        .paper-card.crumpling::before {
+            background-image: 
+                repeating-linear-gradient(23deg, transparent, transparent 6px, rgba(0,0,0,0.06) 6px, rgba(0,0,0,0.06) 7px),
+                repeating-linear-gradient(-35deg, transparent, transparent 8px, rgba(0,0,0,0.05) 8px, rgba(0,0,0,0.05) 9px),
+                repeating-linear-gradient(67deg, transparent, transparent 5px, rgba(0,0,0,0.04) 5px, rgba(0,0,0,0.04) 6px),
+                repeating-linear-gradient(-72deg, transparent, transparent 7px, rgba(0,0,0,0.03) 7px, rgba(0,0,0,0.03) 8px);
+            opacity: 0.9;
+            border-radius: inherit;
+        }
+
+        .paper-card.crumpling::after {
+            background: 
+                radial-gradient(ellipse at 20% 20%, rgba(255,255,255,0.3) 0%, transparent 20%),
+                radial-gradient(ellipse at 70% 30%, rgba(255,255,255,0.2) 0%, transparent 15%),
+                radial-gradient(ellipse at 40% 80%, rgba(0,0,0,0.08) 0%, transparent 20%);
+            clip-path: none;
+            border-radius: inherit;
+        }
+        
+        .category {
+            font-size: 13px;
+            color: #007AFF;
+            font-weight: 600;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .title {
+            font-size: 26px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: #1a1a1a;
+            line-height: 1.2;
+            text-shadow: 0 0 0.5px rgba(0,0,0,0.3);
+            letter-spacing: -0.3px;
+        }
+        
+        .summary {
+            font-size: 15px;
+            color: #444;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            text-shadow: 0 0 0.3px rgba(0,0,0,0.2);
+            letter-spacing: 0.1px;
+        }
+        
+        .category {
+            font-size: 12px;
+            color: #666;
+            font-weight: 600;
+            margin-bottom: 12px;
+            letter-spacing: 0.5px;
+            text-shadow: 0 0 0.3px rgba(0,0,0,0.15);
+        }
+        
+        .stage-badge {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: #34C759;
+            color: white;
+            padding: 6px 14px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .tap-hint {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #999;
+            font-size: 13px;
+        }
+        
+        /* Instructions Panel */
+        .instructions {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 400px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .instructions h2 {
+            color: #007AFF;
+            font-size: 28px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .instruction-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            gap: 15px;
+        }
+        
+        .instruction-icon {
+            font-size: 32px;
+            flex-shrink: 0;
+        }
+        
+        .instruction-content h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #1a1a1a;
+        }
+        
+        .instruction-content p {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.5;
+        }
+        
+        .features {
+            background: #f8f8f8;
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        
+        .features h4 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #1a1a1a;
+        }
+        
+        .feature-list {
+            list-style: none;
+        }
+        
+        .feature-list li {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 6px;
+            padding-left: 20px;
+            position: relative;
+        }
+        
+        .feature-list li:before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: #34C759;
+            font-weight: bold;
+        }
+        
+        /* Animation States */
+        .paper-card:not(.dragging):not(.rejected):not(.saved) {
+            animation: subtleFloat 3.5s ease-in-out infinite;
+        }
+        
+        .paper-card.dragging {
+            transform: scale(0.95);
+            cursor: grabbing;
+        }
+        .paper-card.rejected {
+            animation: throwToBin 1.1s cubic-bezier(0.2, 0, 0.2, 1) forwards;
+        }
+
+        .paper-card.missed {
+            animation: throwMiss 1.2s cubic-bezier(0.2, 0, 0.8, 1) forwards;
+        }
+
+        .fallen-paper {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border-radius: 42% 55% 48% 52% / 50% 46% 54% 48%;
+            background: 
+                radial-gradient(ellipse at 30% 35%, rgba(0,0,0,0.15) 0%, transparent 20%),
+                radial-gradient(ellipse at 70% 60%, rgba(0,0,0,0.12) 0%, transparent 18%),
+                linear-gradient(135deg, #e8e4de 0%, #d0cac2 50%, #ddd8d0 100%);
+            box-shadow: 
+                1px 2px 4px rgba(0,0,0,0.3),
+                inset 2px 2px 4px rgba(0,0,0,0.15),
+                inset -1px -1px 3px rgba(0,0,0,0.1);
+            z-index: 1;
+            animation: paperBounce 0.4s ease-out;
+            pointer-events: none;
+        }
+        
+        .paper-card.saved {
+            animation: flyToDesk 0.9s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        }
+        
+        @keyframes throwToBin {
+            0% {
+                transform: var(--throw-start) scale(var(--throw-scale, 0.25));
+                border-radius: 42% 55% 48% 52% / 50% 46% 54% 48%;
+                opacity: 1;
+                z-index: 10;
+            }
+            20% {
+                transform: translate(var(--throw-20x), var(--throw-20y))
+                           scale(var(--throw-scale, 0.25))
+                           rotateZ(120deg)
+                           rotateX(-15deg)
+                           translateZ(80px);
+                border-radius: 45% 52% 50% 48% / 48% 50% 52% 45%;
+                opacity: 1;
+            }
+            50% {
+                transform: translate(var(--throw-50x), var(--throw-50y))
+                           scale(calc(var(--throw-scale, 0.25) * 0.9))
+                           rotateZ(300deg)
+                           rotateX(-35deg)
+                           translateZ(40px);
+                border-radius: 48% 50% 45% 52% / 52% 48% 50% 45%;
+                opacity: 0.95;
+            }
+            80% {
+                transform: translate(var(--throw-80x), var(--throw-80y))
+                           scale(calc(var(--throw-scale, 0.25) * 0.75))
+                           rotateZ(540deg)
+                           rotateX(-55deg)
+                           translateZ(10px);
+                border-radius: 50% 46% 52% 48% / 45% 52% 48% 50%;
+                opacity: 0.85;
+            }
+            100% {
+                transform: translate(var(--throw-100x), var(--throw-100y))
+                           scale(calc(var(--throw-scale, 0.25) * 0.6))
+                           rotateZ(720deg)
+                           rotateX(-75deg)
+                           translateZ(0px);
+                border-radius: 46% 52% 50% 48% / 50% 48% 45% 52%;
+                opacity: 0;
+            }
+        }
+
+        @keyframes throwMiss {
+            0% {
+                transform: var(--throw-start) scale(var(--throw-scale, 0.25));
+                border-radius: 42% 55% 48% 52% / 50% 46% 54% 48%;
+                opacity: 1;
+                z-index: 10;
+            }
+            20% {
+                transform: translate(var(--throw-20x), var(--throw-20y))
+                           scale(var(--throw-scale, 0.25))
+                           rotateZ(100deg)
+                           translateZ(60px);
+                border-radius: 45% 52% 50% 48% / 48% 50% 52% 45%;
+                opacity: 1;
+            }
+            50% {
+                transform: translate(var(--miss-50x), var(--miss-50y))
+                           scale(calc(var(--throw-scale, 0.25) * 0.9))
+                           rotateZ(250deg)
+                           translateZ(30px);
+                border-radius: 48% 50% 45% 52%;
+                opacity: 0.9;
+            }
+            100% {
+                transform: translate(var(--miss-100x), var(--miss-100y))
+                           scale(calc(var(--throw-scale, 0.25) * 0.7))
+                           rotateZ(500deg)
+                           translateZ(0px);
+                border-radius: 46% 52% 50% 48%;
+                opacity: 1;
+            }
+        }
+
+        @keyframes paperBounce {
+            0% { transform: translateY(-15px) scale(1.1); opacity: 0.7; }
+            50% { transform: translateY(3px) scale(0.95); opacity: 0.9; }
+            100% { transform: translateY(0) scale(1); opacity: 1; }
+        }
+        
+        @keyframes flyToDesk {
+            0% {
+                transform: var(--save-start) scale(1);
+                opacity: 1;
+                z-index: 10;
+            }
+            30% {
+                transform: translate(150px, -100px) 
+                           scale(0.7) 
+                           rotateZ(25deg) 
+                           rotateY(15deg)
+                           translateZ(80px);
+                opacity: 1;
+            }
+            60% {
+                transform: translate(280px, -80px) 
+                           scale(0.4) 
+                           rotateZ(45deg) 
+                           rotateY(25deg)
+                           translateZ(50px);
+                opacity: 0.9;
+            }
+            100% {
+                transform: translate(320px, -60px) 
+                           scale(0.25) 
+                           rotateZ(0deg) 
+                           rotateY(30deg)
+                           translateZ(20px);
+                opacity: 0;
+            }
+        }
+        
+        @keyframes paperFlutter {
+            0%, 100% {
+                transform: rotateZ(0deg);
+            }
+            25% {
+                transform: rotateZ(2deg);
+            }
+            75% {
+                transform: rotateZ(-2deg);
+            }
+        }
+        
+        @keyframes subtleFloat {
+            0%, 100% {
+                transform: translateY(0px);
+            }
+            50% {
+                transform: translateY(-8px);
+            }
+        }
+
+        /* ========================================
+           AGENTS 4-6: PHYSICS, ANIMATIONS, POLISH
+           ======================================== */
+
+        /* Room entrance animation */
+        .room-container {
+            animation: roomReveal 1.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @keyframes roomReveal {
+            0% { opacity: 0; filter: blur(6px) brightness(0.6); }
+            50% { opacity: 1; filter: blur(0px) brightness(1); }
+            100% { opacity: 1; filter: none; }
+        }
+
+        /* Stagger wall elements */
+        .room-back-wall { animation: elementFadeIn 0.7s 0.1s ease-out both; }
+        .room-left-wall { animation: elementFadeIn 0.7s 0.15s ease-out both; }
+        .room-right-wall { animation: elementFadeIn 0.7s 0.2s ease-out both; }
+        .room-floor { animation: elementFadeIn 0.7s 0.05s ease-out both; }
+        .room-ceiling { animation: elementFadeIn 0.7s 0.05s ease-out both; }
+        .room-door { animation: elementFadeIn 0.6s 0.35s ease-out both; }
+        .room-door-frame { animation: elementFadeIn 0.6s 0.3s ease-out both; }
+        @keyframes elementFadeIn {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+
+        /* Wall decorations entrance + painting sway */
+        .wall-painting-1 {
+            animation: decorFadeIn 0.6s 0.5s ease-out both;
+        }
+        .wall-painting-2 {
+            animation: decorFadeIn 0.6s 0.6s ease-out both;
+        }
+        .wall-clock { animation: decorFadeIn 0.6s 0.7s ease-out both; }
+        .wall-shelf { animation: decorFadeIn 0.6s 0.75s ease-out both; }
+        @keyframes decorFadeIn {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+
+        /* Subtle painting sway (applied via JS after entrance) */
+        .wall-painting-1.swaying {
+            animation: paintingSway1 8s ease-in-out infinite;
+            transform-origin: 50% 0%;
+        }
+        .wall-painting-2.swaying {
+            animation: paintingSway2 9s 0.5s ease-in-out infinite;
+            transform-origin: 50% 0%;
+        }
+        @keyframes paintingSway1 {
+            0%, 100% { transform: rotate(0deg); }
+            30% { transform: rotate(0.4deg); }
+            70% { transform: rotate(-0.3deg); }
+        }
+        @keyframes paintingSway2 {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-0.35deg); }
+            75% { transform: rotate(0.4deg); }
+        }
+
+        /* Desk entrance */
+        .desk-container {
+            animation: deskSlideIn 0.7s 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+        @keyframes deskSlideIn {
+            0% { opacity: 0; transform: translateX(25px); }
+            100% { opacity: 1; transform: translateX(0); }
+        }
+
+        /* Desk lamp glow pulse */
+        .desk-lamp::after {
+            content: '';
+            position: absolute;
+            top: -20px;
+            left: -8px;
+            width: 30px;
+            height: 18px;
+            background: radial-gradient(ellipse at 50% 100%, rgba(255,235,180,0.3) 0%, transparent 70%);
+            animation: lampGlow 4s ease-in-out infinite;
+            pointer-events: none;
+        }
+        @keyframes lampGlow {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        /* Dustbin catch wobble */
+        .dustbin.caught {
+            animation: dustbinCatch 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) !important;
+        }
+        @keyframes dustbinCatch {
+            0% { transform: scale(1) rotate(0deg); }
+            15% { transform: scale(1.08) rotate(-3deg); }
+            30% { transform: scale(0.94) rotate(2deg); }
+            50% { transform: scale(1.04) rotate(-1.5deg); }
+            70% { transform: scale(0.98) rotate(0.8deg); }
+            100% { transform: scale(1) rotate(0deg); }
+        }
+
+        /* Card entrance - new idea slides up */
+        .paper-card.entering {
+            animation: cardSlideUp 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+        }
+        @keyframes cardSlideUp {
+            0% { opacity: 0; transform: translateY(70px) scale(0.88) rotateX(12deg); }
+            60% { opacity: 1; }
+            100% { opacity: 1; transform: translateY(0) scale(1) rotateX(0deg); }
+        }
+
+        /* Snap-back with spring physics */
+        .paper-card.snapping {
+            transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1),
+                        width 0.45s cubic-bezier(0.34, 1.56, 0.64, 1),
+                        height 0.45s cubic-bezier(0.34, 1.56, 0.64, 1),
+                        border-radius 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+            animation: none !important;
+        }
+
+        /* Score counter */
+        .score-counter {
+            position: absolute;
+            top: 6px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 14px;
+            z-index: 20;
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+        }
+        .score-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: rgba(255,255,255,0.82);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #333;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .score-item.pop { transform: scale(1.3); }
+        .score-icon { font-size: 13px; }
+        .score-value { min-width: 14px; text-align: center; }
+        .score-item.toss .score-value { color: #FF3B30; }
+        .score-item.save .score-value { color: #34C759; }
+
+        /* Screen flash effect */
+        .screen-flash {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            pointer-events: none;
+            z-index: 50;
+            animation: flashFade 0.35s ease-out forwards;
+        }
+        .screen-flash.toss { background: rgba(255, 59, 48, 0.12); }
+        .screen-flash.save { background: rgba(52, 199, 89, 0.12); }
+        @keyframes flashFade {
+            0% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        /* Improved fallen paper with multi-bounce */
+        .fallen-paper {
+            animation: paperFloorBounce 0.6s cubic-bezier(0.22, 0.61, 0.36, 1) forwards !important;
+        }
+        @keyframes paperFloorBounce {
+            0%   { transform: translateY(-25px) rotateZ(0deg); opacity: 0.6; }
+            30%  { transform: translateY(4px) rotateZ(10deg); opacity: 0.9; }
+            50%  { transform: translateY(-6px) rotateZ(6deg); opacity: 1; }
+            70%  { transform: translateY(2px) rotateZ(8deg); opacity: 1; }
+            100% { transform: translateY(0px) rotateZ(var(--fallen-rotation, 5deg)); opacity: 1; }
+        }
+
+        /* Dustbin container entrance */
+        .dustbin-container {
+            animation: deskSlideIn 0.7s 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+        /* Modal Overlay */
+        .modal-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        
+        .modal-overlay.active {
+            display: flex;
+        }
+        
+        .credit-modal {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            width: 80%;
+            max-width: 300px;
+        }
+        
+        .modal-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+        
+        .modal-text {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .credit-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .credit-btn {
+            padding: 15px;
+            border: 2px solid #007AFF;
+            border-radius: 10px;
+            background: white;
+            color: #007AFF;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .credit-btn:hover {
+            background: #007AFF;
+            color: white;
+        }
+        
+        .credit-btn.selected {
+            background: #007AFF;
+            color: white;
+        }
+        
+        .invest-btn {
+            width: 100%;
+            padding: 15px;
+            background: #007AFF;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        
+        /* Demo Button */
+        .demo-button {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            color: #007AFF;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+        
+        @media (max-width: 768px) {
+            .preview-container {
+                flex-direction: column;
+            }
+            
+            .instructions {
+                order: -1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="demo-button" onclick="loadNewIdea()">▶️ Try Demo</button>
+    
+    <div class="preview-container">
+        <!-- iPhone Frame -->
+        <div class="iphone-frame">
+            <div class="iphone-notch"></div>
+            <div class="iphone-screen">
+                <div class="status-bar">
+                    <span class="time">9:41</span>
+                    <div class="signal-icons">
+                        <span>📶</span>
+                        <span>📶</span>
+                        <span>🔋</span>
+                    </div>
+                </div>
+                
+                <div class="screen-content">
+                    <div class="room-container">
+                        <!-- 3D Room Elements -->
+                        <div class="room-ceiling"></div>
+                        <div class="room-back-wall"></div>
+                        <div class="room-left-wall"></div>
+                        <div class="room-right-wall"></div>
+                        <div class="room-door-frame"></div>
+                        <div class="room-door"></div>
+                        <div class="room-floor"></div>
+                        <div class="room-floor-shadow"></div>
+                        <div class="room-light"></div>
+
+                        <!-- Wall Decorations -->
+                        <div class="wall-painting-1"></div>
+                        <div class="wall-painting-2"></div>
+                        <div class="wall-clock">
+                            <div class="clock-hand-hour"></div>
+                            <div class="clock-hand-minute"></div>
+                        </div>
+                        <div class="wall-shelf"></div>
+                        <div class="coat-hook"></div>
+                        <div class="light-switch"></div>
+                        
+                        <div class="game-container" id="gameContainer">
+                            <!-- Score Counter -->
+                            <div class="score-counter">
+                                <div class="score-item toss" id="tossScore">
+                                    <span class="score-icon">🗑️</span>
+                                    <span class="score-value" id="tossCount">0</span>
+                                </div>
+                                <div class="score-item save" id="saveScore">
+                                    <span class="score-icon">💼</span>
+                                    <span class="score-value" id="saveCount">0</span>
+                                </div>
+                            </div>
+                            <!-- 3D Desk on Right -->
+                            <div class="desk-container">
+                                <div class="desk-top"></div>
+                                <div class="desk-front"></div>
+                                <div class="desk-side"></div>
+                                <div class="desk-leg"></div>
+                                <div class="desk-leg"></div>
+                                <div class="desk-leg-back"></div>
+                                <div class="desk-leg-back"></div>
+                                <div class="desk-lamp"></div>
+                                <div class="desk-pencil-cup"></div>
+                                <div class="saved-paper-stack" id="savedStack"></div>
+                                <div class="desk-label">✓ Saved Ideas</div>
+                            </div>
+                            
+                            <!-- Dustbin -->
+                            <div class="dustbin-container">
+                                <div class="dustbin" id="dustbin">
+                                    <div class="dustbin-top"></div>
+                                    <div class="dustbin-body">
+                                        <div class="dustbin-lines">
+                                            <div class="dustbin-line"></div>
+                                            <div class="dustbin-line"></div>
+                                            <div class="dustbin-line"></div>
+                                            <div class="dustbin-line"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="indicator-text">Pull down & release to toss</div>
+                            </div>
+                            
+                            <!-- Trajectory Line -->
+                            <div class="trajectory-line" id="trajectoryLine"></div>
+                            <div id="trajectoryDots"></div>
+                            
+                            <!-- Power Meter -->
+                            <div class="power-meter" id="powerMeter">
+                                <div class="power-fill" id="powerFill"></div>
+                            </div>
+                            
+                            <!-- Save Indicator -->
+                            <div class="save-indicator" id="saveIndicator">
+                                <div class="save-icon">💼</div>
+                                <div class="indicator-text">Swipe right to save</div>
+                            </div>
+                            
+                            <!-- Paper Card -->
+                            <div class="paper-card" id="paperCard">
+                                <div class="stage-badge" id="stageBadge">MVP</div>
+                                <div class="category" id="category">AI TOOL</div>
+                                <div class="title" id="title">TechFlow AI</div>
+                                <div class="summary" id="summary">
+                                    AI-powered workflow automation that saves developers 10+ hours per week
+                                </div>
+                                <div class="tap-hint">👆 Tap for details, or swipe!</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Credit Modal -->
+                    <div class="modal-overlay" id="creditModal">
+                        <div class="credit-modal">
+                            <div class="modal-title">Allocate AI Credits</div>
+                            <div class="modal-text">
+                                How many AI credits would you like to invest in this idea?
+                            </div>
+                            <div class="credit-options">
+                                <button class="credit-btn" onclick="selectCredit(25)">25</button>
+                                <button class="credit-btn" onclick="selectCredit(50)">50</button>
+                                <button class="credit-btn" onclick="selectCredit(100)">100</button>
+                                <button class="credit-btn" onclick="selectCredit(200)">200</button>
+                            </div>
+                            <button class="invest-btn" onclick="investCredits()">
+                                Invest <span id="selectedAmount">0</span> Credits
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Instructions Panel -->
+        <div class="instructions">
+            <h2>📱 Paper Toss Game</h2>
+            
+            <div class="instruction-item">
+                <div class="instruction-icon">👆</div>
+                <div class="instruction-content">
+                    <h3>Tap to Read</h3>
+                    <p>Tap the card to view full idea details, problem, solution, and roadmap</p>
+                </div>
+            </div>
+            
+            <div class="instruction-item">
+                <div class="instruction-icon">👉</div>
+                <div class="instruction-content">
+                    <h3>Swipe Right to Save</h3>
+                    <p>Like the idea? Swipe right to save it and allocate AI credits</p>
+                </div>
+            </div>
+            
+            <div class="instruction-item">
+                <div class="instruction-icon">👇</div>
+                <div class="instruction-content">
+                    <h3>Pull Down & Aim to Toss</h3>
+                    <p>Pull down to crumple the paper and see trajectory. The further you pull, the more power! Release to throw into the bin</p>
+                </div>
+            </div>
+            
+            <div class="instruction-item">
+                <div class="instruction-icon">💰</div>
+                <div class="instruction-content">
+                    <h3>Invest Credits</h3>
+                    <p>After saving, choose how many AI credits to invest (25-200)</p>
+                </div>
+            </div>
+            
+            <div class="features">
+                <h4>✨ Built-in Features:</h4>
+                <ul class="feature-list">
+                    <li>3D dustbin with catch animation</li>
+                    <li>Trajectory aim line visualization</li>
+                    <li>Power meter for throw strength</li>
+                    <li>Paper crumpling effect</li>
+                    <li>Arc physics for realistic toss</li>
+                    <li>Haptic feedback on interactions</li>
+                    <li>Smooth animations & physics</li>
+                    <li>Stack of cards with auto-load</li>
+                    <li>Real-time gesture recognition</li>
+                    <li>Credit investment flow</li>
+                    <li>Full idea detail modal</li>
+                    <li>Undo/snap-back on hesitation</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedCreditAmount = 0;
+        let dragStartX = 0;
+        let dragStartY = 0;
+        let currentX = 0;
+        let currentY = 0;
+        let isDragging = false;
+        let savedPapersCount = 0;
+        
+        // === AGENT 4: Velocity tracking for realistic physics ===
+        let velocityHistory = []; // {x, y, time} tuples
+        const VELOCITY_WINDOW = 6; // Track last 6 positions
+        let releaseVelocity = { x: 0, y: 0 };
+        let animFrameId = null;
+        
+        // Smoothed drag position (momentum feel)
+        let smoothX = 0;
+        let smoothY = 0;
+        const DRAG_SMOOTHING = 0.35; // 0=instant, 1=super laggy
+        
+        // === AGENT 6: Score tracking ===
+        let tossCount = 0;
+        let saveCountNum = 0;
+        
+        const paperCard = document.getElementById('paperCard');
+        const dustbin = document.getElementById('dustbin');
+        const saveIndicator = document.getElementById('saveIndicator');
+        const creditModal = document.getElementById('creditModal');
+        const trajectoryLine = document.getElementById('trajectoryLine');
+        const trajectoryDots = document.getElementById('trajectoryDots');
+        const powerMeter = document.getElementById('powerMeter');
+        const powerFill = document.getElementById('powerFill');
+        const savedStack = document.getElementById('savedStack');
+        const screenContent = document.querySelector('.screen-content');
+        
+        const ideas = [
+            {
+                category: 'AI TOOL',
+                title: 'TechFlow AI',
+                summary: 'AI-powered workflow automation that saves developers 10+ hours per week',
+                stage: 'MVP'
+            },
+            {
+                category: 'EDTECH',
+                title: 'EduMatch',
+                summary: 'Connect students with perfect tutors using AI matching algorithm',
+                stage: 'Prototype'
+            },
+            {
+                category: 'FINTECH',
+                title: 'BudgetBuddy',
+                summary: 'Automated personal finance assistant that helps you save 20% more',
+                stage: 'Concept'
+            },
+            {
+                category: 'HEALTHTECH',
+                title: 'FitTrack Pro',
+                summary: 'Personalized fitness coaching powered by machine learning',
+                stage: 'Beta'
+            },
+            {
+                category: 'SAAS',
+                title: 'MailCraft',
+                summary: 'AI email writer that triples your cold outreach response rate',
+                stage: 'MVP'
+            },
+            {
+                category: 'MARKETPLACE',
+                title: 'LocalBites',
+                summary: 'Hyper-local food marketplace connecting home chefs to neighbors',
+                stage: 'Concept'
+            }
+        ];
+        
+        let currentIdeaIndex = 0;
+        
+        // === AGENT 5: Start painting sway after entrance finishes ===
+        setTimeout(() => {
+            document.querySelector('.wall-painting-1')?.classList.add('swaying');
+            document.querySelector('.wall-painting-2')?.classList.add('swaying');
+        }, 1200);
+        
+        function loadNewIdea() {
+            currentIdeaIndex = (currentIdeaIndex + 1) % ideas.length;
+            const idea = ideas[currentIdeaIndex];
+            
+            document.getElementById('category').textContent = idea.category;
+            document.getElementById('title').textContent = idea.title;
+            document.getElementById('summary').textContent = idea.summary;
+            document.getElementById('stageBadge').textContent = idea.stage;
+            
+            // Reset card position and styles
+            paperCard.style.transform = 'translate(0, 0) rotate(0deg) scale(1)';
+            paperCard.style.opacity = '1';
+            paperCard.style.borderRadius = '2px';
+            paperCard.style.width = '340px';
+            paperCard.style.height = '480px';
+            paperCard.classList.remove('rejected', 'saved', 'crumpling', 'missed', 'snapping');
+            paperCard.querySelectorAll('.category, .title, .summary, .feature-list, .stage-badge, .tap-hint').forEach(el => {
+                el.style.opacity = '1';
+            });
+            dustbin.classList.remove('active', 'caught');
+            
+            // Card entrance animation
+            paperCard.classList.add('entering');
+            setTimeout(() => paperCard.classList.remove('entering'), 600);
+        }
+        
+        // Touch/Mouse events
+        paperCard.addEventListener('mousedown', startDrag);
+        paperCard.addEventListener('touchstart', startDrag, { passive: false });
+        
+        document.addEventListener('mousemove', drag);
+        document.addEventListener('touchmove', drag, { passive: false });
+        
+        document.addEventListener('mouseup', endDrag);
+        document.addEventListener('touchend', endDrag);
+        
+        function startDrag(e) {
+            e.preventDefault();
+            isDragging = true;
+            paperCard.classList.add('dragging');
+            paperCard.classList.remove('snapping', 'entering');
+            
+            const touch = e.touches ? e.touches[0] : e;
+            dragStartX = touch.clientX - currentX;
+            dragStartY = touch.clientY - currentY;
+            
+            // Reset velocity tracking
+            velocityHistory = [];
+            smoothX = currentX;
+            smoothY = currentY;
+            
+            // Cancel any running animation frame
+            if (animFrameId) cancelAnimationFrame(animFrameId);
+        }
+        
+        function drag(e) {
+            if (!isDragging) return;
+            e.preventDefault();
+            
+            const touch = e.touches ? e.touches[0] : e;
+            const rawX = touch.clientX - dragStartX;
+            const rawY = touch.clientY - dragStartY;
+            
+            // === AGENT 4: Smooth interpolation for momentum feel ===
+            smoothX += (rawX - smoothX) * (1 - DRAG_SMOOTHING);
+            smoothY += (rawY - smoothY) * (1 - DRAG_SMOOTHING);
+            currentX = smoothX;
+            currentY = smoothY;
+            
+            // Track velocity history
+            const now = performance.now();
+            velocityHistory.push({ x: currentX, y: currentY, t: now });
+            if (velocityHistory.length > VELOCITY_WINDOW) {
+                velocityHistory.shift();
+            }
+            
+            // Smooth rotation with damping
+            const rotation = currentX * 0.06;
+            const dragDistance = Math.sqrt(currentX * currentX + currentY * currentY);
+            let scale = Math.max(0.7, 1 - dragDistance * 0.0003);
+            
+            // Crumpling effect when dragging down
+            if (currentY > 0) {
+                paperCard.classList.add('crumpling');
+                const crumpleAmount = Math.min(currentY / 200, 1);
+                // Ease-in-out for smoother crumpling feel
+                const easedCrumple = crumpleAmount < 0.5
+                    ? 2 * crumpleAmount * crumpleAmount
+                    : 1 - Math.pow(-2 * crumpleAmount + 2, 2) / 2;
+                
+                // Shrink into crumpled ball
+                const minSize = 55;
+                const currentWidth = 340 - (easedCrumple * (340 - minSize));
+                const currentHeight = 480 - (easedCrumple * (480 - minSize));
+                paperCard.style.width = currentWidth + 'px';
+                paperCard.style.height = currentHeight + 'px';
+                scale = 1;
+                
+                // Irregular crumpled ball shape
+                const wobble = Math.sin(now * 0.003) * 2; // subtle live wobble
+                const r1 = 2 + easedCrumple * (40 + wobble);
+                const r2 = 2 + easedCrumple * (53 - wobble);
+                const r3 = 2 + easedCrumple * (46 + wobble * 0.7);
+                const r4 = 2 + easedCrumple * (50 - wobble * 0.5);
+                const r5 = 2 + easedCrumple * (48 + wobble * 0.3);
+                const r6 = 2 + easedCrumple * (44 - wobble * 0.8);
+                const r7 = 2 + easedCrumple * (52 + wobble * 0.6);
+                const r8 = 2 + easedCrumple * (46 - wobble * 0.4);
+                paperCard.style.borderRadius = `${r1}% ${r2}% ${r3}% ${r4}% / ${r5}% ${r6}% ${r7}% ${r8}%`;
+                
+                // Hide text content as it crumples
+                const contentOpacity = Math.max(0, 1 - easedCrumple * 2.5);
+                paperCard.querySelectorAll('.category, .title, .summary, .feature-list, .stage-badge, .tap-hint').forEach(el => {
+                    el.style.opacity = contentOpacity;
+                    el.style.transition = 'opacity 0.08s';
+                });
+                
+                // Power meter with eased display
+                const power = Math.min(currentY / 300 * 100, 100);
+                const easedPower = Math.pow(power / 100, 0.75) * 100;
+                powerFill.style.width = easedPower + '%';
+                powerMeter.classList.add('visible');
+                
+                // Trajectory aims toward dustbin
+                const targetX = 100 + currentX * 0.3;
+                trajectoryLine.style.height = Math.min(currentY, 250) + 'px';
+                trajectoryLine.style.transform = `translateX(${targetX}px) rotate(15deg)`;
+                trajectoryLine.classList.add('visible');
+                
+                drawTrajectoryDots(targetX, currentY);
+                
+                // Animate dustbin excitement
+                const dustbinScale = 1 + easedCrumple * 0.12;
+                dustbin.style.transform = `scale(${dustbinScale})`;
+                dustbin.style.opacity = 0.6 + (easedCrumple * 0.4);
+                dustbin.style.transition = 'transform 0.15s ease-out, opacity 0.15s ease-out';
+            } else {
+                paperCard.classList.remove('crumpling');
+                paperCard.style.borderRadius = '2px';
+                paperCard.style.width = '340px';
+                paperCard.style.height = '480px';
+                paperCard.querySelectorAll('.category, .title, .summary, .feature-list, .stage-badge, .tap-hint').forEach(el => {
+                    el.style.opacity = '1';
+                });
+                trajectoryLine.classList.remove('visible');
+                powerMeter.classList.remove('visible');
+                trajectoryDots.innerHTML = '';
+                dustbin.style.transform = 'scale(1)';
+                dustbin.style.opacity = '1';
+            }
+            
+            const tiltX = currentY * -0.008;
+            const tiltY = currentX * 0.008;
+            const crumpleRotation = currentY > 0 ? Math.min((currentY / 200) * 30, 30) : 0;
+            paperCard.style.transform = `translate(${currentX}px, ${currentY}px) rotate(${rotation + crumpleRotation}deg) scale(${scale}) rotateX(${tiltX}deg) rotateY(${tiltY}deg)`;
+            
+            // Save indicator for right swipe
+            if (currentX > 80) {
+                const saveProgress = Math.min((currentX - 80) / 120, 1);
+                saveIndicator.style.opacity = 0.5 + (saveProgress * 0.5);
+                saveIndicator.style.transform = `scale(${0.85 + saveProgress * 0.3})`;
+                saveIndicator.style.transition = 'opacity 0.15s, transform 0.15s';
+            } else {
+                saveIndicator.style.opacity = '0.5';
+                saveIndicator.style.transform = 'scale(0.85)';
+            }
+        }
+        
+        function drawTrajectoryDots(x, y) {
+            if (y < 50) {
+                trajectoryDots.innerHTML = '';
+                return;
+            }
+            
+            const numDots = 10;
+            let dotsHTML = '';
+            const power = Math.min(y / 300, 1);
+            
+            const startX = 187.5;
+            const startY = 350;
+            const endX = 310;
+            const endY = 650;
+            const peakHeight = 200 + power * 150;
+            
+            for (let i = 1; i <= numDots; i++) {
+                const t = i / numDots;
+                const dotX = startX + (endX - startX) * t + Math.sin(t * Math.PI) * 30;
+                const dotY = startY + (endY - startY) * t - Math.sin(t * Math.PI) * peakHeight;
+                
+                const opacity = 0.9 - (t * 0.5);
+                const dotScale = 1 - (t * 0.4);
+                
+                dotsHTML += `<div class="trajectory-dot" style="left: ${dotX}px; top: ${dotY}px; opacity: ${opacity}; transform: scale(${dotScale}); transition: left 0.1s, top 0.1s;"></div>`;
+            }
+            
+            trajectoryDots.innerHTML = dotsHTML;
+        }
+        
+        // === AGENT 4: Compute release velocity from history ===
+        function computeReleaseVelocity() {
+            if (velocityHistory.length < 2) return { x: 0, y: 0, speed: 0 };
+            
+            const recent = velocityHistory.slice(-3); // last 3 samples
+            const dt = (recent[recent.length - 1].t - recent[0].t) || 1;
+            const dx = recent[recent.length - 1].x - recent[0].x;
+            const dy = recent[recent.length - 1].y - recent[0].y;
+            
+            const vx = (dx / dt) * 16; // normalize to ~60fps frame
+            const vy = (dy / dt) * 16;
+            const speed = Math.sqrt(vx * vx + vy * vy);
+            
+            return { x: vx, y: vy, speed };
+        }
+        
+        function endDrag() {
+            if (!isDragging) return;
+            isDragging = false;
+            paperCard.classList.remove('dragging');
+            
+            // Compute release velocity
+            releaseVelocity = computeReleaseVelocity();
+            
+            // === AGENT 4: Physics-based throw decisions ===
+            // Throw if dragged down enough OR if downward velocity is high
+            const hasDownwardPull = currentY > 100;
+            const hasDownwardVelocity = releaseVelocity.y > 3 && currentY > 50;
+            
+            if (hasDownwardPull || hasDownwardVelocity) {
+                const throwPower = Math.min((currentY / 250 + releaseVelocity.speed * 0.05), 1);
+                throwToBin(currentX, currentY, throwPower);
+            }
+            // Save if swiped right
+            else if (currentX > 130) {
+                saveIdea();
+            }
+            // Snap back with spring physics
+            else {
+                springSnapBack();
+            }
+        }
+        
+        // === AGENT 4+5: Spring physics snap-back ===
+        function springSnapBack() {
+            paperCard.classList.add('snapping');
+            paperCard.style.transform = 'translate(0, 0) rotate(0deg) scale(1)';
+            paperCard.style.borderRadius = '2px';
+            paperCard.style.width = '340px';
+            paperCard.style.height = '480px';
+            paperCard.classList.remove('crumpling');
+            paperCard.querySelectorAll('.category, .title, .summary, .feature-list, .stage-badge, .tap-hint').forEach(el => {
+                el.style.opacity = '1';
+                el.style.transition = 'opacity 0.3s';
+            });
+            currentX = 0;
+            currentY = 0;
+            resetIndicators();
+            
+            // Remove snapping class after animation
+            setTimeout(() => paperCard.classList.remove('snapping'), 650);
+        }
+        
+        function throwToBin(x, y, power) {
+            const dustbinTargetX = 130;
+            const dustbinTargetY = 350;
+            
+            // === AGENT 4: Velocity-informed accuracy ===
+            // Accuracy based on: how centered the horizontal position is
+            // + bonus for velocity direction pointing toward dustbin
+            const posAccuracy = Math.max(0, 1 - Math.abs(x) / 200);
+            
+            // Velocity direction bonus: if velocity points rightward toward dustbin, bonus accuracy
+            const velAngle = Math.atan2(releaseVelocity.y, releaseVelocity.x);
+            const idealAngle = Math.atan2(dustbinTargetY - y, dustbinTargetX - x);
+            const angleDiff = Math.abs(velAngle - idealAngle);
+            const velBonus = Math.max(0, 0.2 - angleDiff * 0.1);
+            
+            const accuracy = Math.min(1, posAccuracy + velBonus);
+            const hitChance = accuracy * power;
+            const isHit = hitChance > 0.22;
+            
+            // Ball scale based on crumpling
+            const crumpleAmount = Math.min(y / 200, 1);
+            const ballScale = Math.max(0.12, 0.25 - crumpleAmount * 0.13);
+            
+            paperCard.style.setProperty('--throw-start', `translate(${x}px, ${y}px) rotate(${x * 0.08}deg)`);
+            paperCard.style.setProperty('--throw-scale', `${ballScale}`);
+            
+            // === AGENT 4: Velocity-influenced arc ===
+            // Higher velocity = higher arc peak
+            const speedBonus = Math.min(releaseVelocity.speed * 8, 60);
+            const arcPeakY = -100 - (power * 160) - speedBonus;
+            
+            // Screen flash
+            triggerScreenFlash('toss');
+            
+            if (isHit) {
+                // HIT arc
+                paperCard.style.setProperty('--throw-20x', `${x + (dustbinTargetX - x) * 0.3}px`);
+                paperCard.style.setProperty('--throw-20y', `${arcPeakY}px`);
+                paperCard.style.setProperty('--throw-50x', `${x + (dustbinTargetX - x) * 0.6}px`);
+                paperCard.style.setProperty('--throw-50y', `${arcPeakY * 0.3}px`);
+                paperCard.style.setProperty('--throw-80x', `${dustbinTargetX - 8}px`);
+                paperCard.style.setProperty('--throw-80y', `${dustbinTargetY * 0.7}px`);
+                paperCard.style.setProperty('--throw-100x', `${dustbinTargetX}px`);
+                paperCard.style.setProperty('--throw-100y', `${dustbinTargetY}px`);
+                
+                paperCard.classList.add('rejected');
+                
+                // Dustbin catches with wobble
+                setTimeout(() => {
+                    dustbin.classList.add('caught');
+                    dustbin.classList.add('active');
+                }, 700);
+                
+                // Update score
+                tossCount++;
+                updateScoreDisplay('toss');
+                
+                setTimeout(() => {
+                    loadNewIdea();
+                    currentX = 0; currentY = 0;
+                    resetIndicators();
+                }, 1200);
+            } else {
+                // MISS arc - influenced by release velocity direction
+                const missOffsetX = (releaseVelocity.x * 15) + (Math.random() - 0.5) * 80;
+                const missTargetX = dustbinTargetX + missOffsetX;
+                const missTargetY = dustbinTargetY + 60 + Math.random() * 80;
+                
+                paperCard.style.setProperty('--throw-20x', `${x + (missTargetX - x) * 0.3}px`);
+                paperCard.style.setProperty('--throw-20y', `${arcPeakY * 0.85}px`);
+                paperCard.style.setProperty('--miss-50x', `${x + (missTargetX - x) * 0.65}px`);
+                paperCard.style.setProperty('--miss-50y', `${arcPeakY * 0.1}px`);
+                paperCard.style.setProperty('--miss-100x', `${missTargetX}px`);
+                paperCard.style.setProperty('--miss-100y', `${missTargetY}px`);
+                
+                paperCard.classList.add('missed');
+                
+                // Update score (still counts as a toss)
+                tossCount++;
+                updateScoreDisplay('toss');
+                
+                setTimeout(() => {
+                    spawnFallenPaper(missTargetX, missTargetY);
+                    loadNewIdea();
+                    currentX = 0; currentY = 0;
+                    resetIndicators();
+                }, 1200);
+            }
+        }
+        
+        function spawnFallenPaper(x, y) {
+            const gameContainer = document.querySelector('.game-container');
+            const fallen = document.createElement('div');
+            fallen.className = 'fallen-paper';
+            const containerRect = gameContainer.getBoundingClientRect();
+            const clampedX = Math.max(20, Math.min(containerRect.width - 60, containerRect.width / 2 + x));
+            const randomRot = Math.random() * 40 - 20;
+            fallen.style.left = clampedX + 'px';
+            fallen.style.bottom = (8 + Math.random() * 25) + 'px';
+            fallen.style.setProperty('--fallen-rotation', randomRot + 'deg');
+            fallen.style.transform = `rotateZ(${randomRot}deg)`;
+            gameContainer.appendChild(fallen);
+            
+            // Fade out after delay
+            setTimeout(() => {
+                if (fallen.parentNode) {
+                    fallen.style.transition = 'opacity 0.6s ease-out';
+                    fallen.style.opacity = '0';
+                    setTimeout(() => fallen.remove(), 600);
+                }
+            }, 7000);
+        }
+        
+        function saveIdea() {
+            paperCard.style.setProperty('--save-start', `translate(${currentX}px, ${currentY}px) rotate(${currentX * 0.08}deg)`);
+            paperCard.classList.add('saved');
+            
+            // Screen flash
+            triggerScreenFlash('save');
+            
+            saveIndicator.style.transform = 'translateY(-50%) scale(1.3)';
+            
+            // Update score
+            saveCountNum++;
+            updateScoreDisplay('save');
+            
+            setTimeout(() => {
+                creditModal.classList.add('active');
+                paperCard.style.transform = 'translate(0, 0) rotate(0deg) scale(1)';
+                paperCard.classList.remove('saved');
+                currentX = 0;
+                currentY = 0;
+                resetIndicators();
+            }, 800);
+        }
+        
+        function resetIndicators() {
+            trajectoryLine.classList.remove('visible');
+            powerMeter.classList.remove('visible');
+            trajectoryDots.innerHTML = '';
+            powerFill.style.width = '0%';
+            saveIndicator.style.opacity = '0.6';
+            saveIndicator.style.transform = 'scale(0.9)';
+            dustbin.style.transform = 'scale(1)';
+            dustbin.style.opacity = '1';
+            dustbin.style.transition = '';
+            setTimeout(() => {
+                dustbin.classList.remove('caught');
+            }, 500);
+        }
+        
+        // === AGENT 6: Score display ===
+        function updateScoreDisplay(type) {
+            const el = type === 'toss' ? document.getElementById('tossScore') : document.getElementById('saveScore');
+            const valEl = type === 'toss' ? document.getElementById('tossCount') : document.getElementById('saveCount');
+            const count = type === 'toss' ? tossCount : saveCountNum;
+            
+            valEl.textContent = count;
+            el.classList.add('pop');
+            setTimeout(() => el.classList.remove('pop'), 350);
+        }
+        
+        // === AGENT 6: Screen flash effect ===
+        function triggerScreenFlash(type) {
+            const flash = document.createElement('div');
+            flash.className = `screen-flash ${type}`;
+            screenContent.appendChild(flash);
+            setTimeout(() => flash.remove(), 400);
+        }
+        
+        function selectCredit(amount) {
+            selectedCreditAmount = amount;
+            document.getElementById('selectedAmount').textContent = amount;
+            
+            document.querySelectorAll('.credit-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            event.target.classList.add('selected');
+        }
+        
+        function investCredits() {
+            if (selectedCreditAmount > 0) {
+                addPaperToDesk();
+            }
+            
+            creditModal.classList.remove('active');
+            selectedCreditAmount = 0;
+            document.getElementById('selectedAmount').textContent = '0';
+            
+            document.querySelectorAll('.credit-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            
+            setTimeout(() => {
+                loadNewIdea();
+            }, 300);
+        }
+        
+        function addPaperToDesk() {
+            const paper = document.createElement('div');
+            paper.className = 'saved-paper';
+            paper.style.transform = `translateZ(${savedPapersCount * 2}px)`;
+            paper.innerHTML = `<strong>${ideas[currentIdeaIndex].title}</strong>`;
+            
+            savedStack.appendChild(paper);
+            savedPapersCount++;
+            
+            if (savedPapersCount > 5) {
+                savedStack.removeChild(savedStack.firstChild);
+                savedPapersCount = 5;
+            }
+        }
+        
+        // Tap to view details
+        paperCard.addEventListener('click', (e) => {
+            if (!isDragging && Math.abs(currentX) < 10 && Math.abs(currentY) < 10) {
+                alert('📄 Full Idea Details Modal\n\nIn the real app, this opens a full-screen modal with:\n• Complete problem description\n• Detailed solution\n• Target users\n• Differentiation strategy\n• Monetization plan\n• Development roadmap');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -70,8 +70,8 @@ router.post(
       }
 
       // Track analytics
-      analyticsService.trackIdeaReviewed(ideaId, 'saved');
-      analyticsService.trackPaperToss(ideaId, 'save', 'swipe_right');
+      analyticsService.trackIdeaReviewed(ideaId as string, 'saved');
+      analyticsService.trackPaperToss(ideaId as string, 'save', 'swipe_right');
 
       res.json({ message: 'Idea saved successfully' });
     } catch (error) {
@@ -108,8 +108,8 @@ router.post(
       );
 
       // Track analytics
-      analyticsService.trackIdeaReviewed(ideaId, 'rejected');
-      analyticsService.trackPaperToss(ideaId, 'reject', 'swipe_down');
+      analyticsService.trackIdeaReviewed(ideaId as string, 'rejected');
+      analyticsService.trackPaperToss(ideaId as string, 'reject', 'swipe_down');
 
       res.json({ message: 'Idea rejected' });
     } catch (error) {

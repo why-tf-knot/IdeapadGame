@@ -2,7 +2,8 @@ import mongoose, { Schema, Document, Types } from 'mongoose';
 
 export type IdeaCategory = 'App' | 'Website' | 'SaaS' | 'AI Tool' | 'Content/Productized Service' | 'Other';
 export type IdeaStage = 'Idea' | 'Prototype' | 'MVP' | 'Launched';
-export type IdeaStatus = 'PENDING_REVIEW' | 'ACTIVE' | 'ARCHIVED';
+export type IdeaStatus = 'DRAFT' | 'PENDING_REVIEW' | 'ACTIVE' | 'ARCHIVED';
+export type PitchStatus = 'DRAFT' | 'GENERATED' | 'FINALIZED';
 
 export interface IIdea extends Document {
   founderId: Types.ObjectId;
@@ -18,6 +19,19 @@ export interface IIdea extends Document {
   roadmap: string;
   deckSlides: string[];
   status: IdeaStatus;
+  // Wizard step answers
+  wizardStep1: string;
+  wizardStep2: string;
+  wizardStep3: string;
+  wizardStep4: string;
+  // AI-generated pitch fields
+  pitchTitle: string;
+  pitchIdea: string;
+  pitchTarget: string;
+  pitchSolves: string;
+  pitchHow: string;
+  pitchImageUrl: string;
+  pitchStatus: PitchStatus;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -26,28 +40,45 @@ const IdeaSchema = new Schema<IIdea>(
   {
     founderId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     title: { type: String, required: true },
-    oneLineSummary: { type: String, required: true, maxlength: 140 },
+    oneLineSummary: { type: String, maxlength: 250, default: '' },
     category: { 
       type: String, 
       enum: ['App', 'Website', 'SaaS', 'AI Tool', 'Content/Productized Service', 'Other'], 
-      required: true 
+      default: 'Other'
     },
     stage: { 
       type: String, 
       enum: ['Idea', 'Prototype', 'MVP', 'Launched'], 
-      required: true 
+      default: 'Idea'
     },
-    targetUser: { type: String, required: true },
-    problem: { type: String, required: true },
-    solution: { type: String, required: true },
-    differentiation: { type: String, required: true },
-    monetization: { type: String, required: true },
-    roadmap: { type: String, required: true },
+    targetUser: { type: String, default: '' },
+    problem: { type: String, default: '' },
+    solution: { type: String, default: '' },
+    differentiation: { type: String, default: '' },
+    monetization: { type: String, default: '' },
+    roadmap: { type: String, default: '' },
     deckSlides: [{ type: String }],
     status: { 
       type: String, 
-      enum: ['PENDING_REVIEW', 'ACTIVE', 'ARCHIVED'], 
-      default: 'PENDING_REVIEW' 
+      enum: ['DRAFT', 'PENDING_REVIEW', 'ACTIVE', 'ARCHIVED'], 
+      default: 'DRAFT' 
+    },
+    // Wizard step answers
+    wizardStep1: { type: String, maxlength: 250, default: '' },
+    wizardStep2: { type: String, maxlength: 400, default: '' },
+    wizardStep3: { type: String, maxlength: 400, default: '' },
+    wizardStep4: { type: String, maxlength: 400, default: '' },
+    // AI-generated pitch fields
+    pitchTitle: { type: String, default: '' },
+    pitchIdea: { type: String, default: '' },
+    pitchTarget: { type: String, default: '' },
+    pitchSolves: { type: String, default: '' },
+    pitchHow: { type: String, default: '' },
+    pitchImageUrl: { type: String, default: '' },
+    pitchStatus: { 
+      type: String, 
+      enum: ['DRAFT', 'GENERATED', 'FINALIZED'], 
+      default: 'DRAFT' 
     },
   },
   { timestamps: true }

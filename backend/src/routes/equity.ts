@@ -9,7 +9,7 @@ const router = express.Router();
 // Get equity mapping for an idea
 router.get('/idea/:ideaId', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
-    const { ideaId } = req.params;
+    const ideaId = req.params.ideaId as string;
 
     // Validate ObjectId
     if (!Types.ObjectId.isValid(ideaId)) {

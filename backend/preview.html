@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BuildPaper API Preview</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .card h3 {
+            color: #764ba2;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+        
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-left: auto;
+        }
+        
+        .status-indicator.logged-in {
+            background: #48bb78;
+            box-shadow: 0 0 10px #48bb78;
+        }
+        
+        .status-indicator.logged-out {
+            background: #cbd5e0;
+        }
+        
+        .login-form {
+            background: #f7fafc;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .form-group {
+            margin-bottom: 12px;
+        }
+        
+        .form-group label {
+            display: block;
+            font-size: 0.9em;
+            font-weight: 600;
+            color: #4a5568;
+            margin-bottom: 5px;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 1em;
+        }
+        
+        .demo-accounts {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        
+        .demo-btn {
+            flex: 1;
+            padding: 8px;
+            background: white;
+            border: 2px solid #667eea;
+            color: #667eea;
+            border-radius: 6px;
+            font-size: 0.85em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .demo-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+            transition: all 0.2s;
+        }
+        
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        button:active:not(:disabled) {
+            transform: translateY(0);
+        }
+        
+        .result {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .result.success {
+            border-color: #48bb78;
+            background: #f0fff4;
+        }
+        
+        .result.error {
+            border-color: #f56565;
+            background: #fff5f5;
+            color: #c53030;
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 15px;
+            background: #f7fafc;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        
+        .stat {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .badge {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            margin-right: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .idea-card {
+            background: #f7fafc;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 10px;
+        }
+        
+        .idea-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #2d3748;
+            margin-bottom: 8px;
+        }
+        
+        .idea-summary {
+            color: #4a5568;
+            margin-bottom: 12px;
+            line-height: 1.5;
+        }
+        
+        .idea-meta {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .user-info {
+            background: #edf2f7;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+        }
+        
+        .user-info strong {
+            color: #667eea;
+        }
+        
+        .console-log {
+            background: #2d3748;
+            color: #68d391;
+            padding: 10px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8em;
+            margin-top: 10px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        
+        .api-endpoints {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎬 BuildPaper Preview</h1>
+            <p>Interactive API Demo - Test the core features!</p>
+            <a href="/mobile" style="color: white; text-decoration: none; background: rgba(255,255,255,0.2); padding: 10px 20px; border-radius: 20px; display: inline-block; margin-top: 15px; font-weight: 600;">📱 View Mobile Game Interface</a>
+        </div>
+        
+        <div class="grid">
+            <!-- Investor Card -->
+            <div class="card">
+                <h2>
+                    👔 Investor Flow
+                    <span class="status-indicator logged-out" id="investor-status"></span>
+                </h2>
+                
+                <div class="login-form">
+                    <div class="demo-accounts">
+                        <button class="demo-btn" onclick="fillInvestorLogin('john@example.com')">John (1000cr)</button>
+                        <button class="demo-btn" onclick="fillInvestorLogin('emily@example.com')">Emily (850cr)</button>
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="investor-email" placeholder="investor@example.com" value="john@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="investor-password" placeholder="password" value="demo123">
+                    </div>
+                    <button onclick="investorLogin()">🔐 Login</button>
+                </div>
+                
+                <div id="investor-user-info" class="user-info" style="display:none;"></div>
+                
+                <h3>Actions</h3>
+                <button onclick="getWallet()" id="btn-wallet" disabled>💰 Check My Wallet</button>
+                <button onclick="getNextIdea()" id="btn-next-idea" disabled>📄 Get Next Idea (Paper Toss!)</button>
+                <button onclick="saveIdea()" id="btn-save-idea" disabled>❤️ Save Idea (Swipe Right)</button>
+                <button onclick="investCredits()" id="btn-invest" disabled>💸 Invest 100 Credits</button>
+                
+                <div class="stats">
+                    <div class="stat">
+                        <div class="stat-value" id="investor-balance">-</div>
+                        <div class="stat-label">Credits</div>
+                    </div>
+                </div>
+                
+                <div id="investor-result" class="result" style="display:none;"></div>
+            </div>
+            
+            <!-- Founder Card -->
+            <div class="card">
+                <h2>
+                    💡 Founder Flow
+                    <span class="status-indicator logged-out" id="founder-status"></span>
+                </h2>
+                
+                <div class="login-form">
+                    <div class="demo-accounts">
+                        <button class="demo-btn" onclick="fillFounderLogin('sarah@example.com')">Sarah</button>
+                        <button class="demo-btn" onclick="fillFounderLogin('alex@example.com')">Alex</button>
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="founder-email" placeholder="founder@example.com" value="sarah@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="founder-password" placeholder="password" value="demo123">
+                    </div>
+                    <button onclick="founderLogin()">🔐 Login</button>
+                </div>
+                
+                <div id="founder-user-info" class="user-info" style="display:none;"></div>
+                
+                <h3>Actions</h3>
+                <button onclick="getMyIdeas()" id="btn-my-ideas" disabled>📋 View My Ideas</button>
+                <button onclick="useAITool()" id="btn-ai-tool" disabled>✨ Use AI Tool (10 credits)</button>
+                <button onclick="checkEquity()" id="btn-equity" disabled>📊 Check Equity Split</button>
+                
+                <div class="stats">
+                    <div class="stat">
+                        <div class="stat-value" id="idea-count">-</div>
+                        <div class="stat-label">Ideas</div>
+                    </div>
+                </div>
+                
+                <div id="founder-result" class="result" style="display:none;"></div>
+            </div>
+            
+            <!-- Current Idea Card -->
+            <div class="card">
+                <h2>📄 Current Idea</h2>
+                <div id="current-idea" style="color: #666;">
+                    <p>Click "Get Next Idea" to load an idea...</p>
+                </div>
+                
+                <h3>Console Log</h3>
+                <div id="console-log" class="console-log">Ready...</div>
+            </div>
+        </div>
+        
+        <!-- API Endpoints Card -->
+        <div class="card">
+            <h2>🔗 Available API Endpoints</h2>
+            <div class="api-endpoints">
+                <div>
+                    <h3>🔐 Authentication</h3>
+                    <span class="badge">POST /api/auth/login</span>
+                    <span class="badge">POST /api/auth/register</span>
+                </div>
+                <div>
+                    <h3>💰 Credits</h3>
+                    <span class="badge">GET /api/credits/wallet/me</span>
+                    <span class="badge">POST /api/credits/invest</span>
+                    <span class="badge">POST /api/credits/spend</span>
+                </div>
+                <div>
+                    <h3>💡 Ideas</h3>
+                    <span class="badge">GET /api/ideas/my</span>
+                    <span class="badge">POST /api/ideas</span>
+                    <span class="badge">GET /api/review/next</span>
+                    <span class="badge">POST /api/review/:id/save</span>
+                </div>
+                <div>
+                    <h3>📊 Equity & Analytics</h3>
+                    <span class="badge">GET /api/equity/idea/:id</span>
+                    <span class="badge">POST /api/batch/batch-enrich</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let investorToken = null;
+        let founderToken = null;
+        let currentIdeaId = null;
+        let investorUser = null;
+        let founderUser = null;
+        
+        const API_BASE = '';  // Same origin
+        
+        function log(message, data = null) {
+            const consoleLog = document.getElementById('console-log');
+            const timestamp = new Date().toLocaleTimeString();
+            let logEntry = `[${timestamp}] ${message}`;
+            if (data) {
+                logEntry += '\n' + JSON.stringify(data, null, 2);
+            }
+            consoleLog.textContent = logEntry + '\n\n' + consoleLog.textContent;
+            console.log(message, data);
+        }
+        
+        async function apiCall(endpoint, options = {}) {
+            try {
+                log(`API Call: ${options.method || 'GET'} ${endpoint}`);
+                const response = await fetch(`${API_BASE}${endpoint}`, {
+                    ...options,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    }
+                });
+                
+                const data = await response.json();
+                log(`Response: ${response.status}`, data);
+                return data;
+            } catch (error) {
+                log(`ERROR: ${error.message}`, null);
+                return { error: error.message };
+            }
+        }
+        
+        function showResult(elementId, data, isError = false) {
+            const el = document.getElementById(elementId);
+            el.style.display = 'block';
+            el.className = 'result ' + (isError ? 'error' : 'success');
+            el.textContent = JSON.stringify(data, null, 2);
+        }
+        
+        function updateInvestorButtons(enabled) {
+            document.getElementById('btn-wallet').disabled = !enabled;
+            document.getElementById('btn-next-idea').disabled = !enabled;
+            document.getElementById('btn-save-idea').disabled = !enabled;
+            document.getElementById('btn-invest').disabled = !enabled;
+        }
+        
+        function updateFounderButtons(enabled) {
+            document.getElementById('btn-my-ideas').disabled = !enabled;
+            document.getElementById('btn-ai-tool').disabled = !enabled;
+            document.getElementById('btn-equity').disabled = !enabled;
+        }
+        
+        function updateInvestorStatus(loggedIn, user = null) {
+            const status = document.getElementById('investor-status');
+            const userInfo = document.getElementById('investor-user-info');
+            
+            if (loggedIn) {
+                status.classList.add('logged-in');
+                status.classList.remove('logged-out');
+                userInfo.style.display = 'block';
+                userInfo.innerHTML = `<strong>Logged in as:</strong> ${user.name} (${user.role})`;
+                updateInvestorButtons(true);
+            } else {
+                status.classList.remove('logged-in');
+                status.classList.add('logged-out');
+                userInfo.style.display = 'none';
+                updateInvestorButtons(false);
+            }
+        }
+        
+        function updateFounderStatus(loggedIn, user = null) {
+            const status = document.getElementById('founder-status');
+            const userInfo = document.getElementById('founder-user-info');
+            
+            if (loggedIn) {
+                status.classList.add('logged-in');
+                status.classList.remove('logged-out');
+                userInfo.style.display = 'block';
+                userInfo.innerHTML = `<strong>Logged in as:</strong> ${user.name} (${user.role})`;
+                updateFounderButtons(true);
+            } else {
+                status.classList.remove('logged-in');
+                status.classList.add('logged-out');
+                userInfo.style.display = 'none';
+                updateFounderButtons(false);
+            }
+        }
+        
+        function fillInvestorLogin(email) {
+            document.getElementById('investor-email').value = email;
+            document.getElementById('investor-password').value = 'demo123';
+        }
+        
+        function fillFounderLogin(email) {
+            document.getElementById('founder-email').value = email;
+            document.getElementById('founder-password').value = 'demo123';
+        }
+        
+        async function investorLogin() {
+            const email = document.getElementById('investor-email').value;
+            const password = document.getElementById('investor-password').value;
+            
+            if (!email || !password) {
+                alert('❌ Please enter email and password');
+                return;
+            }
+            
+            const data = await apiCall('/api/auth/login', {
+                method: 'POST',
+                body: JSON.stringify({ email, password })
+            });
+            
+            if (data.error) {
+                showResult('investor-result', { error: data.error }, true);
+                updateInvestorStatus(false);
+            } else if (data.token) {
+                investorToken = data.token;
+                investorUser = data.user;
+                showResult('investor-result', { success: true, user: data.user });
+                updateInvestorStatus(true, data.user);
+                
+                // Auto-fetch wallet
+                setTimeout(() => getWallet(), 500);
+            } else {
+                showResult('investor-result', { error: 'No token received' }, true);
+                updateInvestorStatus(false);
+            }
+        }
+        
+        async function getWallet() {
+            if (!investorToken) {
+                alert('❌ Please login first!');
+                return;
+            }
+            
+            const data = await apiCall('/api/credits/wallet/me', {
+                headers: { 'Authorization': `Bearer ${investorToken}` }
+            });
+            
+            if (data.error) {
+                showResult('investor-result', data, true);
+            } else {
+                showResult('investor-result', data);
+                if (data.wallet) {
+                    document.getElementById('investor-balance').textContent = data.wallet.totalBalance;
+                }
+            }
+        }
+        
+        async function getNextIdea() {
+            if (!investorToken) {
+                alert('❌ Please login first!');
+                return;
+            }
+            
+            const data = await apiCall('/api/review/next', {
+                headers: { 'Authorization': `Bearer ${investorToken}` }
+            });
+            
+            if (data.error) {
+                showResult('investor-result', data, true);
+                return;
+            }
+            
+            showResult('investor-result', data);
+            
+            if (data.idea) {
+                currentIdeaId = data.idea._id;
+                const ideaEl = document.getElementById('current-idea');
+                ideaEl.innerHTML = `
+                    <div class="idea-card">
+                        <div class="idea-title">${data.idea.title}</div>
+                        <div class="idea-summary">${data.idea.oneLineSummary}</div>
+                        <div class="idea-meta">
+                            <span class="badge">${data.idea.category}</span>
+                            <span class="badge">${data.idea.stage}</span>
+                            <span class="badge">Target: ${data.idea.targetUser}</span>
+                        </div>
+                    </div>
+                    <div style="margin-top: 15px; padding: 12px; background: #edf2f7; border-radius: 6px;">
+                        <strong>Problem:</strong> ${data.idea.problem}<br>
+                        <strong>Solution:</strong> ${data.idea.solution}<br>
+                        <strong>Monetization:</strong> ${data.idea.monetization}
+                    </div>
+                `;
+            }
+        }
+        
+        async function saveIdea() {
+            if (!investorToken || !currentIdeaId) {
+                alert('❌ Please get an idea first!');
+                return;
+            }
+            
+            const data = await apiCall(`/api/review/${currentIdeaId}/save`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${investorToken}` }
+            });
+            
+            if (data.error) {
+                showResult('investor-result', data, true);
+            } else {
+                showResult('investor-result', data);
+            }
+        }
+        
+        async function investCredits() {
+            if (!investorToken || !currentIdeaId) {
+                alert('❌ Please get and save an idea first!');
+                return;
+            }
+            
+            const data = await apiCall('/api/credits/invest', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${investorToken}` },
+                body: JSON.stringify({
+                    ideaId: currentIdeaId,
+                    amount: 100
+                })
+            });
+            
+            if (data.error) {
+                showResult('investor-result', data, true);
+            } else {
+                showResult('investor-result', data);
+                if (data.newBalance !== undefined) {
+                    document.getElementById('investor-balance').textContent = data.newBalance;
+                }
+            }
+        }
+        
+        async function founderLogin() {
+            const email = document.getElementById('founder-email').value;
+            const password = document.getElementById('founder-password').value;
+            
+            if (!email || !password) {
+                alert('❌ Please enter email and password');
+                return;
+            }
+            
+            const data = await apiCall('/api/auth/login', {
+                method: 'POST',
+                body: JSON.stringify({ email, password })
+            });
+            
+            if (data.error) {
+                showResult('founder-result', { error: data.error }, true);
+                updateFounderStatus(false);
+            } else if (data.token) {
+                founderToken = data.token;
+                founderUser = data.user;
+                showResult('founder-result', { success: true, user: data.user });
+                updateFounderStatus(true, data.user);
+                
+                // Auto-fetch ideas
+                setTimeout(() => getMyIdeas(), 500);
+            } else {
+                showResult('founder-result', { error: 'No token received' }, true);
+                updateFounderStatus(false);
+            }
+        }
+        
+        async function getMyIdeas() {
+            if (!founderToken) {
+                alert('❌ Please login as founder first!');
+                return;
+            }
+            
+            const data = await apiCall('/api/ideas/my', {
+                headers: { 'Authorization': `Bearer ${founderToken}` }
+            });
+            
+            if (data.error) {
+                showResult('founder-result', data, true);
+            } else {
+                showResult('founder-result', data);
+                if (data.ideas) {
+                    document.getElementById('idea-count').textContent = data.ideas.length;
+                    
+                    // Also set currentIdeaId to first idea if available
+                    if (data.ideas.length > 0 && !currentIdeaId) {
+                        currentIdeaId = data.ideas[0]._id;
+                        log('Auto-selected first idea for operations', { ideaId: currentIdeaId });
+                    }
+                }
+            }
+        }
+        
+        async function useAITool() {
+            if (!founderToken) {
+                alert('❌ Please login as founder first!');
+                return;
+            }
+            
+            if (!currentIdeaId) {
+                alert('❌ Please select an idea first! (Get My Ideas or Get Next Idea)');
+                return;
+            }
+            
+            const data = await apiCall('/api/credits/spend', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${founderToken}` },
+                body: JSON.stringify({
+                    ideaId: currentIdeaId,
+                    service: 'LLM_SUMMARY_IMPROVE',
+                    amount: 10
+                })
+            });
+            
+            if (data.error) {
+                showResult('founder-result', data, true);
+            } else {
+                showResult('founder-result', data);
+            }
+        }
+        
+        async function checkEquity() {
+            if (!currentIdeaId) {
+                alert('❌ Please select an idea first!');
+                return;
+            }
+            
+            const token = investorToken || founderToken;
+            if (!token) {
+                alert('❌ Please login first!');
+                return;
+            }
+            
+            const data = await apiCall(`/api/equity/idea/${currentIdeaId}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            
+            if (data.error) {
+                showResult('founder-result', data, true);
+            } else {
+                showResult('founder-result', data);
+            }
+        }
+        
+        // Initialize
+        log('BuildPaper Preview Ready! 🚀');
+        log('Try logging in as an Investor or Founder');
+    </script>
+</body>
+</html>

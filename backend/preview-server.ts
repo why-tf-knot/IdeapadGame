@@ -5,6 +5,8 @@
 
 import express from 'express';
 import cors from 'cors';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 
 const app = express();
 const PORT = 3000;
@@ -259,6 +261,30 @@ app.post('/api/batch/batch-enrich', (req, res) => {
   }));
   
   res.json({ ideas: enrichedIdeas });
+});
+
+// Serve interactive preview page
+app.get('/', (req, res) => {
+  try {
+    const html = readFileSync('./preview.html', 'utf-8');
+    res.setHeader('Content-Type', 'text/html');
+    res.send(html);
+  } catch (error) {
+    console.error('Error loading preview.html:', error);
+    res.status(500).send('Error loading preview page');
+  }
+});
+
+// Serve mobile preview page
+app.get('/mobile', (req, res) => {
+  try {
+    const html = readFileSync('./mobile-preview.html', 'utf-8');
+    res.setHeader('Content-Type', 'text/html');
+    res.send(html);
+  } catch (error) {
+    console.error('Error loading mobile-preview.html:', error);
+    res.status(500).send('Error loading mobile preview page');
+  }
 });
 
 // Start server

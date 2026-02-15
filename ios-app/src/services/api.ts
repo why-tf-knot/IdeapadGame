@@ -1,6 +1,18 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { AuthResponse, User, Idea, WalletInfo } from '../types';
+import {
+  AuthResponse,
+  User,
+  Idea,
+  WalletInfo,
+  WizardAnswers,
+  GeneratedPitch,
+  IdeaCreditInfo,
+  InvestResponse,
+  SpendResponse,
+  IdeaEquityInfo,
+  EnrichedIdea,
+} from '../types';
 
 // Update this to your backend URL
 const API_BASE_URL = 'http://localhost:3000/api';
@@ -63,6 +75,18 @@ export const ideasAPI = {
     const response = await api.get(`/ideas/${id}`);
     return response.data;
   },
+
+  // --- New Wizard Flow endpoints ---
+
+  generatePitch: async (wizardAnswers: WizardAnswers): Promise<{ idea: Idea }> => {
+    const response = await api.post('/ideas/generate-pitch', { wizardAnswers });
+    return response.data;
+  },
+
+  finalizePitch: async (ideaId: string, pitchData: GeneratedPitch & { pitchTitle: string }): Promise<{ idea: Idea }> => {
+    const response = await api.post(`/ideas/${ideaId}/finalize`, pitchData);
+    return response.data;
+  },
 };
 
 // Review API
@@ -95,17 +119,17 @@ export const creditsAPI = {
     return response.data;
   },
 
-  invest: async (ideaId: string, amount: number): Promise<any> => {
+  invest: async (ideaId: string, amount: number): Promise<InvestResponse> => {
     const response = await api.post('/credits/invest', { ideaId, amount });
     return response.data;
   },
 
-  spend: async (ideaId: string, amount: number, service: string): Promise<any> => {
+  spend: async (ideaId: string, amount: number, service: string): Promise<SpendResponse> => {
     const response = await api.post('/credits/spend', { ideaId, amount, service });
     return response.data;
   },
 
-  getIdeaCredits: async (ideaId: string): Promise<any> => {
+  getIdeaCredits: async (ideaId: string): Promise<IdeaCreditInfo> => {
     const response = await api.get(`/credits/idea/${ideaId}`);
     return response.data;
   },
@@ -113,7 +137,7 @@ export const creditsAPI = {
 
 // Equity API
 export const equityAPI = {
-  getIdeaEquity: async (ideaId: string): Promise<any> => {
+  getIdeaEquity: async (ideaId: string): Promise<IdeaEquityInfo> => {
     const response = await api.get(`/equity/idea/${ideaId}`);
     return response.data;
   },
@@ -121,7 +145,7 @@ export const equityAPI = {
 
 // Batch API - For optimized data fetching
 export const batchAPI = {
-  enrichIdeas: async (ideaIds: string[]): Promise<{ ideas: any[] }> => {
+  enrichIdeas: async (ideaIds: string[]): Promise<{ ideas: EnrichedIdea[] }> => {
     const response = await api.post('/batch/batch-enrich', { ideaIds });
     return response.data;
   },

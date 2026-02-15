@@ -68,6 +68,8 @@ const MyIdeasScreen: React.FC<MyIdeasScreenProps> = ({ navigation }) => {
         return { backgroundColor: '#34C759' };
       case 'PENDING_REVIEW':
         return { backgroundColor: '#FF9500' };
+      case 'DRAFT':
+        return { backgroundColor: '#007AFF' };
       default:
         return { backgroundColor: '#8E8E93' };
     }

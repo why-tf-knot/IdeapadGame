@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { ideasAPI, creditsAPI } from '../services/api';
 import { Idea } from '../types';
+import { handleApiError } from '../utils/errorHandler';
 
 interface IdeaDetailScreenProps {
   route: any;
@@ -63,8 +64,18 @@ const IdeaDetailScreen: React.FC<IdeaDetailScreenProps> = ({ route, navigation }
   const [aiResult, setAiResult] = useState('');
   const [selectedTool, setSelectedTool] = useState<AITool | null>(null);
 
+  // AbortController ref for cancelling in-flight requests on unmount
+  const abortControllerRef = useRef<AbortController | null>(null);
+
   useEffect(() => {
     loadIdeaDetails();
+
+    // Cleanup: abort any in-flight requests when navigating away
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, [ideaId]);
 
   const loadIdeaDetails = async () => {
@@ -75,7 +86,7 @@ const IdeaDetailScreen: React.FC<IdeaDetailScreenProps> = ({ route, navigation }
       
       navigation.setOptions({ title: ideaResponse.idea.title });
     } catch (error) {
-      Alert.alert('Error', 'Failed to load idea details');
+      handleApiError(error, 'Failed to load idea details');
       navigation.goBack();
     } finally {
       setLoading(false);
@@ -110,19 +121,38 @@ const IdeaDetailScreen: React.FC<IdeaDetailScreenProps> = ({ route, navigation }
   const executeTool = async (tool: AITool) => {
     if (!idea) return;
 
+    // Cancel any previous in-flight request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+
     setProcessingTool(tool.id);
     setSelectedTool(tool);
+
+    // Optimistic UI update: deduct credits immediately
+    const previousCredits = aiCredits;
+    setAiCredits(prev => prev - tool.cost);
 
     try {
       const response = await creditsAPI.spend(idea._id, tool.cost, tool.service);
       
+      // Update with actual server balance
       setAiCredits(response.newBalance);
       setAiResult(response.result);
       setShowResultModal(true);
     } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.error || 'Failed to process AI request');
+      // Check if the request was intentionally aborted (navigation away)
+      if (error?.name === 'AbortError' || error?.message === 'canceled') {
+        return;
+      }
+
+      // Rollback optimistic update on error
+      setAiCredits(previousCredits);
+      handleApiError(error, 'Failed to process AI request');
     } finally {
       setProcessingTool(null);
+      abortControllerRef.current = null;
     }
   };
 

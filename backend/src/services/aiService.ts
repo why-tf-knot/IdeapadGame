@@ -112,11 +112,11 @@ Be specific, actionable, and realistic based on the stage.
 };
 
 /**
- * Process AI tool request
+ * Process AI tool request with error boundary
  * 
  * @param service - The AI service to use
  * @param idea - The idea object
- * @returns AI-generated text response
+ * @returns AI-generated text response (falls back gracefully on error)
  */
 export async function runAiTool(service: string, idea: any): Promise<AIServiceResult> {
   const serviceConfig = AI_SERVICES[service];
@@ -125,23 +125,33 @@ export async function runAiTool(service: string, idea: any): Promise<AIServiceRe
     throw new Error(`Unknown AI service: ${service}`);
   }
 
-  const prompt = serviceConfig.promptTemplate(idea);
+  try {
+    const prompt = serviceConfig.promptTemplate(idea);
 
-  // TODO: Integrate with real AI providers
-  // For now, return intelligent placeholder responses
+    // TODO: Integrate with real AI providers
+    // For now, return intelligent placeholder responses
 
-  if (process.env.OPENAI_API_KEY) {
-    // Future: Call OpenAI API
-    // return await callOpenAI(prompt);
+    if (process.env.OPENAI_API_KEY) {
+      // Future: Call OpenAI API
+      // return await callOpenAI(prompt);
+    }
+
+    // Placeholder responses for MVP
+    const placeholderResponses = getPlaceholderResponse(service, idea);
+    
+    return {
+      text: placeholderResponses,
+      tokensUsed: 0,
+    };
+  } catch (error) {
+    console.error(`[AI Service] Error running ${service}:`, error);
+    
+    // Return a graceful fallback instead of crashing the entire request
+    return {
+      text: `AI service temporarily unavailable for "${serviceConfig.name}". Please try again in a few moments. Your credits have not been charged.`,
+      tokensUsed: 0,
+    };
   }
-
-  // Placeholder responses for MVP
-  const placeholderResponses = getPlaceholderResponse(service, idea);
-  
-  return {
-    text: placeholderResponses,
-    tokensUsed: 0,
-  };
 }
 
 /**
