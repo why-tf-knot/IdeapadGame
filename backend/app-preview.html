@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BuildPaper – App Preview (Red Bull Basement Style)</title>
+  <style>
+    :root {
+      /* Red Bull Basement–inspired palette */
+      --bg: #F5F5F0;
+      --card: #FFFFFF;
+      --form: #E8EDF4;
+      --border: #E0E4EB;
+      --accent: #D93B41;
+      --text: #1A2332;
+      --muted: #5A6577;
+      --dim: #8B95A5;
+      --image-bg: #D8DDE6;
+      /* Dark theme for investor flow & auth */
+      --dark-bg: #0A1628;
+      --dark-card: #142038;
+      --dark-border: #1E2D45;
+      --dark-muted: #8899B0;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+      background: #EAEAE5;
+      color: var(--text);
+      overflow-x: hidden;
+    }
+
+    /* ─── Hero ────────────────────────────── */
+    .hero {
+      text-align: center;
+      padding: 60px 20px 40px;
+      background: linear-gradient(180deg, #F9F9F5 0%, #EAEAE5 100%);
+    }
+    .hero h1 { font-size: 42px; font-weight: 800; }
+    .hero h1 span { color: var(--accent); }
+    .hero p { color: var(--muted); font-size: 17px; max-width: 540px; margin: 8px auto 0; line-height: 1.5; }
+    .hero .subtitle { font-size: 13px; color: var(--dim); margin-top: 4px; }
+
+    /* ─── Sections ────────────────────────── */
+    .section-label {
+      text-align: center;
+      padding: 48px 20px 24px;
+    }
+    .section-label h2 { font-size: 28px; font-weight: 700; display: inline-flex; align-items: center; gap: 10px; }
+    .section-label p { color: var(--muted); margin-top: 6px; font-size: 15px; }
+    .badge {
+      display: inline-block; font-size: 11px; font-weight: 700;
+      padding: 3px 10px; border-radius: 20px; background: var(--accent); color: #fff; vertical-align: middle;
+    }
+    .badge.blue { background: #3478F6; }
+
+    /* ─── Phone Row ───────────────────────── */
+    .phone-row {
+      display: flex; justify-content: center; flex-wrap: wrap; gap: 36px; padding: 0 20px 40px;
+    }
+
+    /* ─── iPhone Frame ────────────────────── */
+    .iphone { width: 280px; text-align: center; }
+    .iphone-label { font-size: 13px; font-weight: 700; color: var(--muted); letter-spacing: .6px; text-transform: uppercase; margin-bottom: 10px; }
+    .iphone-body {
+      border-radius: 40px; overflow: hidden;
+      box-shadow: 0 12px 40px rgba(0,0,0,.12);
+      border: 6px solid #333;
+      position: relative;
+    }
+    .iphone-screen { position: relative; overflow: hidden; }
+    .notch {
+      width: 120px; height: 28px;
+      background: #000; border-radius: 0 0 18px 18px;
+      margin: 0 auto; position: relative; z-index: 10;
+    }
+    .status-bar {
+      display: flex; justify-content: space-between;
+      padding: 4px 20px 6px; font-size: 12px; font-weight: 600;
+    }
+
+    /* ─── LIGHT screen (Founder Wizard) ──── */
+    .s-light { background: var(--bg); padding: 0 0 16px; }
+    .s-light .status-bar { color: var(--text); }
+
+    /* ─── DARK screen (Investor & Auth) ──── */
+    .s-dark { background: var(--dark-bg); padding: 0 0 16px; }
+    .s-dark .status-bar { color: #fff; }
+
+    /* ─── Common inner ────────────────────── */
+    .s-body { padding: 0 14px; }
+
+    /* ─── Wizard Step components ──────────── */
+    .char-section {
+      background: var(--form);
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 10px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .char-avatar {
+      width: 56px; height: 56px;
+      background: #D0D6E0;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px; flex-shrink: 0;
+    }
+    .char-info { flex: 1; }
+    .char-name { font-weight: 800; font-size: 13px; color: var(--text); text-transform: uppercase; letter-spacing: .4px; }
+    .char-quote { font-size: 11px; color: var(--muted); margin-top: 2px; line-height: 1.4; font-style: italic; }
+
+    .step-indicator {
+      font-size: 11px; font-weight: 700; color: var(--accent);
+      text-transform: uppercase; letter-spacing: .4px; margin-bottom: 4px;
+    }
+    .step-question {
+      font-size: 16px; font-weight: 800; color: var(--text);
+      text-transform: uppercase; margin-bottom: 8px; line-height: 1.3;
+    }
+    .step-textarea {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 10px; padding: 10px; min-height: 48px;
+      font-size: 11px; color: var(--muted); line-height: 1.4;
+    }
+    .step-char-count { font-size: 10px; color: var(--dim); text-align: right; margin-top: 2px; }
+    .helper-btns { display: flex; gap: 6px; margin-top: 8px; }
+    .helper-btn {
+      flex: 1; padding: 6px 4px; border-radius: 8px;
+      background: var(--form); font-size: 10px; font-weight: 600;
+      color: var(--text); text-align: center; border: 1px solid var(--border);
+    }
+    .helper-btn.blue { color: #3478F6; }
+
+    .wizard-bottom {
+      display: flex; align-items: center; gap: 8px;
+      margin-top: 12px; padding-top: 10px;
+      border-top: 1px solid var(--border);
+    }
+    .back-circle {
+      width: 32px; height: 32px;
+      border-radius: 50%; border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; color: var(--muted); background: var(--card);
+    }
+    .next-btn {
+      flex: 1; padding: 10px; border-radius: 12px;
+      background: var(--accent); color: #fff;
+      font-weight: 700; font-size: 13px; text-align: center;
+    }
+
+    /* ─── Skyline decoration ──────────────── */
+    .skyline {
+      text-align: center; font-size: 24px; opacity: .15; letter-spacing: 6px;
+      margin-top: 8px;
+    }
+
+    /* ─── Generating screen ──────────────── */
+    .gen-heading { font-size: 24px; font-weight: 900; color: var(--text); margin-bottom: 4px; }
+    .gen-sub { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+    .gen-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 10px; padding: 12px; margin-bottom: 8px;
+    }
+    .gen-line { height: 8px; background: var(--form); border-radius: 4px; margin-bottom: 6px; }
+    .gen-line.short { width: 60%; }
+    .gen-robot {
+      position: absolute; right: 14px; top: 100px;
+      font-size: 50px;
+    }
+    .progress-track { height: 3px; background: var(--border); border-radius: 2px; margin-top: 6px; overflow: hidden; }
+    .progress-fill { height: 100%; width: 55%; background: var(--accent); border-radius: 2px; }
+
+    /* ─── Pitch Summary ──────────────────── */
+    .pitch-logo { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 10px; }
+    .pitch-heading { font-size: 22px; font-weight: 900; color: var(--text); margin-bottom: 4px; }
+    .pitch-sub { font-size: 11px; color: var(--muted); margin-bottom: 12px; }
+    .pitch-image {
+      width: 100%; height: 110px;
+      background: var(--image-bg); border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 32px; margin-bottom: 8px;
+    }
+    .image-actions { display: flex; gap: 4px; margin-bottom: 12px; }
+    .image-action {
+      flex: 1; padding: 6px 2px; border-radius: 8px;
+      background: var(--card); border: 1px solid var(--border);
+      font-size: 9px; font-weight: 600; text-align: center; color: var(--text);
+    }
+    .pitch-title-row {
+      display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;
+    }
+    .pitch-title { font-size: 16px; font-weight: 800; color: var(--text); }
+    .pitch-title-edit { font-size: 12px; }
+    .pitch-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 12px; margin-bottom: 8px;
+    }
+    .pitch-card-header {
+      display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;
+    }
+    .pitch-card-label { font-weight: 700; font-size: 12px; color: var(--text); }
+    .pitch-card-edit { font-size: 10px; color: var(--dim); background: var(--form); padding: 2px 8px; border-radius: 6px; }
+    .pitch-card-text { font-size: 10px; color: var(--muted); line-height: 1.5; }
+    .final-btn {
+      width: 100%; padding: 12px; border-radius: 12px;
+      background: var(--accent); color: #fff;
+      font-weight: 700; font-size: 14px; text-align: center;
+      margin-top: 8px;
+    }
+
+    /* ─── Dark screen helpers ─────────────── */
+    .dark-card {
+      background: var(--dark-card);
+      border: 1px solid var(--dark-border);
+      border-radius: 14px; padding: 14px; margin-bottom: 10px;
+    }
+    .dark-label { color: #fff; font-weight: 700; font-size: 13px; margin-bottom: 4px; }
+    .dark-text { color: var(--dark-muted); font-size: 11px; line-height: 1.5; }
+    .dark-input {
+      background: var(--dark-card); border: 1px solid var(--dark-border);
+      border-radius: 10px; padding: 10px; color: var(--dark-muted);
+      font-size: 12px; margin-bottom: 8px;
+    }
+    .dark-btn {
+      width: 100%; padding: 12px; border-radius: 12px;
+      text-align: center; font-weight: 700; font-size: 14px;
+    }
+    .dark-btn.red { background: #E63946; color: #fff; }
+    .dark-btn.outline { border: 1px solid var(--dark-border); color: #fff; background: transparent; }
+    .dark-btn.gold { background: #FFB547; color: #000; }
+
+    .dark-heading { color: #fff; font-size: 22px; font-weight: 800; margin-bottom: 6px; }
+    .dark-sub { color: var(--dark-muted); font-size: 12px; margin-bottom: 12px; }
+
+    /* ─── Paper card (Toss) ───────────────── */
+    .paper-card {
+      background: var(--dark-card); border: 1px solid var(--dark-border);
+      border-radius: 16px; padding: 16px; margin-bottom: 8px;
+    }
+    .paper-title { color: #fff; font-weight: 800; font-size: 15px; margin-bottom: 6px; }
+    .paper-desc { color: var(--dark-muted); font-size: 11px; line-height: 1.5; margin-bottom: 10px; }
+    .paper-stats { display: flex; gap: 12px; }
+    .paper-stat { font-size: 10px; color: var(--dark-muted); }
+    .paper-stat b { color: #FFB547; }
+    .toss-actions {
+      display: flex; justify-content: center; gap: 18px; margin-top: 10px;
+    }
+    .toss-btn {
+      width: 48px; height: 48px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+    }
+    .toss-btn.pass { background: #1E2D45; }
+    .toss-btn.invest { background: #E63946; }
+    .toss-btn.save { background: #1E2D45; }
+
+    /* ─── Footer ──────────────────────────── */
+    .footer {
+      text-align: center; padding: 40px 20px 60px;
+      color: var(--dim); font-size: 13px;
+    }
+    .footer a { color: var(--accent); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════
+       HERO
+       ═══════════════════════════════════════ -->
+  <div class="hero">
+    <h1>Build<span>Paper</span></h1>
+    <p>Paper-toss investing meets AI-powered pitches — redesigned with Red Bull Basement inspiration.</p>
+    <div class="subtitle">Light theme founder wizard · Dark theme investor flow · 11 screens</div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       1. FOUNDER WIZARD FLOW  (Light / RB Basement)
+       ═══════════════════════════════════════ -->
+  <div class="section-label">
+    <h2>🚀 Founder Wizard Flow <span class="badge">NEW DESIGN</span></h2>
+    <p>Red Bull Basement–inspired: Light theme · AI characters · Helper buttons · City skyline</p>
+  </div>
+
+  <div class="phone-row">
+    <!-- ── Step 1: Your Idea ──────────── -->
+    <div class="iphone">
+      <div class="iphone-label">Step 1 — Your Idea</div>
+      <div class="iphone-body"><div class="iphone-screen s-light">
+        <div class="notch"></div>
+        <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+        <div class="s-body">
+          <div class="char-section">
+            <div class="char-avatar">🧠</div>
+            <div class="char-info">
+              <div class="char-name">The Business Leader</div>
+              <div class="char-quote">"Give me 30 seconds. I'll give you a pitch deck."</div>
+            </div>
+          </div>
+          <div class="step-indicator">Step 1 out of 4 / Your idea</div>
+          <div class="step-question">WHAT'S YOUR BIG IDEA?</div>
+          <div class="step-textarea">An app that connects local farmers directly with restaurants, cutting out middlemen and reducing food waste...</div>
+          <div class="step-char-count">142 / 400</div>
+          <div class="helper-btns">
+            <div class="helper-btn">🧠 Ask the Business Leader</div>
+            <div class="helper-btn blue">✏️ Rephrase my text</div>
+          </div>
+          <div class="wizard-bottom">
+            <div class="next-btn">Move to the next step →</div>
+          </div>
+          <div class="skyline">🏙️</div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- ── Step 2: Your Audience ──────── -->
+    <div class="iphone">
+      <div class="iphone-label">Step 2 — Your Audience</div>
+      <div class="iphone-body"><div class="iphone-screen s-light">
+        <div class="notch"></div>
+        <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+        <div class="s-body">
+          <div class="char-section">
+            <div class="char-avatar">🔮</div>
+            <div class="char-info">
+              <div class="char-name">The Visionary</div>
+              <div class="char-quote">"I'm the connector between you and other humans."</div>
+            </div>
+          </div>
+          <div class="step-indicator">Step 2 out of 4 / Your audience</div>
+          <div class="step-question">WHO WILL USE YOUR PRODUCT?</div>
+          <div class="step-textarea">Restaurant owners aged 25-55 who want to source local, organic produce at competitive prices...</div>
+          <div class="step-char-count">108 / 400</div>
+          <div class="helper-btns">
+            <div class="helper-btn">🔮 Ask the Visionary</div>
+            <div class="helper-btn blue">✏️ Rephrase my text</div>
+          </div>
+          <div class="wizard-bottom">
+            <div class="back-circle">←</div>
+            <div class="next-btn">Move to the next step →</div>
+          </div>
+          <div class="skyline">🏙️</div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- ── Step 3: The Problem ────────── -->
+    <div class="iphone">
+      <div class="iphone-label">Step 3 — The Problem</div>
+      <div class="iphone-body"><div class="iphone-screen s-light">
+        <div class="notch"></div>
+        <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+        <div class="s-body">
+          <div class="char-section">
+            <div class="char-avatar">🔬</div>
+            <div class="char-info">
+              <div class="char-name">The Scientist</div>
+              <div class="char-quote">"Everyone needs science in their life."</div>
+            </div>
+          </div>
+          <div class="step-indicator">Step 3 out of 4 / The problem</div>
+          <div class="step-question">WHAT PROBLEM DOES IT SOLVE?</div>
+          <div class="step-textarea">40% of fresh produce is wasted due to supply chain inefficiencies. Restaurants overpay middlemen by 30-60%...</div>
+          <div class="step-char-count">125 / 400</div>
+          <div class="helper-btns">
+            <div class="helper-btn">🔬 Ask the Scientist</div>
+            <div class="helper-btn blue">✏️ Rephrase my text</div>
+          </div>
+          <div class="wizard-bottom">
+            <div class="back-circle">←</div>
+            <div class="next-btn">Move to the next step →</div>
+          </div>
+          <div class="skyline">🏙️</div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- ── Step 4: How it Works ──────── -->
+    <div class="iphone">
+      <div class="iphone-label">Step 4 — How it Works</div>
+      <div class="iphone-body"><div class="iphone-screen s-light">
+        <div class="notch"></div>
+        <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+        <div class="s-body">
+          <div class="char-section">
+            <div class="char-avatar">💻</div>
+            <div class="char-info">
+              <div class="char-name">The Tech Ace</div>
+              <div class="char-quote">"As a techie, I love solutions that are simple but powerful."</div>
+            </div>
+          </div>
+          <div class="step-indicator">Step 4 out of 4 / How it works</div>
+          <div class="step-question">HOW DOES YOUR SOLUTION WORK?</div>
+          <div class="step-textarea">GPS-matched marketplace with same-day delivery. Farmers list surplus produce; restaurants order with one tap...</div>
+          <div class="step-char-count">118 / 400</div>
+          <div class="helper-btns">
+            <div class="helper-btn">💻 Ask the Tech Ace</div>
+            <div class="helper-btn blue">✏️ Rephrase my text</div>
+          </div>
+          <div class="wizard-bottom">
+            <div class="back-circle">←</div>
+            <div class="next-btn">Generate my pitch 🚀</div>
+          </div>
+          <div class="skyline">🏙️</div>
+        </div>
+      </div></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       2. GENERATING + PITCH SUMMARY  (Light)
+       ═══════════════════════════════════════ -->
+  <div class="section-label">
+    <h2>✨ AI Pitch Generation <span class="badge">NEW DESIGN</span></h2>
+    <p>"Well done" loading state · Robot character · Pitch summary with image &amp; actions</p>
+  </div>
+
+  <div class="phone-row">
+    <!-- ── Generating Screen ──────────── -->
+    <div class="iphone">
+      <div class="iphone-label">Generating Pitch</div>
+      <div class="iphone-body"><div class="iphone-screen s-light">
+        <div class="notch"></div>
+        <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+        <div class="s-body" style="position:relative;">
+          <div class="gen-heading">Hang tight</div>
+          <div class="gen-sub">Our AI is crafting your pitch</div>
+          <div class="gen-card">
+            <div style="text-align:center;color:var(--muted);font-size:12px;">A bit of patience, we are generating your pitch</div>
+          </div>
+          <div class="progress-track"><div class="progress-fill"></div></div>
+          <div class="gen-robot">🤖💡</div>
+          <div class="skyline" style="margin-top:40px;">🏙️</div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- ── Well Done State ────────────── -->
+    <div class="iphone">
+      <div class="iphone-label">Well Done State</div>
+      <div class="iphone-body"><div class="iphone-screen s-light">
+        <div class="notch"></div>
+        <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+        <div class="s-body" style="position:relative;">
+          <div class="gen-heading">Well done</div>
+          <div class="gen-sub">Your pitch is ready!</div>
+          <div class="gen-card"><div class="gen-line"></div><div class="gen-line short"></div></div>
+          <div class="gen-card"><div class="gen-line"></div><div class="gen-line short"></div></div>
+          <div class="gen-card"><div class="gen-line"></div><div class="gen-line short"></div></div>
+          <div class="gen-card"><div class="gen-line"></div><div class="gen-line short"></div></div>
+          <div class="gen-robot">🤖💡</div>
+          <div class="skyline">🏙️</div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- ── Pitch Summary ──────────────── -->
+    <div class="iphone">
+      <div class="iphone-label">Pitch Summary</div>
+      <div class="iphone-body"><div class="iphone-screen s-light">
+        <div class="notch"></div>
+        <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+        <div class="s-body">
+          <div class="pitch-logo">📄 BuildPaper</div>
+          <div class="pitch-heading">Pitch Summary</div>
+          <div class="pitch-sub">Tap any card to edit it.</div>
+          <div class="pitch-image">🎨</div>
+          <div class="image-actions">
+            <div class="image-action">↗ Share</div>
+            <div class="image-action">⬇ Download PDF</div>
+            <div class="image-action">🔄 Regenerate</div>
+          </div>
+          <div class="pitch-title-row">
+            <div class="pitch-title">FarmDirect</div>
+            <div class="pitch-title-edit">✏️</div>
+          </div>
+          <div class="pitch-card">
+            <div class="pitch-card-header">
+              <div class="pitch-card-label">💡 The Idea</div>
+              <div class="pitch-card-edit">✏️ Edit</div>
+            </div>
+            <div class="pitch-card-text">A GPS-matched marketplace connecting local farmers with restaurants for same-day organic produce delivery.</div>
+          </div>
+          <div class="pitch-card">
+            <div class="pitch-card-header">
+              <div class="pitch-card-label">🎯 The Target</div>
+              <div class="pitch-card-edit">✏️ Edit</div>
+            </div>
+            <div class="pitch-card-text">Restaurant owners aged 25-55 seeking local organic produce at competitive prices.</div>
+          </div>
+          <div class="final-btn">Final step</div>
+        </div>
+      </div></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       3. INVESTOR FLOW  (Dark theme)
+       ═══════════════════════════════════════ -->
+  <div class="section-label">
+    <h2>🎯 Investor Flow <span class="badge blue">CORE</span></h2>
+    <p>Swipe ideas · Invest credits · Track equity</p>
+  </div>
+
+  <div class="phone-row">
+    <!-- ── Paper Toss ─────────────────── -->
+    <div class="iphone">
+      <div class="iphone-label">Paper Toss</div>
+      <div class="iphone-body"><div class="iphone-screen s-dark">
+        <div class="notch"></div>
+        <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+        <div class="s-body">
+          <div class="dark-heading">Discover Ideas</div>
+          <div class="dark-sub">Swipe right to invest, left to pass</div>
+          <div class="paper-card">
+            <div class="paper-title">🚀 FarmDirect</div>
+            <div class="paper-desc">Connecting local farmers with restaurants. GPS-matched, same-day delivery of organic produce.</div>
+            <div class="paper-stats">
+              <div class="paper-stat">💰 <b>$25K</b> raised</div>
+              <div class="paper-stat">👥 <b>12</b> investors</div>
+              <div class="paper-stat">📈 <b>85%</b> match</div>
+            </div>
+          </div>
+          <div class="toss-actions">
+            <div class="toss-btn pass">👈</div>
+            <div class="toss-btn invest">🔥</div>
+            <div class="toss-btn save">💾</div>
+          </div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- ── Idea Detail ────────────────── -->
+    <div class="iphone">
+      <div class="iphone-label">Idea Detail</div>
+      <div class="iphone-body"><div class="iphone-screen s-dark">
+        <div class="notch"></div>
+        <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+        <div class="s-body">
+          <div class="dark-heading">FarmDirect</div>
+          <div class="dark-sub">by Sarah Chen · Submitted 2 days ago</div>
+          <div class="dark-card">
+            <div class="dark-label">💡 The Idea</div>
+            <div class="dark-text">A GPS-matched marketplace connecting local farmers with restaurants for same-day organic produce delivery.</div>
+          </div>
+          <div class="dark-card">
+            <div class="dark-label">🎯 The Target</div>
+            <div class="dark-text">Restaurant owners aged 25-55 seeking local organic produce at competitive prices.</div>
+          </div>
+          <div class="dark-card">
+            <div class="dark-label">🔧 What it Solves</div>
+            <div class="dark-text">40% of fresh produce is wasted due to supply chain inefficiencies.</div>
+          </div>
+          <div style="margin-top:8px">
+            <div class="dark-btn red">Invest Credits →</div>
+          </div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- ── Equity / Invest ────────────── -->
+    <div class="iphone">
+      <div class="iphone-label">Invest / Equity</div>
+      <div class="iphone-body"><div class="iphone-screen s-dark">
+        <div class="notch"></div>
+        <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+        <div class="s-body">
+          <div class="dark-heading">FarmDirect</div>
+          <div class="dark-sub">by Sarah Chen</div>
+          <div class="dark-card" style="text-align:center;">
+            <div style="font-size:32px;margin-bottom:6px;">🏆</div>
+            <div class="dark-label" style="font-size:11px;">Current Equity</div>
+            <div style="color:#FFB547;font-size:28px;font-weight:900;">4.2%</div>
+          </div>
+          <div class="dark-card">
+            <div class="dark-label">Invest Credits</div>
+            <div class="dark-text" style="margin-bottom:8px">Choose how many credits to invest</div>
+            <div style="display:flex;gap:6px;">
+              <div class="dark-btn outline" style="flex:1;padding:8px;font-size:12px;">10</div>
+              <div class="dark-btn outline" style="flex:1;padding:8px;font-size:12px;">25</div>
+              <div class="dark-btn red" style="flex:1;padding:8px;font-size:12px;">50</div>
+              <div class="dark-btn outline" style="flex:1;padding:8px;font-size:12px;">100</div>
+            </div>
+          </div>
+          <div class="dark-btn gold" style="margin-top:8px;">Confirm Investment</div>
+        </div>
+      </div></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       4. MANAGEMENT & AUTH  (Dark theme)
+       ═══════════════════════════════════════ -->
+  <div class="section-label">
+    <h2>👤 Management &amp; Auth</h2>
+    <p>My Ideas · Saved Ideas · Wallet · Login · Register</p>
+  </div>
+
+  <div class="phone-row">
+    <!-- ── My Ideas ───────────────────── -->
+    <div class="iphone">
+      <div class="iphone-label">My Ideas</div>
+      <div class="iphone-body"><div class="iphone-screen s-dark">
+        <div class="notch"></div>
+        <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+        <div class="s-body">
+          <div class="dark-heading">My Ideas</div>
+          <div class="dark-sub">Your submitted pitches</div>
+          <div class="dark-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+              <div class="dark-label">FarmDirect</div>
+              <div style="font-size:10px;color:#4CD964;font-weight:700;background:#1A3328;padding:2px 8px;border-radius:10px;">LIVE</div>
+            </div>
+            <div class="dark-text">GPS-matched marketplace for farm-to-table.</div>
+            <div style="display:flex;gap:10px;margin-top:6px;">
+              <div style="font-size:10px;color:var(--dark-muted);">💰 $25K raised</div>
+              <div style="font-size:10px;color:var(--dark-muted);">👥 12 investors</div>
+            </div>
+          </div>
+          <div class="dark-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+              <div class="dark-label">EcoTrack</div>
+              <div style="font-size:10px;color:#FFB547;font-weight:700;background:#2D2818;padding:2px 8px;border-radius:10px;">REVIEW</div>
+            </div>
+            <div class="dark-text">Carbon footprint tracker for small businesses.</div>
+          </div>
+          <div class="dark-btn red" style="margin-top:8px;">+ New Idea</div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- ── Saved Ideas ────────────────── -->
+    <div class="iphone">
+      <div class="iphone-label">Saved Ideas</div>
+      <div class="iphone-body"><div class="iphone-screen s-dark">
+        <div class="notch"></div>
+        <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+        <div class="s-body">
+          <div class="dark-heading">Saved Ideas</div>
+          <div class="dark-sub">Ideas you bookmarked</div>
+          <div class="dark-card">
+            <div class="dark-label">🔖 FarmDirect</div>
+            <div class="dark-text">Connecting local farmers with restaurants.</div>
+            <div style="margin-top:6px;"><div class="dark-btn outline" style="padding:8px;font-size:12px;">View Details →</div></div>
+          </div>
+          <div class="dark-card">
+            <div class="dark-label">🔖 MedAlert</div>
+            <div class="dark-text">AI-powered medication reminder for seniors.</div>
+            <div style="margin-top:6px;"><div class="dark-btn outline" style="padding:8px;font-size:12px;">View Details →</div></div>
+          </div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- ── Wallet ─────────────────────── -->
+    <div class="iphone">
+      <div class="iphone-label">Wallet</div>
+      <div class="iphone-body"><div class="iphone-screen s-dark">
+        <div class="notch"></div>
+        <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+        <div class="s-body">
+          <div class="dark-heading">Wallet</div>
+          <div class="dark-card" style="text-align:center;">
+            <div style="font-size:10px;color:var(--dark-muted);margin-bottom:4px;">AVAILABLE BALANCE</div>
+            <div style="color:#FFB547;font-size:32px;font-weight:900;">1,250</div>
+            <div style="font-size:11px;color:var(--dark-muted);margin-top:2px;">AI Credits</div>
+          </div>
+          <div class="dark-card">
+            <div class="dark-label">Recent Transactions</div>
+            <div style="border-top:1px solid var(--dark-border);padding-top:6px;margin-top:6px;">
+              <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+                <div style="font-size:11px;color:#fff;">Invested in FarmDirect</div>
+                <div style="font-size:11px;color:#E63946;font-weight:700;">-50</div>
+              </div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+                <div style="font-size:11px;color:#fff;">Daily reward</div>
+                <div style="font-size:11px;color:#4CD964;font-weight:700;">+10</div>
+              </div>
+              <div style="display:flex;justify-content:space-between;">
+                <div style="font-size:11px;color:#fff;">Invested in EcoTrack</div>
+                <div style="font-size:11px;color:#E63946;font-weight:700;">-25</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- ── Login ──────────────────────── -->
+    <div class="iphone">
+      <div class="iphone-label">Login</div>
+      <div class="iphone-body"><div class="iphone-screen s-dark">
+        <div class="notch"></div>
+        <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+        <div class="s-body" style="padding-top:24px;">
+          <div style="text-align:center;margin-bottom:20px;">
+            <div style="font-size:40px;margin-bottom:8px;">📄</div>
+            <div class="dark-heading" style="font-size:26px;">Build<span style="color:#E63946">Paper</span></div>
+            <div class="dark-sub">Sign in to continue</div>
+          </div>
+          <div class="dark-input">Email address</div>
+          <div class="dark-input">Password</div>
+          <div class="dark-btn red" style="margin-top:4px;">Sign In</div>
+          <div style="text-align:center;margin-top:12px;font-size:12px;color:var(--dark-muted);">Don't have an account? <span style="color:#E63946;">Register</span></div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- ── Register ───────────────────── -->
+    <div class="iphone">
+      <div class="iphone-label">Register</div>
+      <div class="iphone-body"><div class="iphone-screen s-dark">
+        <div class="notch"></div>
+        <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+        <div class="s-body" style="padding-top:16px;">
+          <div style="text-align:center;margin-bottom:14px;">
+            <div style="font-size:32px;margin-bottom:6px;">📄</div>
+            <div class="dark-heading" style="font-size:22px;">Create Account</div>
+            <div class="dark-sub">Join BuildPaper today</div>
+          </div>
+          <div class="dark-input">Full name</div>
+          <div class="dark-input">Email address</div>
+          <div class="dark-input">Password</div>
+          <div style="display:flex;gap:6px;margin-bottom:8px;">
+            <div class="dark-btn outline" style="flex:1;padding:8px;font-size:11px;">🚀 Founder</div>
+            <div class="dark-btn red" style="flex:1;padding:8px;font-size:11px;">💰 Investor</div>
+          </div>
+          <div class="dark-btn red">Create Account</div>
+        </div>
+      </div></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       FOOTER
+       ═══════════════════════════════════════ -->
+  <div class="footer">
+    BuildPaper &copy; 2025 &nbsp;·&nbsp; Built with React Native + Express &nbsp;·&nbsp; <a href="#">View Source</a>
+  </div>
+
+</body>
+</html>

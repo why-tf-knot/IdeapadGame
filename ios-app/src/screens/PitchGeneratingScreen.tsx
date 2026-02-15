@@ -10,6 +10,17 @@ import {
 import { ideasAPI } from '../services/api';
 import { WizardAnswers } from '../types';
 
+// ─── Light theme matching Red Bull Basement ─────────────
+const COLORS = {
+  bg: '#F5F5F0',
+  text: '#1A2332',
+  textSecondary: '#5A6577',
+  accent: '#D93B41',
+  cardBg: '#FFFFFF',
+  border: '#E0E4EB',
+  skyline: '#C8CDD6',
+};
+
 interface PitchGeneratingScreenProps {
   route: any;
   navigation: any;
@@ -30,45 +41,32 @@ const PitchGeneratingScreen: React.FC<PitchGeneratingScreenProps> = ({
 }) => {
   const { wizardAnswers } = route.params as { wizardAnswers: WizardAnswers };
   const [messageIndex, setMessageIndex] = useState(0);
-  const spinAnim = useRef(new Animated.Value(0)).current;
-  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const [pitchReady, setPitchReady] = useState(false);
   const fadeAnim = useRef(new Animated.Value(1)).current;
+  const robotWaveAnim = useRef(new Animated.Value(0)).current;
+  const cardFadeAnim = useRef(new Animated.Value(0)).current;
 
-  // Spinner animation
+  // Robot wave animation
   useEffect(() => {
-    const spin = Animated.loop(
-      Animated.timing(spinAnim, {
-        toValue: 1,
-        duration: 2000,
-        easing: Easing.linear,
-        useNativeDriver: true,
-      })
-    );
-    spin.start();
-    return () => spin.stop();
-  }, [spinAnim]);
-
-  // Pulse animation
-  useEffect(() => {
-    const pulse = Animated.loop(
+    const wave = Animated.loop(
       Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.15,
-          duration: 1000,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
+        Animated.timing(robotWaveAnim, {
           toValue: 1,
-          duration: 1000,
+          duration: 800,
           easing: Easing.inOut(Easing.ease),
           useNativeDriver: true,
         }),
-      ])
+        Animated.timing(robotWaveAnim, {
+          toValue: 0,
+          duration: 800,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]),
     );
-    pulse.start();
-    return () => pulse.stop();
-  }, [pulseAnim]);
+    wave.start();
+    return () => wave.stop();
+  }, [robotWaveAnim]);
 
   // Cycle through messages
   useEffect(() => {
@@ -98,8 +96,18 @@ const PitchGeneratingScreen: React.FC<PitchGeneratingScreenProps> = ({
   const generatePitch = async () => {
     try {
       const response = await ideasAPI.generatePitch(wizardAnswers);
-      
-      // Navigate to pitch summary
+
+      // Brief "ready" state before navigating
+      setPitchReady(true);
+      Animated.timing(cardFadeAnim, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      }).start();
+
+      // Short delay so user sees "Well done" state
+      await new Promise<void>((resolve) => setTimeout(resolve, 1200));
+
       navigation.replace('PitchSummary', {
         ideaId: response.idea._id,
         pitch: {
@@ -127,70 +135,78 @@ const PitchGeneratingScreen: React.FC<PitchGeneratingScreenProps> = ({
     }
   };
 
-  const spinInterpolation = spinAnim.interpolate({
+  const robotRotation = robotWaveAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: ['0deg', '360deg'],
+    outputRange: ['-5deg', '5deg'],
   });
 
   return (
     <View style={styles.container}>
-      {/* Top decorative elements */}
-      <View style={styles.decorTop}>
-        <View style={[styles.decorDot, styles.decorDot1]} />
-        <View style={[styles.decorDot, styles.decorDot2]} />
-        <View style={[styles.decorDot, styles.decorDot3]} />
-      </View>
-
       <View style={styles.content}>
-        {/* Animated spinner */}
-        <Animated.View
-          style={[
-            styles.spinnerContainer,
-            { transform: [{ scale: pulseAnim }] },
-          ]}>
-          <Animated.View
-            style={[
-              styles.spinnerRing,
-              { transform: [{ rotate: spinInterpolation }] },
-            ]}>
-            <View style={styles.spinnerDot} />
-          </Animated.View>
-          <View style={styles.spinnerCenter}>
-            <Text style={styles.spinnerEmoji}>✨</Text>
-          </View>
-        </Animated.View>
-
-        {/* Loading message */}
-        <Animated.Text style={[styles.loadingMessage, { opacity: fadeAnim }]}>
-          {LOADING_MESSAGES[messageIndex]}
-        </Animated.Text>
-
-        <Text style={styles.subMessage}>
-          Our AI is crafting your perfect pitch
+        {/* Main heading */}
+        <Text style={styles.heading}>
+          {pitchReady ? 'Well done' : 'Hang tight'}
+        </Text>
+        <Text style={styles.subheading}>
+          {pitchReady
+            ? 'Your pitch is ready!'
+            : 'Our AI is crafting your pitch'}
         </Text>
 
-        {/* Progress dots */}
-        <View style={styles.dotsContainer}>
-          {[0, 1, 2].map((i) => (
-            <Animated.View
-              key={i}
-              style={[
-                styles.dot,
-                {
-                  opacity: spinAnim.interpolate({
-                    inputRange: [
-                      (i * 0.33) % 1,
-                      ((i * 0.33 + 0.15) % 1),
-                      ((i * 0.33 + 0.3) % 1),
-                    ].sort((a, b) => a - b),
-                    outputRange: [0.3, 1, 0.3],
-                    extrapolate: 'clamp',
-                  }),
-                },
-              ]}
-            />
-          ))}
+        {/* Loading message card (or placeholder cards when ready) */}
+        {pitchReady ? (
+          <Animated.View style={[styles.readyCards, { opacity: cardFadeAnim }]}>
+            {['The Idea', 'The Target', 'What it Solves', 'How it Works'].map(
+              (label) => (
+                <View key={label} style={styles.placeholderCard}>
+                  <View style={styles.placeholderLine} />
+                  <View style={[styles.placeholderLine, { width: '60%' }]} />
+                </View>
+              ),
+            )}
+          </Animated.View>
+        ) : (
+          <View style={styles.loadingSection}>
+            <View style={styles.loadingCard}>
+              <Animated.Text
+                style={[styles.loadingMessage, { opacity: fadeAnim }]}>
+                {LOADING_MESSAGES[messageIndex]}
+              </Animated.Text>
+            </View>
+
+            {/* Progress bar */}
+            <View style={styles.progressTrack}>
+              <Animated.View
+                style={[
+                  styles.progressFill,
+                  {
+                    width: robotWaveAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: ['30%', '70%'],
+                    }),
+                  },
+                ]}
+              />
+            </View>
+          </View>
+        )}
+      </View>
+
+      {/* Robot character on the right side */}
+      <Animated.View
+        style={[
+          styles.robotContainer,
+          { transform: [{ rotate: robotRotation }] },
+        ]}>
+        <Text style={styles.robotEmoji}>🤖</Text>
+        <View style={styles.robotLightbulb}>
+          <Text style={styles.robotLightbulbEmoji}>💡</Text>
         </View>
+      </Animated.View>
+
+      {/* City skyline at bottom */}
+      <View style={styles.skyline}>
+        <Text style={styles.skylineText}>🏙️</Text>
       </View>
     </View>
   );
@@ -199,107 +215,102 @@ const PitchGeneratingScreen: React.FC<PitchGeneratingScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A1628',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  decorTop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 200,
-  },
-  decorDot: {
-    position: 'absolute',
-    borderRadius: 100,
-    opacity: 0.1,
-  },
-  decorDot1: {
-    width: 120,
-    height: 120,
-    backgroundColor: '#E63946',
-    top: -40,
-    right: -30,
-  },
-  decorDot2: {
-    width: 80,
-    height: 80,
-    backgroundColor: '#FFB547',
-    top: 60,
-    left: -20,
-  },
-  decorDot3: {
-    width: 60,
-    height: 60,
-    backgroundColor: '#007AFF',
-    top: 30,
-    right: 80,
+    backgroundColor: COLORS.bg,
+    paddingTop: Platform.OS === 'ios' ? 80 : 40,
   },
   content: {
+    flex: 1,
+    paddingHorizontal: 24,
+  },
+  heading: {
+    fontSize: 36,
+    fontWeight: '900',
+    color: COLORS.text,
+    marginBottom: 6,
+  },
+  subheading: {
+    fontSize: 15,
+    color: COLORS.textSecondary,
+    marginBottom: 28,
+  },
+
+  // ─── Loading state ─────────────────────
+  loadingSection: {
+    gap: 16,
+  },
+  loadingCard: {
+    backgroundColor: COLORS.cardBg,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 20,
     alignItems: 'center',
-    paddingHorizontal: 40,
-  },
-  spinnerContainer: {
-    width: 120,
-    height: 120,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 48,
-  },
-  spinnerRing: {
-    position: 'absolute',
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    borderWidth: 3,
-    borderColor: 'transparent',
-    borderTopColor: '#E63946',
-    borderRightColor: '#E63946',
-  },
-  spinnerDot: {
-    position: 'absolute',
-    top: -4,
-    right: 15,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#E63946',
-  },
-  spinnerCenter: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#142038',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  spinnerEmoji: {
-    fontSize: 28,
   },
   loadingMessage: {
-    color: '#fff',
-    fontSize: 20,
-    fontWeight: '600',
+    fontSize: 15,
+    color: COLORS.textSecondary,
     textAlign: 'center',
-    marginBottom: 12,
-    lineHeight: 28,
+    lineHeight: 22,
   },
-  subMessage: {
-    color: '#556677',
-    fontSize: 14,
-    textAlign: 'center',
-    marginBottom: 32,
+  progressTrack: {
+    height: 3,
+    backgroundColor: COLORS.border,
+    borderRadius: 2,
+    overflow: 'hidden',
   },
-  dotsContainer: {
-    flexDirection: 'row',
+  progressFill: {
+    height: '100%',
+    backgroundColor: COLORS.accent,
+    borderRadius: 2,
+  },
+
+  // ─── Ready state (placeholder cards) ───
+  readyCards: {
+    gap: 12,
+  },
+  placeholderCard: {
+    backgroundColor: COLORS.cardBg,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 18,
     gap: 8,
   },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#E63946',
+  placeholderLine: {
+    height: 10,
+    backgroundColor: '#E8EDF4',
+    borderRadius: 5,
+    width: '85%',
+  },
+
+  // ─── Robot character ───────────────────
+  robotContainer: {
+    position: 'absolute',
+    right: 16,
+    top: Platform.OS === 'ios' ? 200 : 160,
+    alignItems: 'center',
+  },
+  robotEmoji: {
+    fontSize: 80,
+  },
+  robotLightbulb: {
+    position: 'absolute',
+    top: -16,
+    right: -4,
+  },
+  robotLightbulbEmoji: {
+    fontSize: 22,
+  },
+
+  // ─── Skyline ──────────────────────────
+  skyline: {
+    alignItems: 'center',
+    paddingBottom: Platform.OS === 'ios' ? 40 : 20,
+    opacity: 0.2,
+  },
+  skylineText: {
+    fontSize: 48,
+    letterSpacing: 10,
   },
 });
 

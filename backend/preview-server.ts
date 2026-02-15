@@ -287,6 +287,18 @@ app.get('/mobile', (req, res) => {
   }
 });
 
+// Serve app preview page (all screens)
+app.get('/app', (req, res) => {
+  try {
+    const html = readFileSync('./app-preview.html', 'utf-8');
+    res.setHeader('Content-Type', 'text/html');
+    res.send(html);
+  } catch (error) {
+    console.error('Error loading app-preview.html:', error);
+    res.status(500).send('Error loading app preview page');
+  }
+});
+
 // Start server
 app.listen(PORT, () => {
   console.log('\n🎬 ================================');
