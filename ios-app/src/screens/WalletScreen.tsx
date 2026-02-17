@@ -9,7 +9,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { creditsAPI } from '../services/api';
-import { WalletInfo } from '../types';
+import { WalletInfo, TOKEN_TYPES, TOKEN_META, TokenType } from '../types';
 
 interface WalletScreenProps {
   navigation: any;
@@ -41,7 +41,10 @@ const WalletScreen: React.FC<WalletScreenProps> = ({ navigation }) => {
     loadWalletInfo();
   };
 
-  const getTransactionIcon = (type: string) => {
+  const getTransactionIcon = (type: string, tokenType?: TokenType) => {
+    if (tokenType && TOKEN_META[tokenType]) {
+      return TOKEN_META[tokenType].icon;
+    }
     switch (type) {
       case 'GRANT_TO_INVESTOR':
         return '🎁';
@@ -54,7 +57,10 @@ const WalletScreen: React.FC<WalletScreenProps> = ({ navigation }) => {
     }
   };
 
-  const getTransactionColor = (type: string) => {
+  const getTransactionColor = (type: string, tokenType?: TokenType) => {
+    if (tokenType && TOKEN_META[tokenType]) {
+      return TOKEN_META[tokenType].color;
+    }
     switch (type) {
       case 'GRANT_TO_INVESTOR':
         return '#34C759';
@@ -98,22 +104,40 @@ const WalletScreen: React.FC<WalletScreenProps> = ({ navigation }) => {
       style={styles.container}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
       <View style={styles.balanceCard}>
-        <Text style={styles.balanceLabel}>Available Credits</Text>
-        <Text style={styles.balanceAmount}>{walletInfo.wallet.balance.toLocaleString()}</Text>
-        <Text style={styles.balanceSubtext}>AI credits ready to invest</Text>
+        <Text style={styles.balanceLabel}>Total Tokens</Text>
+        <Text style={styles.balanceAmount}>
+          {(walletInfo.wallet.balance || 0).toLocaleString()}
+        </Text>
+        <Text style={styles.balanceSubtext}>AI tokens ready to invest</Text>
+      </View>
+
+      {/* Per-token balances */}
+      <View style={styles.tokenGrid}>
+        {TOKEN_TYPES.map((tt) => {
+          const meta = TOKEN_META[tt];
+          const bal = walletInfo.wallet.balances?.[tt.toLowerCase() as keyof typeof walletInfo.wallet.balances] || 0;
+          return (
+            <View key={tt} style={[styles.tokenCard, { borderLeftColor: meta.color }]}>
+              <Text style={styles.tokenIcon}>{meta.icon}</Text>
+              <Text style={styles.tokenName}>{meta.label}</Text>
+              <Text style={[styles.tokenBalance, { color: meta.color }]}>{bal.toLocaleString()}</Text>
+              <Text style={styles.tokenProvider}>{meta.provider}</Text>
+            </View>
+          );
+        })}
       </View>
 
       <View style={styles.infoCard}>
-        <Text style={styles.infoTitle}>💡 How Credits Work</Text>
+        <Text style={styles.infoTitle}>💡 How Tokens Work</Text>
         <Text style={styles.infoText}>
-          • Receive 1,000 credits monthly{'\n'}
-          • Invest credits in promising ideas{'\n'}
-          • Founders use credits for AI tools{'\n'}
-          • Credits consumed = equity percentage
+          • Receive Gemini, Anthropic, Perplexity & ChatGPT tokens{'\n'}
+          • Transfer specific tokens to promising ideas{'\n'}
+          • Founders spend tokens on the matching AI provider{'\n'}
+          • Tokens consumed = equity percentage
         </Text>
         <View style={styles.equityExample}>
           <Text style={styles.equityExampleText}>
-            10,000 credits consumed = 1% equity
+            10,000 tokens consumed = 1% equity
           </Text>
         </View>
       </View>
@@ -126,7 +150,7 @@ const WalletScreen: React.FC<WalletScreenProps> = ({ navigation }) => {
             <View key={transaction._id || index} style={styles.transactionCard}>
               <View style={styles.transactionIcon}>
                 <Text style={styles.transactionIconText}>
-                  {getTransactionIcon(transaction.type)}
+                  {getTransactionIcon(transaction.type, transaction.tokenType)}
                 </Text>
               </View>
 
@@ -134,6 +158,11 @@ const WalletScreen: React.FC<WalletScreenProps> = ({ navigation }) => {
                 <Text style={styles.transactionType}>
                   {transaction.type.replace(/_/g, ' ')}
                 </Text>
+                {transaction.tokenType && (
+                  <Text style={[styles.transactionTokenBadge, { color: TOKEN_META[transaction.tokenType as TokenType]?.color || '#666' }]}>
+                    {TOKEN_META[transaction.tokenType as TokenType]?.label || transaction.tokenType} tokens
+                  </Text>
+                )}
                 {transaction.memo && (
                   <Text style={styles.transactionMemo} numberOfLines={1}>
                     {transaction.memo}
@@ -149,7 +178,7 @@ const WalletScreen: React.FC<WalletScreenProps> = ({ navigation }) => {
                   style={[
                     styles.transactionAmountText,
                     {
-                      color: getTransactionColor(transaction.type),
+                      color: getTransactionColor(transaction.type, transaction.tokenType),
                     },
                   ]}>
                   {transaction.type === 'GRANT_TO_INVESTOR' ? '+' : '-'}
@@ -170,7 +199,7 @@ const WalletScreen: React.FC<WalletScreenProps> = ({ navigation }) => {
 
       <TouchableOpacity
         style={styles.helpButton}
-        onPress={() => Alert.alert('Help', 'Credits help you support founders and earn equity!')}>
+        onPress={() => Alert.alert('Help', 'Invest Gemini, Anthropic, Perplexity, or ChatGPT tokens in ideas to earn equity!')}>
         <Text style={styles.helpButtonText}>Need Help? 💬</Text>
       </TouchableOpacity>
     </ScrollView>
@@ -224,6 +253,45 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#fff',
     opacity: 0.8,
+  },
+  tokenGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginHorizontal: 15,
+    marginBottom: 15,
+  },
+  tokenCard: {
+    width: '47%',
+    backgroundColor: '#fff',
+    margin: '1.5%',
+    padding: 14,
+    borderRadius: 12,
+    borderLeftWidth: 4,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  tokenIcon: {
+    fontSize: 28,
+    marginBottom: 6,
+  },
+  tokenName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#333',
+    marginBottom: 4,
+  },
+  tokenBalance: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 2,
+  },
+  tokenProvider: {
+    fontSize: 11,
+    color: '#999',
   },
   infoCard: {
     backgroundColor: '#fff',
@@ -303,6 +371,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333',
     textTransform: 'capitalize',
+  },
+  transactionTokenBadge: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 2,
   },
   transactionMemo: {
     fontSize: 12,

@@ -9,7 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import { reviewAPI, batchAPI } from '../services/api';
-import { Idea } from '../types';
+import { Idea, TOKEN_META, TokenType } from '../types';
 
 interface SavedIdeasScreenProps {
   navigation: any;
@@ -18,6 +18,7 @@ interface SavedIdeasScreenProps {
 interface IdeaWithCredits extends Idea {
   myCredits?: number;
   totalCredits?: number;
+  tokenBalances?: { gemini: number; anthropic: number; perplexity: number; chatgpt: number };
   equityPercent?: number;
 }
 
@@ -81,13 +82,30 @@ const SavedIdeasScreen: React.FC<SavedIdeasScreenProps> = ({ navigation }) => {
       <View style={styles.statsRow}>
         <View style={styles.statItem}>
           <Text style={styles.statLabel}>My Investment</Text>
-          <Text style={styles.statValue}>💰 {item.myCredits || 0} credits</Text>
+          <Text style={styles.statValue}>💰 {item.myCredits || 0} tokens</Text>
         </View>
         <View style={styles.statItem}>
           <Text style={styles.statLabel}>Total Funded</Text>
-          <Text style={styles.statValue}>🏦 {item.totalCredits || 0} credits</Text>
+          <Text style={styles.statValue}>🏦 {item.totalCredits || 0} tokens</Text>
         </View>
       </View>
+
+      {/* Token balance chips */}
+      {item.tokenBalances && (
+        <View style={styles.tokenChipRow}>
+          {(['GEMINI', 'ANTHROPIC', 'PERPLEXITY', 'CHATGPT'] as TokenType[]).map((tt) => {
+            const bal = item.tokenBalances?.[tt.toLowerCase() as keyof typeof item.tokenBalances] || 0;
+            if (bal === 0) return null;
+            const meta = TOKEN_META[tt];
+            return (
+              <View key={tt} style={[styles.tokenChip, { backgroundColor: meta.color + '18' }]}>
+                <Text style={{ fontSize: 11 }}>{meta.icon}</Text>
+                <Text style={[styles.tokenChipText, { color: meta.color }]}>{bal}</Text>
+              </View>
+            );
+          })}
+        </View>
+      )}
 
       {item.equityPercent !== undefined && item.equityPercent > 0 && (
         <View style={styles.equityRow}>
@@ -247,6 +265,25 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#333',
+  },
+  tokenChipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 10,
+  },
+  tokenChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    marginRight: 6,
+    marginBottom: 4,
+  },
+  tokenChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 3,
   },
   equityRow: {
     flexDirection: 'row',

@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import { reviewAPI, creditsAPI } from '../services/api';
-import { Idea } from '../types';
+import { Idea, TokenType, TOKEN_TYPES, TOKEN_META } from '../types';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH * 0.88;
@@ -110,6 +110,7 @@ const PaperTossScreen: React.FC = () => {
   const [showDetails, setShowDetails] = useState(false);
   const [showCreditModal, setShowCreditModal] = useState(false);
   const [selectedAmount, setSelectedAmount] = useState(0);
+  const [selectedTokenType, setSelectedTokenType] = useState<TokenType>('CHATGPT');
   const [isAnimating, setIsAnimating] = useState(false);
 
   // ─── Animated values ────────────────────────────────
@@ -252,9 +253,9 @@ const PaperTossScreen: React.FC = () => {
   const handleCreditAllocation = async () => {
     if (selectedAmount > 0 && currentIdea) {
       try {
-        await creditsAPI.invest(currentIdea._id, selectedAmount);
+        await creditsAPI.invest(currentIdea._id, selectedAmount, selectedTokenType);
         ReactNativeHapticFeedback.trigger('impactHeavy', hapticOptions);
-        Alert.alert('Invested!', `You allocated ${selectedAmount} credits to this idea.`);
+        Alert.alert('Invested!', `You allocated ${selectedAmount} ${TOKEN_META[selectedTokenType].label} tokens to this idea.`);
       } catch (error: any) {
         ReactNativeHapticFeedback.trigger('notificationError', hapticOptions);
         Alert.alert('Error', error.response?.data?.error || 'Failed to allocate credits');
@@ -628,10 +629,39 @@ const PaperTossScreen: React.FC = () => {
             {/* Header */}
             <View style={styles.creditHeader}>
               <Text style={styles.creditEmoji}>⚡</Text>
-              <Text style={styles.creditTitle}>Invest Credits</Text>
+              <Text style={styles.creditTitle}>Invest Tokens</Text>
               <Text style={styles.creditSubtitle}>
-                How many AI credits would you like to allocate to this idea?
+                Choose a token type and amount to invest in this idea
               </Text>
+            </View>
+
+            {/* Token type selector */}
+            <View style={styles.creditGrid}>
+              {TOKEN_TYPES.map((tt) => {
+                const meta = TOKEN_META[tt];
+                const isSelected = selectedTokenType === tt;
+                return (
+                  <TouchableOpacity
+                    key={tt}
+                    style={[
+                      styles.creditOption,
+                      isSelected && { backgroundColor: meta.color, borderColor: meta.color },
+                    ]}
+                    onPress={() => {
+                      setSelectedTokenType(tt);
+                      ReactNativeHapticFeedback.trigger('selection', hapticOptions);
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[styles.creditOptionAmount, isSelected && styles.creditOptionAmountActive]}>
+                      {meta.icon}
+                    </Text>
+                    <Text style={[styles.creditOptionLabel, isSelected && styles.creditOptionLabelActive]}>
+                      {meta.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
 
             {/* Amount options */}
@@ -665,7 +695,7 @@ const PaperTossScreen: React.FC = () => {
                         isSelected && styles.creditOptionLabelActive,
                       ]}
                     >
-                      credits
+                      tokens
                     </Text>
                   </TouchableOpacity>
                 );
@@ -683,7 +713,7 @@ const PaperTossScreen: React.FC = () => {
             >
               <Text style={styles.creditInvestBtnText}>
                 {selectedAmount > 0
-                  ? `Invest ${selectedAmount} Credits  ⚡`
+                  ? `Invest ${selectedAmount} ${TOKEN_META[selectedTokenType].label}  ⚡`
                   : 'Skip for now'}
               </Text>
             </TouchableOpacity>

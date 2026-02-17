@@ -1,5 +1,5 @@
 import express, { Response } from 'express';
-import { AiCreditWallet } from '../models/AiCreditWallet';
+import { AiCreditWallet, TOKEN_TYPES, TokenType, tokenBalanceField } from '../models/AiCreditWallet';
 import { IdeaAiBalance } from '../models/IdeaAiBalance';
 import { AiCreditAllocation } from '../models/AiCreditAllocation';
 import { AiCreditTransaction } from '../models/AiCreditTransaction';
@@ -10,6 +10,17 @@ import aiCacheService from '../services/cacheService';
 import analyticsService from '../services/analyticsService';
 
 const router = express.Router();
+
+/** Map token type to the balance field on IdeaAiBalance */
+function ideaTokenField(tokenType: TokenType): string {
+  const map: Record<TokenType, string> = {
+    GEMINI: 'geminiBalance',
+    ANTHROPIC: 'anthropicBalance',
+    PERPLEXITY: 'perplexityBalance',
+    CHATGPT: 'chatgptBalance',
+  };
+  return map[tokenType];
+}
 
 // Get wallet info for current user
 router.get(
@@ -29,11 +40,18 @@ router.get(
         $or: [{ fromUserId: req.userId }, { toUserId: req.userId }],
       })
         .sort({ createdAt: -1 })
-        .limit(10);
+        .limit(20);
 
       res.json({
         wallet: {
-          balance: wallet.totalBalance,
+          balances: {
+            gemini: wallet.geminiBalance,
+            anthropic: wallet.anthropicBalance,
+            perplexity: wallet.perplexityBalance,
+            chatgpt: wallet.chatgptBalance,
+          },
+          // Keep legacy field for backward-compat
+          balance: wallet.geminiBalance + wallet.anthropicBalance + wallet.perplexityBalance + wallet.chatgptBalance,
         },
         transactions,
       });
@@ -44,17 +62,24 @@ router.get(
   }
 );
 
-// Invest credits in an idea (Investors only)
+// Invest tokens in an idea (Investors only)
 router.post(
   '/invest',
   authMiddleware,
   roleMiddleware(['INVESTOR']),
   async (req: AuthRequest, res: Response) => {
     try {
-      const { ideaId, amount } = req.body;
+      const { ideaId, amount, tokenType } = req.body;
 
       if (!ideaId || !amount || amount <= 0) {
         return res.status(400).json({ error: 'Valid ideaId and amount are required' });
+      }
+
+      // Validate token type
+      if (!tokenType || !TOKEN_TYPES.includes(tokenType)) {
+        return res.status(400).json({
+          error: `Invalid tokenType. Must be one of: ${TOKEN_TYPES.join(', ')}`,
+        });
       }
 
       // Check idea exists
@@ -69,25 +94,28 @@ router.post(
         return res.status(404).json({ error: 'Wallet not found' });
       }
 
-      // Check sufficient balance
-      if (wallet.totalBalance < amount) {
-        return res.status(400).json({ error: 'Insufficient credits' });
+      // Check sufficient balance for the specific token type
+      const balField = tokenBalanceField(tokenType as TokenType);
+      const currentBalance = wallet[balField] as number;
+      if (currentBalance < amount) {
+        return res.status(400).json({ error: `Insufficient ${tokenType} tokens` });
       }
 
-      // Decrease wallet balance
-      wallet.totalBalance -= amount;
+      // Decrease wallet balance for this token
+      (wallet as any)[balField] = currentBalance - amount;
       await wallet.save();
 
-      // Increase idea balance
+      // Increase idea balance for this token
+      const incField = ideaTokenField(tokenType as TokenType);
       const ideaBalance = await IdeaAiBalance.findOneAndUpdate(
         { ideaId },
-        { $inc: { balance: amount } },
+        { $inc: { [incField]: amount, balance: amount } },
         { upsert: true, new: true }
       );
 
-      // Update or create allocation
+      // Update or create allocation (per investor-idea-tokenType)
       await AiCreditAllocation.findOneAndUpdate(
-        { investorId: req.userId, ideaId },
+        { investorId: req.userId, ideaId, tokenType },
         { $inc: { amount: amount } },
         { upsert: true, new: true }
       );
@@ -98,8 +126,9 @@ router.post(
         toUserId: idea.founderId,
         ideaId,
         type: 'INVEST_IN_IDEA',
+        tokenType,
         amount,
-        memo: `Investment in ${idea.title}`,
+        memo: `${tokenType} tokens invested in ${idea.title}`,
       });
       await transaction.save();
 
@@ -107,9 +136,22 @@ router.post(
       analyticsService.trackCreditsAllocated(ideaId, amount, req.userId!.toString());
 
       res.json({
-        message: 'Credits invested successfully',
-        newBalance: wallet.totalBalance,
-        ideaBalance: ideaBalance.balance,
+        message: `${tokenType} tokens invested successfully`,
+        newBalances: {
+          gemini: wallet.geminiBalance,
+          anthropic: wallet.anthropicBalance,
+          perplexity: wallet.perplexityBalance,
+          chatgpt: wallet.chatgptBalance,
+        },
+        ideaBalances: {
+          gemini: ideaBalance.geminiBalance,
+          anthropic: ideaBalance.anthropicBalance,
+          perplexity: ideaBalance.perplexityBalance,
+          chatgpt: ideaBalance.chatgptBalance,
+        },
+        // Legacy fields
+        newBalance: (wallet as any)[balField],
+        ideaBalance: (ideaBalance as any)[incField],
       });
     } catch (error) {
       analyticsService.trackError(error as Error, { 
@@ -122,7 +164,7 @@ router.post(
   }
 );
 
-// Get AI credits balance for an idea
+// Get AI token balances for an idea
 router.get(
   '/idea/:ideaId',
   authMiddleware,
@@ -137,9 +179,17 @@ router.get(
       );
 
       res.json({
+        balances: {
+          gemini: ideaBalance?.geminiBalance || 0,
+          anthropic: ideaBalance?.anthropicBalance || 0,
+          perplexity: ideaBalance?.perplexityBalance || 0,
+          chatgpt: ideaBalance?.chatgptBalance || 0,
+        },
+        // Legacy field
         balance: ideaBalance?.balance || 0,
         allocations: allocations.map((alloc) => ({
           investor: alloc.investorId,
+          tokenType: alloc.tokenType,
           amount: alloc.amount,
         })),
       });
@@ -150,17 +200,24 @@ router.get(
   }
 );
 
-// Spend credits on AI service (Founders only)
+// Spend tokens on AI service (Founders only)
 router.post(
   '/spend',
   authMiddleware,
   roleMiddleware(['FOUNDER']),
   async (req: AuthRequest, res: Response) => {
     try {
-      const { ideaId, amount, service } = req.body;
+      const { ideaId, amount, service, tokenType } = req.body;
 
       if (!ideaId || !amount || !service || amount <= 0) {
         return res.status(400).json({ error: 'Valid ideaId, amount, and service are required' });
+      }
+
+      // Validate token type
+      if (!tokenType || !TOKEN_TYPES.includes(tokenType)) {
+        return res.status(400).json({
+          error: `Invalid tokenType. Must be one of: ${TOKEN_TYPES.join(', ')}`,
+        });
       }
 
       // Check idea exists and user owns it
@@ -170,13 +227,16 @@ router.post(
       }
 
       if (idea.founderId.toString() !== req.userId?.toString()) {
-        return res.status(403).json({ error: 'You can only spend credits on your own ideas' });
+        return res.status(403).json({ error: 'You can only spend tokens on your own ideas' });
       }
 
       // Get idea balance
       const ideaBalance = await IdeaAiBalance.findOne({ ideaId });
-      if (!ideaBalance || ideaBalance.balance < amount) {
-        return res.status(400).json({ error: 'Insufficient AI credits for this idea' });
+      const balFieldIdea = ideaTokenField(tokenType as TokenType);
+      const currentIdeaBalance = ideaBalance ? (ideaBalance as any)[balFieldIdea] || 0 : 0;
+
+      if (!ideaBalance || currentIdeaBalance < amount) {
+        return res.status(400).json({ error: `Insufficient ${tokenType} tokens for this idea` });
       }
 
       // Check cache first
@@ -189,10 +249,17 @@ router.post(
         analyticsService.trackCacheHit(service, ideaId);
         
         return res.json({
-          message: 'Credits spent successfully',
-          newBalance: ideaBalance.balance,
+          message: 'Tokens spent successfully (cached)',
+          newBalances: {
+            gemini: ideaBalance.geminiBalance,
+            anthropic: ideaBalance.anthropicBalance,
+            perplexity: ideaBalance.perplexityBalance,
+            chatgpt: ideaBalance.chatgptBalance,
+          },
+          newBalance: currentIdeaBalance,
           result: cachedResult.text,
           tokensUsed: cachedResult.tokensUsed,
+          tokenType,
           cached: true,
         });
       }
@@ -200,8 +267,9 @@ router.post(
       // Track cache miss
       analyticsService.trackCacheMiss(service, ideaId);
 
-      // Decrease idea balance
-      ideaBalance.balance -= amount;
+      // Decrease idea balance for the specific token
+      (ideaBalance as any)[balFieldIdea] = currentIdeaBalance - amount;
+      ideaBalance.balance = Math.max(0, ideaBalance.balance - amount);
       await ideaBalance.save();
 
       // Create transaction record
@@ -209,13 +277,14 @@ router.post(
         fromUserId: req.userId,
         ideaId,
         type: 'SPEND_ON_AI_SERVICE',
+        tokenType,
         amount,
-        memo: `AI service: ${service}`,
+        memo: `${tokenType} tokens: ${service}`,
       });
       await transaction.save();
 
-      // Call AI service
-      const aiServiceResult = await runAiTool(service, idea);
+      // Call AI service (pass tokenType so it knows which provider to use)
+      const aiServiceResult = await runAiTool(service, idea, tokenType as TokenType);
 
       // Cache the result for 1 hour
       aiCacheService.set(ideaId, service, aiServiceResult);
@@ -225,10 +294,17 @@ router.post(
       analyticsService.trackCreditsSpent(ideaId, amount, service, false);
 
       res.json({
-        message: 'Credits spent successfully',
-        newBalance: ideaBalance.balance,
+        message: `${tokenType} tokens spent successfully`,
+        newBalances: {
+          gemini: ideaBalance.geminiBalance,
+          anthropic: ideaBalance.anthropicBalance,
+          perplexity: ideaBalance.perplexityBalance,
+          chatgpt: ideaBalance.chatgptBalance,
+        },
+        newBalance: (ideaBalance as any)[balFieldIdea],
         result: aiServiceResult.text,
         tokensUsed: aiServiceResult.tokensUsed,
+        tokenType,
         cached: false,
       });
     } catch (error) {

@@ -12,6 +12,7 @@ import {
   SpendResponse,
   IdeaEquityInfo,
   EnrichedIdea,
+  TokenType,
 } from '../types';
 
 // Update this to your backend URL
@@ -119,13 +120,13 @@ export const creditsAPI = {
     return response.data;
   },
 
-  invest: async (ideaId: string, amount: number): Promise<InvestResponse> => {
-    const response = await api.post('/credits/invest', { ideaId, amount });
+  invest: async (ideaId: string, amount: number, tokenType: TokenType): Promise<InvestResponse> => {
+    const response = await api.post('/credits/invest', { ideaId, amount, tokenType });
     return response.data;
   },
 
-  spend: async (ideaId: string, amount: number, service: string): Promise<SpendResponse> => {
-    const response = await api.post('/credits/spend', { ideaId, amount, service });
+  spend: async (ideaId: string, amount: number, service: string, tokenType: TokenType): Promise<SpendResponse> => {
+    const response = await api.post('/credits/spend', { ideaId, amount, service, tokenType });
     return response.data;
   },
 

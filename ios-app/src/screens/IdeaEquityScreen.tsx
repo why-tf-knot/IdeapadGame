@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { equityAPI } from '../services/api';
+import { TOKEN_TYPES, TOKEN_META, TokenType } from '../types';
 
 interface IdeaEquityScreenProps {
   route: any;
@@ -19,10 +20,12 @@ interface EquityData {
   totalCreditsInvested: number;
   totalCreditsSpent: number;
   totalEquityPercent: number;
+  tokenBreakdown?: Record<string, { invested: number; spent: number }>;
   investorEquity: Array<{
     investorId: string;
     investorName: string;
     creditsAllocated: number;
+    tokenAllocations?: { tokenType: string; amount: number }[];
     estimatedEquityPercent: number;
   }>;
 }
@@ -78,7 +81,7 @@ const IdeaEquityScreen: React.FC<IdeaEquityScreenProps> = ({ route, navigation }
           {equityData.totalEquityPercent.toFixed(4)}%
         </Text>
         <Text style={styles.summarySubtext}>
-          Based on {equityData.totalCreditsSpent.toLocaleString()} credits consumed
+          Based on {equityData.totalCreditsSpent.toLocaleString()} tokens consumed
         </Text>
       </View>
 
@@ -88,15 +91,15 @@ const IdeaEquityScreen: React.FC<IdeaEquityScreenProps> = ({ route, navigation }
           <Text style={styles.statValue}>
             {equityData.totalCreditsInvested.toLocaleString()}
           </Text>
-          <Text style={styles.statUnit}>credits</Text>
+          <Text style={styles.statUnit}>tokens</Text>
         </View>
 
         <View style={styles.statBox}>
-          <Text style={styles.statLabel}>Credits Spent</Text>
+          <Text style={styles.statLabel}>Tokens Spent</Text>
           <Text style={styles.statValue}>
             {equityData.totalCreditsSpent.toLocaleString()}
           </Text>
-          <Text style={styles.statUnit}>credits</Text>
+          <Text style={styles.statUnit}>tokens</Text>
         </View>
 
         <View style={styles.statBox}>
@@ -111,6 +114,31 @@ const IdeaEquityScreen: React.FC<IdeaEquityScreenProps> = ({ route, navigation }
           <Text style={styles.statUnit}>backers</Text>
         </View>
       </View>
+
+      {/* Token Breakdown */}
+      {equityData.tokenBreakdown && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Token Breakdown</Text>
+          <Text style={styles.sectionSubtitle}>
+            Invested & spent per AI provider
+          </Text>
+          <View style={styles.tokenBreakdownGrid}>
+            {TOKEN_TYPES.map((tt) => {
+              const meta = TOKEN_META[tt];
+              const info = equityData.tokenBreakdown?.[tt] || { invested: 0, spent: 0 };
+              if (info.invested === 0 && info.spent === 0) return null;
+              return (
+                <View key={tt} style={[styles.tokenBreakdownCard, { borderLeftColor: meta.color }]}>
+                  <Text style={{ fontSize: 22 }}>{meta.icon}</Text>
+                  <Text style={[styles.tokenBreakdownName, { color: meta.color }]}>{meta.label}</Text>
+                  <Text style={styles.tokenBreakdownStat}>Invested: {info.invested.toLocaleString()}</Text>
+                  <Text style={styles.tokenBreakdownStat}>Spent: {info.spent.toLocaleString()}</Text>
+                </View>
+              );
+            })}
+          </View>
+        </View>
+      )}
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Equity Distribution</Text>
@@ -135,10 +163,28 @@ const IdeaEquityScreen: React.FC<IdeaEquityScreenProps> = ({ route, navigation }
                 <View style={styles.investorInfo}>
                   <Text style={styles.investorName}>{investor.investorName}</Text>
                   <Text style={styles.investorCredits}>
-                    {investor.creditsAllocated.toLocaleString()} credits allocated
+                    {investor.creditsAllocated.toLocaleString()} tokens allocated
                   </Text>
                 </View>
               </View>
+
+              {/* Per-token allocation chips */}
+              {investor.tokenAllocations && investor.tokenAllocations.length > 0 && (
+                <View style={styles.tokenAllocRow}>
+                  {investor.tokenAllocations.map((ta) => {
+                    const meta = TOKEN_META[ta.tokenType as TokenType];
+                    if (!meta) return null;
+                    return (
+                      <View key={ta.tokenType} style={[styles.tokenAllocChip, { backgroundColor: meta.color + '20' }]}>
+                        <Text style={{ fontSize: 12 }}>{meta.icon}</Text>
+                        <Text style={[styles.tokenAllocChipText, { color: meta.color }]}>
+                          {ta.amount.toLocaleString()}
+                        </Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
 
               <View style={styles.investorStats}>
                 <View style={styles.investorStat}>
@@ -282,6 +328,53 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     marginBottom: 15,
+  },
+  tokenBreakdownGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  tokenBreakdownCard: {
+    width: '47%',
+    backgroundColor: '#fff',
+    margin: '1.5%',
+    padding: 14,
+    borderRadius: 10,
+    borderLeftWidth: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  tokenBreakdownName: {
+    fontSize: 14,
+    fontWeight: '700',
+    marginTop: 4,
+    marginBottom: 6,
+  },
+  tokenBreakdownStat: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 2,
+  },
+  tokenAllocRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 10,
+  },
+  tokenAllocChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginRight: 6,
+    marginBottom: 4,
+  },
+  tokenAllocChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 4,
   },
   investorCard: {
     backgroundColor: '#fff',

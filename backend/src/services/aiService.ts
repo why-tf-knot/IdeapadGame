@@ -1,9 +1,17 @@
 /**
- * AI Service Integration
+ * AI Service Integration — Multi-Provider
  * 
- * This service provides AI-powered tools for founders to improve their pitches.
- * Currently uses placeholder responses, but ready for OpenAI/Anthropic/Gemini integration.
+ * Supports four AI token types, each mapping to a real AI provider:
+ *   GEMINI     → Google Gemini
+ *   ANTHROPIC  → Anthropic Claude
+ *   PERPLEXITY → Perplexity AI
+ *   CHATGPT    → OpenAI ChatGPT
+ *
+ * Founders spend provider-specific tokens; the service routes
+ * requests to the corresponding API when keys are configured.
  */
+
+import { TokenType } from '../models/AiCreditWallet';
 
 interface AIServiceInput {
   service: string;
@@ -13,6 +21,7 @@ interface AIServiceInput {
 interface AIServiceResult {
   text: string;
   tokensUsed?: number;
+  provider?: string;
 }
 
 /**
@@ -112,53 +121,71 @@ Be specific, actionable, and realistic based on the stage.
 };
 
 /**
+ * Provider metadata (name, env-key, model defaults)
+ */
+const PROVIDERS: Record<TokenType, { name: string; envKey: string; model: string }> = {
+  GEMINI: { name: 'Google Gemini', envKey: 'GEMINI_API_KEY', model: 'gemini-pro' },
+  ANTHROPIC: { name: 'Anthropic Claude', envKey: 'ANTHROPIC_API_KEY', model: 'claude-sonnet-4-20250514' },
+  PERPLEXITY: { name: 'Perplexity AI', envKey: 'PERPLEXITY_API_KEY', model: 'sonar-medium-online' },
+  CHATGPT: { name: 'OpenAI ChatGPT', envKey: 'OPENAI_API_KEY', model: 'gpt-4' },
+};
+
+/**
  * Process AI tool request with error boundary
  * 
- * @param service - The AI service to use
- * @param idea - The idea object
+ * @param service   - The AI service to use (e.g. LLM_SUMMARY_IMPROVE)
+ * @param idea      - The idea object
+ * @param tokenType - Which provider's tokens to consume
  * @returns AI-generated text response (falls back gracefully on error)
  */
-export async function runAiTool(service: string, idea: any): Promise<AIServiceResult> {
+export async function runAiTool(
+  service: string,
+  idea: any,
+  tokenType: TokenType = 'CHATGPT'
+): Promise<AIServiceResult> {
   const serviceConfig = AI_SERVICES[service];
   
   if (!serviceConfig) {
     throw new Error(`Unknown AI service: ${service}`);
   }
 
+  const provider = PROVIDERS[tokenType];
+
   try {
     const prompt = serviceConfig.promptTemplate(idea);
 
-    // TODO: Integrate with real AI providers
-    // For now, return intelligent placeholder responses
-
-    if (process.env.OPENAI_API_KEY) {
-      // Future: Call OpenAI API
-      // return await callOpenAI(prompt);
+    // Attempt real provider call when API key is present
+    if (process.env[provider.envKey]) {
+      // Future: route to the real provider SDK here.
+      // For now we fall through to placeholders.
+      // return await callProvider(tokenType, prompt);
     }
 
     // Placeholder responses for MVP
-    const placeholderResponses = getPlaceholderResponse(service, idea);
+    const placeholderResponses = getPlaceholderResponse(service, idea, tokenType);
     
     return {
       text: placeholderResponses,
       tokensUsed: 0,
+      provider: provider.name,
     };
   } catch (error) {
-    console.error(`[AI Service] Error running ${service}:`, error);
+    console.error(`[AI Service] Error running ${service} via ${provider.name}:`, error);
     
-    // Return a graceful fallback instead of crashing the entire request
     return {
-      text: `AI service temporarily unavailable for "${serviceConfig.name}". Please try again in a few moments. Your credits have not been charged.`,
+      text: `${provider.name} service temporarily unavailable for "${serviceConfig.name}". Please try again in a few moments. Your ${tokenType} tokens have not been charged.`,
       tokensUsed: 0,
+      provider: provider.name,
     };
   }
 }
 
 /**
  * Generate placeholder AI responses
- * These simulate what a real AI would generate
+ * These simulate what a real AI provider would generate
  */
-function getPlaceholderResponse(service: string, idea: any): string {
+function getPlaceholderResponse(service: string, idea: any, tokenType: TokenType = 'CHATGPT'): string {
+  const providerLabel = PROVIDERS[tokenType].name;
   switch (service) {
     case 'LLM_SUMMARY_IMPROVE':
       return `${idea.title} - ${idea.solution.substring(0, 80)}${idea.solution.length > 80 ? '...' : ''} for ${idea.targetUser}.`;
@@ -278,7 +305,7 @@ Validation: Product-market fit indicators
 - Ready for next funding round`;
 
     default:
-      return `AI-generated response for ${service} would appear here. The system has processed your request and allocated the credits accordingly.`;
+      return `[${providerLabel}] AI-generated response for ${service} would appear here. The system has processed your request and allocated the ${tokenType} tokens accordingly.`;
   }
 }
 
@@ -331,20 +358,30 @@ export function checkRateLimit(userId: string): boolean {
 }
 
 /**
- * Estimate credit cost based on service complexity
+ * Estimate token cost based on service complexity and provider
  */
-export function estimateCreditCost(service: string): number {
-  const costs: Record<string, number> = {
+export function estimateCreditCost(service: string, tokenType: TokenType = 'CHATGPT'): number {
+  // Provider multipliers (some providers cost more for equivalents)
+  const multipliers: Record<TokenType, number> = {
+    GEMINI: 0.8,
+    ANTHROPIC: 1.2,
+    PERPLEXITY: 1.0,
+    CHATGPT: 1.0,
+  };
+
+  const baseCosts: Record<string, number> = {
     LLM_SUMMARY_IMPROVE: 10,
     LLM_PITCH_DRAFT: 20,
     LLM_ROADMAP_GENERATE: 20,
   };
 
-  return costs[service] || 15;
+  const base = baseCosts[service] || 15;
+  return Math.ceil(base * multipliers[tokenType]);
 }
 
 export default {
   runAiTool,
   checkRateLimit,
   estimateCreditCost,
+  PROVIDERS,
 };

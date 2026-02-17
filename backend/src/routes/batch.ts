@@ -62,7 +62,13 @@ router.post(
 
       // Build lookup maps for efficient access
       const creditBalanceMap = new Map(
-        creditBalances.map(cb => [cb.ideaId.toString(), cb.balance])
+        creditBalances.map(cb => [cb.ideaId.toString(), {
+          total: cb.balance,
+          gemini: cb.geminiBalance || 0,
+          anthropic: cb.anthropicBalance || 0,
+          perplexity: cb.perplexityBalance || 0,
+          chatgpt: cb.chatgptBalance || 0,
+        }])
       );
 
       const allocationsByIdea = new Map<string, any[]>();
@@ -84,7 +90,7 @@ router.post(
       // Enrich ideas with credit and equity data
       const enrichedIdeas = ideas.map(idea => {
         const ideaIdStr = idea._id.toString();
-        const balance = creditBalanceMap.get(ideaIdStr) || 0;
+        const balanceInfo = creditBalanceMap.get(ideaIdStr) || { total: 0, gemini: 0, anthropic: 0, perplexity: 0, chatgpt: 0 };
         const ideaAllocations = allocationsByIdea.get(ideaIdStr) || [];
         const myCredits = myAllocationMap.get(ideaIdStr) || 0;
 
@@ -101,12 +107,19 @@ router.post(
         return {
           ...idea,
           myCredits,
-          totalCredits: balance,
+          totalCredits: balanceInfo.total,
+          tokenBalances: {
+            gemini: balanceInfo.gemini,
+            anthropic: balanceInfo.anthropic,
+            perplexity: balanceInfo.perplexity,
+            chatgpt: balanceInfo.chatgpt,
+          },
           equityPercent: myEquityPercent,
           totalAllocated,
           allocations: ideaAllocations.map(alloc => ({
             investorId: alloc.investorId._id,
             investorName: alloc.investorId.name,
+            tokenType: alloc.tokenType,
             amount: alloc.amount
           }))
         };

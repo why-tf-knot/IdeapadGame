@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { ideasAPI, creditsAPI } from '../services/api';
-import { Idea } from '../types';
+import { Idea, TokenType, TOKEN_TYPES, TOKEN_META, TokenBalances } from '../types';
 import { handleApiError } from '../utils/errorHandler';
 
 interface IdeaDetailScreenProps {
@@ -57,7 +57,8 @@ const AI_TOOLS: AITool[] = [
 const IdeaDetailScreen: React.FC<IdeaDetailScreenProps> = ({ route, navigation }) => {
   const { ideaId } = route.params;
   const [idea, setIdea] = useState<Idea | null>(null);
-  const [aiCredits, setAiCredits] = useState(0);
+  const [tokenBalances, setTokenBalances] = useState<TokenBalances>({ gemini: 0, anthropic: 0, perplexity: 0, chatgpt: 0 });
+  const [selectedToken, setSelectedToken] = useState<TokenType>('CHATGPT');
   const [loading, setLoading] = useState(true);
   const [processingTool, setProcessingTool] = useState<string | null>(null);
   const [showResultModal, setShowResultModal] = useState(false);
@@ -82,7 +83,16 @@ const IdeaDetailScreen: React.FC<IdeaDetailScreenProps> = ({ route, navigation }
     try {
       const ideaResponse = await ideasAPI.getById(ideaId);
       setIdea(ideaResponse.idea);
-      setAiCredits(ideaResponse.idea.aiCredits || 0);
+
+      // Load per-token balances for this idea
+      try {
+        const creditInfo = await creditsAPI.getIdeaCredits(ideaId);
+        if (creditInfo.balances) {
+          setTokenBalances(creditInfo.balances);
+        }
+      } catch {
+        // Fallback — old data
+      }
       
       navigation.setOptions({ title: ideaResponse.idea.title });
     } catch (error) {
@@ -93,13 +103,16 @@ const IdeaDetailScreen: React.FC<IdeaDetailScreenProps> = ({ route, navigation }
     }
   };
 
+  /** Get balance for currently selected token */
+  const currentTokenBalance = tokenBalances[selectedToken.toLowerCase() as keyof TokenBalances] || 0;
+
   const handleUseTool = async (tool: AITool) => {
     if (!idea) return;
 
-    if (aiCredits < tool.cost) {
+    if (currentTokenBalance < tool.cost) {
       Alert.alert(
-        'Insufficient Credits',
-        `You need ${tool.cost} AI credits to use this tool, but only have ${aiCredits} available.`,
+        'Insufficient Tokens',
+        `You need ${tool.cost} ${TOKEN_META[selectedToken].label} tokens to use this tool, but only have ${currentTokenBalance} available.`,
         [{ text: 'OK' }]
       );
       return;
@@ -107,11 +120,11 @@ const IdeaDetailScreen: React.FC<IdeaDetailScreenProps> = ({ route, navigation }
 
     Alert.alert(
       'Confirm',
-      `Use ${tool.cost} AI credits for "${tool.name}"?`,
+      `Spend ${tool.cost} ${TOKEN_META[selectedToken].label} tokens for "${tool.name}"?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Use Credits',
+          text: 'Use Tokens',
           onPress: () => executeTool(tool),
         },
       ]
@@ -130,15 +143,18 @@ const IdeaDetailScreen: React.FC<IdeaDetailScreenProps> = ({ route, navigation }
     setProcessingTool(tool.id);
     setSelectedTool(tool);
 
-    // Optimistic UI update: deduct credits immediately
-    const previousCredits = aiCredits;
-    setAiCredits(prev => prev - tool.cost);
+    // Optimistic UI update: deduct tokens immediately
+    const previousBalances = { ...tokenBalances };
+    const tokenKey = selectedToken.toLowerCase() as keyof TokenBalances;
+    setTokenBalances(prev => ({ ...prev, [tokenKey]: prev[tokenKey] - tool.cost }));
 
     try {
-      const response = await creditsAPI.spend(idea._id, tool.cost, tool.service);
+      const response = await creditsAPI.spend(idea._id, tool.cost, tool.service, selectedToken);
       
-      // Update with actual server balance
-      setAiCredits(response.newBalance);
+      // Update with actual server balances
+      if (response.newBalances) {
+        setTokenBalances(response.newBalances);
+      }
       setAiResult(response.result);
       setShowResultModal(true);
     } catch (error: any) {
@@ -148,7 +164,7 @@ const IdeaDetailScreen: React.FC<IdeaDetailScreenProps> = ({ route, navigation }
       }
 
       // Rollback optimistic update on error
-      setAiCredits(previousCredits);
+      setTokenBalances(previousBalances);
       handleApiError(error, 'Failed to process AI request');
     } finally {
       setProcessingTool(null);
@@ -176,14 +192,29 @@ const IdeaDetailScreen: React.FC<IdeaDetailScreenProps> = ({ route, navigation }
   return (
     <View style={styles.container}>
       <ScrollView style={styles.scrollView}>
-        {/* AI Credits Card */}
+        {/* Token Balances Card */}
         <View style={styles.creditsCard}>
           <View style={styles.creditsHeader}>
-            <Text style={styles.creditsLabel}>AI Credits Available</Text>
-            <Text style={styles.creditsAmount}>{aiCredits}</Text>
+            <Text style={styles.creditsLabel}>Idea Token Balances</Text>
+          </View>
+          <View style={styles.tokenRow}>
+            {TOKEN_TYPES.map((tt) => {
+              const meta = TOKEN_META[tt];
+              const bal = tokenBalances[tt.toLowerCase() as keyof TokenBalances] || 0;
+              const isSelected = selectedToken === tt;
+              return (
+                <TouchableOpacity
+                  key={tt}
+                  style={[styles.tokenChip, isSelected && { backgroundColor: meta.color + '33', borderColor: meta.color }]}
+                  onPress={() => setSelectedToken(tt)}>
+                  <Text style={styles.tokenChipIcon}>{meta.icon}</Text>
+                  <Text style={[styles.tokenChipLabel, isSelected && { color: meta.color }]}>{bal}</Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
           <Text style={styles.creditsSubtext}>
-            Use these credits to improve your pitch with AI tools
+            Selected: {TOKEN_META[selectedToken].icon} {TOKEN_META[selectedToken].label} — powered by {TOKEN_META[selectedToken].provider}
           </Text>
         </View>
 
@@ -224,7 +255,7 @@ const IdeaDetailScreen: React.FC<IdeaDetailScreenProps> = ({ route, navigation }
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>AI-Powered Tools</Text>
           <Text style={styles.sectionSubtitle}>
-            Enhance your pitch using AI (costs AI credits)
+            Spend {TOKEN_META[selectedToken].label} tokens to enhance your pitch
           </Text>
 
           {AI_TOOLS.map((tool) => (
@@ -247,11 +278,11 @@ const IdeaDetailScreen: React.FC<IdeaDetailScreenProps> = ({ route, navigation }
 
               <View style={styles.toolAction}>
                 {processingTool === tool.id ? (
-                  <ActivityIndicator size="small" color="#007AFF" />
+                  <ActivityIndicator size="small" color={TOKEN_META[selectedToken].color} />
                 ) : (
                   <>
-                    <Text style={styles.toolCost}>{tool.cost}</Text>
-                    <Text style={styles.toolCostLabel}>credits</Text>
+                    <Text style={[styles.toolCost, { color: TOKEN_META[selectedToken].color }]}>{tool.cost}</Text>
+                    <Text style={styles.toolCostLabel}>{TOKEN_META[selectedToken].label}</Text>
                   </>
                 )}
               </View>
@@ -305,10 +336,10 @@ const IdeaDetailScreen: React.FC<IdeaDetailScreenProps> = ({ route, navigation }
           <ScrollView style={styles.modalContent}>
             <View style={styles.creditsUsedBanner}>
               <Text style={styles.creditsUsedText}>
-                ✓ Used {selectedTool?.cost} credits
+                ✓ Used {selectedTool?.cost} {TOKEN_META[selectedToken].label} tokens
               </Text>
               <Text style={styles.creditsRemainingText}>
-                {aiCredits} remaining
+                {currentTokenBalance} remaining
               </Text>
             </View>
 
@@ -364,6 +395,31 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#fff',
     opacity: 0.9,
+  },
+  tokenRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginVertical: 10,
+  },
+  tokenChip: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    marginHorizontal: 3,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.3)',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+  },
+  tokenChipIcon: {
+    fontSize: 18,
+  },
+  tokenChipLabel: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginTop: 2,
   },
   creditsAmount: {
     fontSize: 32,

@@ -41,11 +41,15 @@ router.post('/register', async (req: Request, res: Response) => {
 
     await user.save();
 
-    // Create wallet for investor
+    // Create wallet for investor with all token balances
     if (role === 'INVESTOR') {
       const wallet = new AiCreditWallet({
         userId: user._id,
         totalBalance: 0,
+        geminiBalance: 0,
+        anthropicBalance: 0,
+        perplexityBalance: 0,
+        chatgptBalance: 0,
       });
       await wallet.save();
     }
@@ -132,11 +136,22 @@ router.get('/me', authMiddleware, async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Get wallet balance if investor
+    // Get wallet balances if investor
     let walletBalance = null;
+    let walletBalances = null;
     if (user.role === 'INVESTOR') {
       const wallet = await AiCreditWallet.findOne({ userId: user._id });
-      walletBalance = wallet?.totalBalance || 0;
+      walletBalance = wallet
+        ? (wallet.geminiBalance + wallet.anthropicBalance + wallet.perplexityBalance + wallet.chatgptBalance)
+        : 0;
+      walletBalances = wallet
+        ? {
+            gemini: wallet.geminiBalance,
+            anthropic: wallet.anthropicBalance,
+            perplexity: wallet.perplexityBalance,
+            chatgpt: wallet.chatgptBalance,
+          }
+        : null;
     }
 
     res.json({
@@ -147,6 +162,7 @@ router.get('/me', authMiddleware, async (req: AuthRequest, res: Response) => {
         role: user.role,
       },
       walletBalance,
+      walletBalances,
     });
   } catch (error) {
     console.error('Get user error:', error);

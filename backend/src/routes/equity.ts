@@ -2,6 +2,7 @@ import express, { Response } from 'express';
 import { Types } from 'mongoose';
 import { AiCreditAllocation } from '../models/AiCreditAllocation';
 import { AiCreditTransaction } from '../models/AiCreditTransaction';
+import { TOKEN_TYPES, TokenType } from '../models/AiCreditWallet';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
 
 const router = express.Router();
@@ -22,10 +23,10 @@ router.get('/idea/:ideaId', authMiddleware, async (req: AuthRequest, res: Respon
       'name email'
     );
 
-    // Get total credits invested in this idea
+    // Get total tokens invested in this idea (across all token types)
     const totalInvested = allocations.reduce((sum, alloc) => sum + alloc.amount, 0);
 
-    // Get total credits spent on this idea
+    // Get total tokens spent on this idea
     const spentTransactions = await AiCreditTransaction.find({
       ideaId,
       type: 'SPEND_ON_AI_SERVICE',
@@ -33,22 +34,47 @@ router.get('/idea/:ideaId', authMiddleware, async (req: AuthRequest, res: Respon
 
     const totalSpent = spentTransactions.reduce((sum, tx) => sum + tx.amount, 0);
 
+    // Build per-token-type breakdown
+    const tokenBreakdown: Record<string, { invested: number; spent: number }> = {};
+    for (const tt of TOKEN_TYPES) {
+      const invested = allocations
+        .filter(a => a.tokenType === tt)
+        .reduce((s, a) => s + a.amount, 0);
+      const spent = spentTransactions
+        .filter(tx => tx.tokenType === tt)
+        .reduce((s, tx) => s + tx.amount, 0);
+      tokenBreakdown[tt] = { invested, spent };
+    }
+
     // Calculate equity percentages
-    // Configuration: 10,000 credits consumed = 1% equity
+    // Configuration: 10,000 tokens consumed = 1% equity
     const creditsPerEquityPercent = parseInt(
       process.env.CREDITS_PER_EQUITY_PERCENT || '10000'
     );
 
-      const equityMappings = allocations.map((alloc) => {
-      const investorShare = totalInvested > 0 ? alloc.amount / totalInvested : 0;
+    // Group allocations by investor
+    const investorMap = new Map<string, { name: string; allocations: { tokenType: string; amount: number }[]; total: number }>();
+    for (const alloc of allocations) {
+      const investorDoc = alloc.investorId as any;
+      const key = investorDoc._id.toString();
+      if (!investorMap.has(key)) {
+        investorMap.set(key, { name: investorDoc.name, allocations: [], total: 0 });
+      }
+      const entry = investorMap.get(key)!;
+      entry.allocations.push({ tokenType: alloc.tokenType, amount: alloc.amount });
+      entry.total += alloc.amount;
+    }
+
+    const equityMappings = Array.from(investorMap.entries()).map(([investorId, data]) => {
+      const investorShare = totalInvested > 0 ? data.total / totalInvested : 0;
       const totalEquityPercent = (totalSpent / creditsPerEquityPercent) * 1.0;
       const investorEquityPercent = investorShare * totalEquityPercent;
-      const investorDoc = alloc.investorId as any;
 
       return {
-        investorId: investorDoc._id,
-        investorName: investorDoc.name,
-        creditsAllocated: alloc.amount,
+        investorId,
+        investorName: data.name,
+        creditsAllocated: data.total,
+        tokenAllocations: data.allocations,
         estimatedEquityPercent: investorEquityPercent,
       };
     });
@@ -58,6 +84,7 @@ router.get('/idea/:ideaId', authMiddleware, async (req: AuthRequest, res: Respon
       totalCreditsInvested: totalInvested,
       totalCreditsSpent: totalSpent,
       totalEquityPercent: (totalSpent / creditsPerEquityPercent) * 1.0,
+      tokenBreakdown,
       investorEquity: equityMappings,
     });
   } catch (error) {

@@ -57,7 +57,7 @@ const MyIdeasScreen: React.FC<MyIdeasScreenProps> = ({ navigation }) => {
       <View style={styles.ideaFooter}>
         <Text style={styles.ideaCategory}>{item.category}</Text>
         <Text style={styles.ideaStage}>{item.stage}</Text>
-        <Text style={styles.ideaCredits}>💰 {item.aiCredits || 0} credits</Text>
+        <Text style={styles.ideaCredits}>💰 {item.aiCredits || 0} tokens</Text>
       </View>
     </TouchableOpacity>
   );
