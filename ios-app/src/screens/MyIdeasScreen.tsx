@@ -7,13 +7,22 @@ import {
   TouchableOpacity,
   RefreshControl,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { ideasAPI } from '../services/api';
 import { Idea } from '../types';
+import { COLORS, RADIUS, SHADOWS, SPACING } from '../theme';
 
 interface MyIdeasScreenProps {
   navigation: any;
 }
+
+const STATUS_STYLES: Record<string, { bg: string; text: string }> = {
+  ACTIVE:         { bg: COLORS.success,   text: '#fff' },
+  PENDING_REVIEW: { bg: COLORS.warning,   text: '#fff' },
+  DRAFT:          { bg: COLORS.formBg,    text: COLORS.textSecondary },
+  DEFAULT:        { bg: COLORS.border,    text: COLORS.textMuted },
+};
 
 const MyIdeasScreen: React.FC<MyIdeasScreenProps> = ({ navigation }) => {
   const [ideas, setIdeas] = useState<Idea[]>([]);
@@ -41,64 +50,70 @@ const MyIdeasScreen: React.FC<MyIdeasScreenProps> = ({ navigation }) => {
     loadIdeas();
   };
 
-  const renderIdea = ({ item }: { item: Idea }) => (
-    <TouchableOpacity
-      style={styles.ideaCard}
-      onPress={() => navigation.navigate('IdeaDetail', { ideaId: item._id })}>
-      <View style={styles.ideaHeader}>
-        <Text style={styles.ideaTitle}>{item.title}</Text>
-        <View style={[styles.statusBadge, getStatusColor(item.status)]}>
-          <Text style={styles.statusText}>{item.status.replace('_', ' ')}</Text>
-        </View>
-      </View>
-      <Text style={styles.ideaSummary} numberOfLines={2}>
-        {item.oneLineSummary}
-      </Text>
-      <View style={styles.ideaFooter}>
-        <Text style={styles.ideaCategory}>{item.category}</Text>
-        <Text style={styles.ideaStage}>{item.stage}</Text>
-        <Text style={styles.ideaCredits}>💰 {item.aiCredits || 0} tokens</Text>
-      </View>
-    </TouchableOpacity>
-  );
+  const statusStyle = (status: string) =>
+    STATUS_STYLES[status] || STATUS_STYLES.DEFAULT;
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'ACTIVE':
-        return { backgroundColor: '#34C759' };
-      case 'PENDING_REVIEW':
-        return { backgroundColor: '#FF9500' };
-      case 'DRAFT':
-        return { backgroundColor: '#007AFF' };
-      default:
-        return { backgroundColor: '#8E8E93' };
-    }
+  const renderIdea = ({ item }: { item: Idea }) => {
+    const ss = statusStyle(item.status);
+    return (
+      <TouchableOpacity
+        style={styles.card}
+        onPress={() => navigation.navigate('IdeaDetail', { ideaId: item._id })}
+        activeOpacity={0.7}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
+          <View style={[styles.badge, { backgroundColor: ss.bg }]}>
+            <Text style={[styles.badgeText, { color: ss.text }]}>
+              {item.status.replace('_', ' ')}
+            </Text>
+          </View>
+        </View>
+
+        <Text style={styles.cardSummary} numberOfLines={2}>
+          {item.oneLineSummary}
+        </Text>
+
+        <View style={styles.cardFooter}>
+          <View style={[styles.tagPill, { backgroundColor: COLORS.accentLight }]}>
+            <Text style={[styles.tagPillText, { color: COLORS.accent }]}>{item.category}</Text>
+          </View>
+          <Text style={styles.stageLabel}>{item.stage}</Text>
+          <Text style={styles.tokenLabel}>💰 {item.aiCredits || 0} tokens</Text>
+        </View>
+      </TouchableOpacity>
+    );
   };
 
   if (loading) {
     return (
-      <View style={styles.centerContainer}>
-        <Text>Loading...</Text>
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color={COLORS.accent} />
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>My Ideas</Text>
+        <View>
+          <Text style={styles.headerTitle}>My Ideas</Text>
+          <Text style={styles.headerSub}>{ideas.length} pitch{ideas.length !== 1 ? 'es' : ''}</Text>
+        </View>
         <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => navigation.navigate('CreateIdea')}>
-          <Text style={styles.addButtonText}>+ New Idea</Text>
+          style={styles.newButton}
+          onPress={() => navigation.navigate('CreateIdea')}
+          activeOpacity={0.85}>
+          <Text style={styles.newButtonText}>+ New Idea</Text>
         </TouchableOpacity>
       </View>
 
       {ideas.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>No ideas yet!</Text>
-          <Text style={styles.emptySubtext}>
-            Tap "New Idea" to submit your first idea
+        <View style={styles.empty}>
+          <Text style={styles.emptyIcon}>💡</Text>
+          <Text style={styles.emptyTitle}>No ideas yet</Text>
+          <Text style={styles.emptySub}>
+            Tap "+ New Idea" to submit your first pitch
           </Text>
         </View>
       ) : (
@@ -106,9 +121,9 @@ const MyIdeasScreen: React.FC<MyIdeasScreenProps> = ({ navigation }) => {
           data={ideas}
           renderItem={renderIdea}
           keyExtractor={(item) => item._id}
-          contentContainerStyle={styles.listContainer}
+          contentContainerStyle={styles.list}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.accent} />
           }
         />
       )}
@@ -119,114 +134,131 @@ const MyIdeasScreen: React.FC<MyIdeasScreenProps> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: COLORS.bg,
   },
-  centerContainer: {
+  center: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: COLORS.bg,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING.lg,
+    paddingBottom: SPACING.md,
+    backgroundColor: COLORS.bg,
   },
   headerTitle: {
     fontSize: 28,
-    fontWeight: 'bold',
+    fontWeight: '900',
+    color: COLORS.text,
   },
-  addButton: {
-    backgroundColor: '#007AFF',
+  headerSub: {
+    fontSize: 13,
+    color: COLORS.textMuted,
+    marginTop: 2,
+  },
+  newButton: {
+    backgroundColor: COLORS.accent,
     paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
+    paddingVertical: 11,
+    borderRadius: RADIUS.md,
+    ...SHADOWS.sm,
   },
-  addButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+  newButtonText: {
+    color: COLORS.white,
+    fontSize: 15,
+    fontWeight: '700',
   },
-  listContainer: {
-    padding: 15,
+  list: {
+    paddingHorizontal: SPACING.lg,
+    paddingBottom: SPACING.xxl,
   },
-  ideaCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+  card: {
+    backgroundColor: COLORS.cardBg,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.md + 4,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    ...SHADOWS.sm,
   },
-  ideaHeader: {
+  cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 10,
+    marginBottom: 8,
   },
-  ideaTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+  cardTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: COLORS.text,
     flex: 1,
     marginRight: 10,
   },
-  statusBadge: {
+  badge: {
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 8,
+    borderRadius: RADIUS.pill,
   },
-  statusText: {
-    color: '#fff',
+  badgeText: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '700',
     textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
-  ideaSummary: {
+  cardSummary: {
     fontSize: 14,
-    color: '#666',
-    marginBottom: 10,
+    color: COLORS.textSecondary,
     lineHeight: 20,
+    marginBottom: 12,
   },
-  ideaFooter: {
+  cardFooter: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
   },
-  ideaCategory: {
+  tagPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: RADIUS.pill,
+    marginRight: 10,
+  },
+  tagPillText: {
     fontSize: 12,
-    color: '#007AFF',
     fontWeight: '600',
   },
-  ideaStage: {
+  stageLabel: {
     fontSize: 12,
-    color: '#666',
+    color: COLORS.textMuted,
+    flex: 1,
   },
-  ideaCredits: {
+  tokenLabel: {
     fontSize: 12,
-    color: '#34C759',
     fontWeight: '600',
+    color: COLORS.success,
   },
-  emptyContainer: {
+  empty: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 40,
   },
-  emptyText: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 10,
+  emptyIcon: {
+    fontSize: 56,
+    marginBottom: 16,
   },
-  emptySubtext: {
-    fontSize: 16,
-    color: '#666',
+  emptyTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: COLORS.text,
+    marginBottom: 8,
+  },
+  emptySub: {
+    fontSize: 15,
+    color: COLORS.textSecondary,
     textAlign: 'center',
   },
 });

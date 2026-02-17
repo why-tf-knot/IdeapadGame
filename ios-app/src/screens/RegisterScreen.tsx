@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authAPI } from '../services/api';
+import { COLORS, RADIUS, SHADOWS, SPACING } from '../theme';
 
 interface RegisterScreenProps {
   navigation: any;
@@ -48,73 +49,123 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation, onLogin }) 
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <Text style={styles.title}>Create Account</Text>
+      <ScrollView
+        contentContainerStyle={styles.scrollContainer}
+        keyboardShouldPersistTaps="handled">
 
-        <View style={styles.form}>
-          <TextInput
-            style={styles.input}
-            placeholder="Full Name"
-            value={name}
-            onChangeText={setName}
-            autoCapitalize="words"
-          />
+        {/* Logo */}
+        <View style={styles.brandBlock}>
+          <View style={styles.logoRow}>
+            <Text style={styles.logoIcon}>📄</Text>
+            <Text style={styles.logoText}>BuildPaper</Text>
+          </View>
+        </View>
 
-          <TextInput
-            style={styles.input}
-            placeholder="Email"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            autoCorrect={false}
-          />
+        {/* Form Card */}
+        <View style={styles.formCard}>
+          <Text style={styles.formTitle}>Create your account</Text>
 
-          <TextInput
-            style={styles.input}
-            placeholder="Password"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            autoCapitalize="none"
-          />
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>FULL NAME</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Jane Doe"
+              placeholderTextColor={COLORS.textMuted}
+              value={name}
+              onChangeText={setName}
+              autoCapitalize="words"
+            />
+          </View>
 
-          <Text style={styles.label}>I am a:</Text>
-          <View style={styles.roleContainer}>
-            <TouchableOpacity
-              style={[styles.roleButton, role === 'FOUNDER' && styles.roleButtonActive]}
-              onPress={() => setRole('FOUNDER')}>
-              <Text style={[styles.roleText, role === 'FOUNDER' && styles.roleTextActive]}>
-                Founder
-              </Text>
-            </TouchableOpacity>
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>EMAIL</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="you@example.com"
+              placeholderTextColor={COLORS.textMuted}
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              autoCorrect={false}
+            />
+          </View>
 
-            <TouchableOpacity
-              style={[styles.roleButton, role === 'INVESTOR' && styles.roleButtonActive]}
-              onPress={() => setRole('INVESTOR')}>
-              <Text style={[styles.roleText, role === 'INVESTOR' && styles.roleTextActive]}>
-                Investor
-              </Text>
-            </TouchableOpacity>
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>PASSWORD</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Min. 6 characters"
+              placeholderTextColor={COLORS.textMuted}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              autoCapitalize="none"
+            />
+          </View>
+
+          {/* Role selector */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>I AM A</Text>
+            <View style={styles.roleRow}>
+              <TouchableOpacity
+                style={[
+                  styles.roleButton,
+                  role === 'FOUNDER' && styles.roleButtonActive,
+                ]}
+                onPress={() => setRole('FOUNDER')}
+                activeOpacity={0.8}>
+                <Text style={styles.roleEmoji}>💡</Text>
+                <Text style={[
+                  styles.roleText,
+                  role === 'FOUNDER' && styles.roleTextActive,
+                ]}>Founder</Text>
+                <Text style={[
+                  styles.roleDesc,
+                  role === 'FOUNDER' && styles.roleDescActive,
+                ]}>Pitch ideas & use AI tools</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.roleButton,
+                  role === 'INVESTOR' && styles.roleButtonActive,
+                ]}
+                onPress={() => setRole('INVESTOR')}
+                activeOpacity={0.8}>
+                <Text style={styles.roleEmoji}>🏦</Text>
+                <Text style={[
+                  styles.roleText,
+                  role === 'INVESTOR' && styles.roleTextActive,
+                ]}>Investor</Text>
+                <Text style={[
+                  styles.roleDesc,
+                  role === 'INVESTOR' && styles.roleDescActive,
+                ]}>Review & fund ideas</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           <TouchableOpacity
             style={[styles.button, loading && styles.buttonDisabled]}
             onPress={handleRegister}
-            disabled={loading}>
+            disabled={loading}
+            activeOpacity={0.85}>
             <Text style={styles.buttonText}>
-              {loading ? 'Creating account...' : 'Register'}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.linkButton}
-            onPress={() => navigation.goBack()}>
-            <Text style={styles.linkText}>
-              Already have an account? Login
+              {loading ? 'Creating account…' : 'Get Started'}
             </Text>
           </TouchableOpacity>
         </View>
+
+        {/* Login link */}
+        <TouchableOpacity
+          style={styles.linkButton}
+          onPress={() => navigation.goBack()}>
+          <Text style={styles.linkText}>
+            Already have an account?{' '}
+            <Text style={styles.linkAccent}>Sign in</Text>
+          </Text>
+        </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -123,85 +174,133 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation, onLogin }) 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: COLORS.bg,
   },
   scrollContainer: {
     flexGrow: 1,
     justifyContent: 'center',
-    padding: 20,
+    paddingHorizontal: SPACING.lg,
+    paddingBottom: SPACING.xxl,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 30,
-    color: '#333',
+  brandBlock: {
+    alignItems: 'center',
+    marginBottom: SPACING.lg,
   },
-  form: {
-    width: '100%',
+  logoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  logoIcon: {
+    fontSize: 24,
+    marginRight: 8,
+  },
+  logoText: {
+    fontSize: 26,
+    fontWeight: '900',
+    color: COLORS.text,
+    letterSpacing: 0.3,
+  },
+  formCard: {
+    backgroundColor: COLORS.cardBg,
+    borderRadius: RADIUS.xl,
+    padding: SPACING.lg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    ...SHADOWS.md,
+  },
+  formTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: COLORS.text,
+    marginBottom: SPACING.lg,
+  },
+  inputGroup: {
+    marginBottom: SPACING.md,
+  },
+  inputLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.textMuted,
+    letterSpacing: 1,
+    marginBottom: 6,
   },
   input: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 15,
-    marginBottom: 15,
-    fontSize: 16,
+    backgroundColor: COLORS.formBg,
+    borderRadius: RADIUS.md,
     borderWidth: 1,
-    borderColor: '#ddd',
-  },
-  label: {
+    borderColor: COLORS.border,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: 14,
     fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 10,
-    color: '#333',
+    color: COLORS.text,
   },
-  roleContainer: {
+  roleRow: {
     flexDirection: 'row',
-    marginBottom: 20,
-    gap: 10,
+    gap: 12,
   },
   roleButton: {
     flex: 1,
-    padding: 15,
-    borderRadius: 8,
+    backgroundColor: COLORS.formBg,
+    borderRadius: RADIUS.lg,
     borderWidth: 2,
-    borderColor: '#007AFF',
-    backgroundColor: '#fff',
+    borderColor: COLORS.border,
+    paddingVertical: 16,
+    paddingHorizontal: 12,
     alignItems: 'center',
   },
   roleButtonActive: {
-    backgroundColor: '#007AFF',
+    backgroundColor: COLORS.accentLight,
+    borderColor: COLORS.accent,
+  },
+  roleEmoji: {
+    fontSize: 24,
+    marginBottom: 6,
   },
   roleText: {
-    color: '#007AFF',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
+    color: COLORS.textSecondary,
   },
   roleTextActive: {
-    color: '#fff',
+    color: COLORS.accent,
+  },
+  roleDesc: {
+    fontSize: 11,
+    color: COLORS.textMuted,
+    textAlign: 'center',
+    marginTop: 4,
+  },
+  roleDescActive: {
+    color: COLORS.accent,
+    opacity: 0.8,
   },
   button: {
-    backgroundColor: '#007AFF',
-    borderRadius: 8,
-    padding: 15,
+    backgroundColor: COLORS.accent,
+    borderRadius: RADIUS.md,
+    paddingVertical: 16,
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: SPACING.sm,
+    ...SHADOWS.md,
   },
   buttonDisabled: {
-    backgroundColor: '#ccc',
+    opacity: 0.55,
   },
   buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    color: COLORS.white,
+    fontSize: 17,
+    fontWeight: '700',
   },
   linkButton: {
-    marginTop: 20,
+    marginTop: SPACING.lg,
     alignItems: 'center',
   },
   linkText: {
-    color: '#007AFF',
-    fontSize: 14,
+    fontSize: 15,
+    color: COLORS.textSecondary,
+  },
+  linkAccent: {
+    color: COLORS.accent,
+    fontWeight: '700',
   },
 });
 

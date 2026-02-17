@@ -314,4 +314,71 @@ router.post(
   }
 );
 
+// ─── Monthly Token Grant ──────────────────────────────────────
+// Grant tokens to a single investor wallet. In production this would
+// be called by a cron / scheduled function for every investor.
+
+const MONTHLY_GRANT: Record<TokenType, number> = {
+  GEMINI: 250,
+  ANTHROPIC: 250,
+  PERPLEXITY: 250,
+  CHATGPT: 250,
+};
+
+router.post(
+  '/grant',
+  authMiddleware,
+  roleMiddleware(['INVESTOR']),
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const wallet = await AiCreditWallet.findOne({ userId: req.userId });
+      if (!wallet) {
+        return res.status(404).json({ error: 'Wallet not found' });
+      }
+
+      // Apply grant for each token type
+      for (const tt of TOKEN_TYPES) {
+        const field = tokenBalanceField(tt);
+        (wallet as any)[field] = ((wallet as any)[field] || 0) + MONTHLY_GRANT[tt];
+      }
+      const totalGranted = Object.values(MONTHLY_GRANT).reduce((a, b) => a + b, 0);
+      wallet.totalBalance += totalGranted;
+      await wallet.save();
+
+      // Record one transaction per token type
+      for (const tt of TOKEN_TYPES) {
+        const tx = new AiCreditTransaction({
+          fromUserId: null,
+          toUserId: req.userId,
+          type: 'GRANT_TO_INVESTOR',
+          tokenType: tt,
+          amount: MONTHLY_GRANT[tt],
+          memo: `Monthly ${tt} token grant`,
+        });
+        await tx.save();
+      }
+
+      analyticsService.trackEvent({
+        name: 'monthly_grant',
+        userId: req.userId!.toString(),
+        properties: { totalGranted },
+      });
+
+      res.json({
+        message: 'Monthly token grant applied',
+        granted: MONTHLY_GRANT,
+        newBalances: {
+          gemini: wallet.geminiBalance,
+          anthropic: wallet.anthropicBalance,
+          perplexity: wallet.perplexityBalance,
+          chatgpt: wallet.chatgptBalance,
+        },
+      });
+    } catch (error) {
+      console.error('Grant tokens error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+);
+
 export default router;

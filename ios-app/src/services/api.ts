@@ -134,6 +134,11 @@ export const creditsAPI = {
     const response = await api.get(`/credits/idea/${ideaId}`);
     return response.data;
   },
+
+  claimMonthlyGrant: async (): Promise<{ message: string; granted: Record<string, number>; newBalances: import('../types').TokenBalances }> => {
+    const response = await api.post('/credits/grant');
+    return response.data;
+  },
 };
 
 // Equity API

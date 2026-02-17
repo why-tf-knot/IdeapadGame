@@ -16,6 +16,7 @@ import {
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import { reviewAPI, creditsAPI } from '../services/api';
 import { Idea, TokenType, TOKEN_TYPES, TOKEN_META } from '../types';
+import { COLORS as THEME, RADIUS, SHADOWS, SPACING } from '../theme';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH * 0.88;
@@ -447,10 +448,10 @@ const PaperTossScreen: React.FC = () => {
           },
         ]}
       >
-        <View style={[styles.indicatorCircle, { backgroundColor: 'rgba(255,181,71,0.15)' }]}>
+        <View style={[styles.indicatorCircle, { backgroundColor: THEME.accentLight }]}>
           <Text style={styles.indicatorEmoji}>📥</Text>
         </View>
-        <Text style={[styles.indicatorLabel, { color: COLORS.gold }]}>Save</Text>
+        <Text style={[styles.indicatorLabel, { color: THEME.accent }]}>Save</Text>
       </Animated.View>
 
       {/* ──── Paper Card ────────────────────────────── */}
@@ -1123,11 +1124,11 @@ const styles = StyleSheet.create({
   },
   creditContainer: {
     width: SCREEN_WIDTH * 0.88,
-    backgroundColor: COLORS.modalBg,
-    borderRadius: 24,
+    backgroundColor: THEME.cardBg,
+    borderRadius: RADIUS.xl,
     borderWidth: 1,
-    borderColor: COLORS.border,
-    padding: 28,
+    borderColor: THEME.border,
+    padding: SPACING.lg + 4,
     ...Platform.select({
       ios: {
         shadowColor: '#000',
@@ -1151,13 +1152,13 @@ const styles = StyleSheet.create({
   creditTitle: {
     fontSize: 22,
     fontWeight: '800',
-    color: COLORS.white,
+    color: THEME.text,
     marginBottom: 8,
     letterSpacing: -0.3,
   },
   creditSubtitle: {
     fontSize: 14,
-    color: COLORS.textSecondary,
+    color: THEME.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
   },
@@ -1172,51 +1173,51 @@ const styles = StyleSheet.create({
     width: '47%' as any,
     paddingVertical: 18,
     paddingHorizontal: 12,
-    borderRadius: 16,
+    borderRadius: RADIUS.lg,
     borderWidth: 1.5,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.card,
+    borderColor: THEME.border,
+    backgroundColor: THEME.formBg,
     alignItems: 'center',
   },
   creditOptionActive: {
-    borderColor: COLORS.gold,
-    backgroundColor: COLORS.gold + '18',
+    borderColor: THEME.accent,
+    backgroundColor: THEME.accentLight,
   },
   creditOptionAmount: {
     fontSize: 26,
     fontWeight: '800',
-    color: COLORS.textSecondary,
+    color: THEME.textSecondary,
   },
   creditOptionAmountActive: {
-    color: COLORS.gold,
+    color: THEME.accent,
   },
   creditOptionLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: COLORS.textMuted,
+    color: THEME.textMuted,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginTop: 2,
   },
   creditOptionLabelActive: {
-    color: COLORS.gold,
+    color: THEME.accent,
   },
   creditInvestBtn: {
-    backgroundColor: COLORS.gold,
-    borderRadius: 14,
+    backgroundColor: THEME.accent,
+    borderRadius: RADIUS.md,
     paddingVertical: 16,
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: SPACING.md - 4,
   },
   creditSkipBtn: {
-    backgroundColor: COLORS.card,
+    backgroundColor: THEME.formBg,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: THEME.border,
   },
   creditInvestBtnText: {
     fontSize: 16,
     fontWeight: '700',
-    color: COLORS.bg,
+    color: THEME.white,
   },
   creditCancelBtn: {
     alignItems: 'center',
@@ -1224,7 +1225,7 @@ const styles = StyleSheet.create({
   },
   creditCancelText: {
     fontSize: 14,
-    color: COLORS.textMuted,
+    color: THEME.textMuted,
   },
 });
 

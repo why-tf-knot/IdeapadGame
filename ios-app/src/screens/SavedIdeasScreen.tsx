@@ -7,9 +7,11 @@ import {
   TouchableOpacity,
   RefreshControl,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { reviewAPI, batchAPI } from '../services/api';
 import { Idea, TOKEN_META, TokenType } from '../types';
+import { COLORS, RADIUS, SHADOWS, SPACING } from '../theme';
 
 interface SavedIdeasScreenProps {
   navigation: any;
@@ -35,7 +37,6 @@ const SavedIdeasScreen: React.FC<SavedIdeasScreenProps> = ({ navigation }) => {
     try {
       const response = await reviewAPI.getSavedIdeas();
       
-      // Use batch API to enrich all ideas in a single call (fixes N+1 query issue)
       if (response.ideas.length > 0) {
         const ideaIds = response.ideas.map(idea => idea._id);
         const enrichedResponse = await batchAPI.enrichIdeas(ideaIds);
@@ -62,43 +63,46 @@ const SavedIdeasScreen: React.FC<SavedIdeasScreenProps> = ({ navigation }) => {
   };
 
   const renderIdea = ({ item }: { item: IdeaWithCredits }) => (
-    <TouchableOpacity style={styles.ideaCard} onPress={() => handleIdeaPress(item)}>
-      <View style={styles.ideaHeader}>
-        <Text style={styles.ideaTitle}>{item.title}</Text>
+    <TouchableOpacity style={styles.card} onPress={() => handleIdeaPress(item)} activeOpacity={0.7}>
+      <View style={styles.cardHeader}>
+        <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
         <View style={styles.stageBadge}>
           <Text style={styles.stageText}>{item.stage}</Text>
         </View>
       </View>
 
-      <Text style={styles.ideaSummary} numberOfLines={2}>
+      <Text style={styles.summary} numberOfLines={2}>
         {item.oneLineSummary}
       </Text>
 
-      <View style={styles.categoryRow}>
-        <Text style={styles.categoryText}>{item.category}</Text>
+      <View style={styles.metaRow}>
+        <View style={[styles.tagPill, { backgroundColor: COLORS.accentLight }]}>
+          <Text style={[styles.tagPillText, { color: COLORS.accent }]}>{item.category}</Text>
+        </View>
         <Text style={styles.targetUser}>Target: {item.targetUser}</Text>
       </View>
 
+      {/* Investment stats */}
       <View style={styles.statsRow}>
         <View style={styles.statItem}>
           <Text style={styles.statLabel}>My Investment</Text>
-          <Text style={styles.statValue}>💰 {item.myCredits || 0} tokens</Text>
+          <Text style={styles.statValue}>💰 {item.myCredits || 0}</Text>
         </View>
         <View style={styles.statItem}>
           <Text style={styles.statLabel}>Total Funded</Text>
-          <Text style={styles.statValue}>🏦 {item.totalCredits || 0} tokens</Text>
+          <Text style={styles.statValue}>🏦 {item.totalCredits || 0}</Text>
         </View>
       </View>
 
       {/* Token balance chips */}
       {item.tokenBalances && (
-        <View style={styles.tokenChipRow}>
+        <View style={styles.tokenRow}>
           {(['GEMINI', 'ANTHROPIC', 'PERPLEXITY', 'CHATGPT'] as TokenType[]).map((tt) => {
             const bal = item.tokenBalances?.[tt.toLowerCase() as keyof typeof item.tokenBalances] || 0;
             if (bal === 0) return null;
             const meta = TOKEN_META[tt];
             return (
-              <View key={tt} style={[styles.tokenChip, { backgroundColor: meta.color + '18' }]}>
+              <View key={tt} style={[styles.tokenChip, { backgroundColor: meta.color + '15' }]}>
                 <Text style={{ fontSize: 11 }}>{meta.icon}</Text>
                 <Text style={[styles.tokenChipText, { color: meta.color }]}>{bal}</Text>
               </View>
@@ -107,23 +111,25 @@ const SavedIdeasScreen: React.FC<SavedIdeasScreenProps> = ({ navigation }) => {
         </View>
       )}
 
+      {/* Equity estimate */}
       {item.equityPercent !== undefined && item.equityPercent > 0 && (
         <View style={styles.equityRow}>
-          <Text style={styles.equityLabel}>Est. Equity:</Text>
+          <Text style={styles.equityLabel}>Est. Equity</Text>
           <Text style={styles.equityValue}>{item.equityPercent.toFixed(4)}%</Text>
         </View>
       )}
 
-      <TouchableOpacity style={styles.detailsButton} onPress={() => handleIdeaPress(item)}>
-        <Text style={styles.detailsButtonText}>View Equity Breakdown →</Text>
-      </TouchableOpacity>
+      <View style={styles.ctaRow}>
+        <Text style={styles.ctaText}>View Equity Breakdown →</Text>
+      </View>
     </TouchableOpacity>
   );
 
   if (loading) {
     return (
-      <View style={styles.centerContainer}>
-        <Text style={styles.loadingText}>Loading saved ideas...</Text>
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color={COLORS.accent} />
+        <Text style={styles.loadingText}>Loading portfolio…</Text>
       </View>
     );
   }
@@ -132,14 +138,14 @@ const SavedIdeasScreen: React.FC<SavedIdeasScreenProps> = ({ navigation }) => {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Saved Ideas</Text>
-        <Text style={styles.headerSubtitle}>{ideas.length} investments</Text>
+        <Text style={styles.headerSub}>{ideas.length} investment{ideas.length !== 1 ? 's' : ''}</Text>
       </View>
 
       {ideas.length === 0 ? (
-        <View style={styles.emptyContainer}>
+        <View style={styles.empty}>
           <Text style={styles.emptyIcon}>📥</Text>
-          <Text style={styles.emptyText}>No saved ideas yet</Text>
-          <Text style={styles.emptySubtext}>
+          <Text style={styles.emptyTitle}>No saved ideas yet</Text>
+          <Text style={styles.emptySub}>
             Review ideas and save the ones you like!
           </Text>
         </View>
@@ -148,9 +154,9 @@ const SavedIdeasScreen: React.FC<SavedIdeasScreenProps> = ({ navigation }) => {
           data={ideas}
           renderItem={renderIdea}
           keyExtractor={(item) => item._id}
-          contentContainerStyle={styles.listContainer}
+          contentContainerStyle={styles.list}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.accent} />
           }
         />
       )}
@@ -161,92 +167,98 @@ const SavedIdeasScreen: React.FC<SavedIdeasScreenProps> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: COLORS.bg,
   },
-  centerContainer: {
+  center: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: COLORS.bg,
   },
   loadingText: {
-    fontSize: 16,
-    color: '#666',
+    marginTop: SPACING.sm,
+    fontSize: 14,
+    color: COLORS.textMuted,
   },
   header: {
-    padding: 20,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING.lg,
+    paddingBottom: SPACING.md,
   },
   headerTitle: {
     fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 5,
+    fontWeight: '900',
+    color: COLORS.text,
+    marginBottom: 2,
   },
-  headerSubtitle: {
-    fontSize: 14,
-    color: '#666',
+  headerSub: {
+    fontSize: 13,
+    color: COLORS.textMuted,
   },
-  listContainer: {
-    padding: 15,
+  list: {
+    paddingHorizontal: SPACING.lg,
+    paddingBottom: SPACING.xxl,
   },
-  ideaCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+  card: {
+    backgroundColor: COLORS.cardBg,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.md + 4,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    ...SHADOWS.sm,
   },
-  ideaHeader: {
+  cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 10,
+    marginBottom: 8,
   },
-  ideaTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+  cardTitle: {
+    fontSize: 17,
+    fontWeight: '700',
     flex: 1,
     marginRight: 10,
-    color: '#333',
+    color: COLORS.text,
   },
   stageBadge: {
-    backgroundColor: '#34C759',
+    backgroundColor: COLORS.success,
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 8,
+    borderRadius: RADIUS.pill,
   },
   stageText: {
-    color: '#fff',
+    color: COLORS.white,
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '700',
   },
-  ideaSummary: {
+  summary: {
     fontSize: 14,
-    color: '#666',
+    color: COLORS.textSecondary,
     marginBottom: 12,
     lineHeight: 20,
   },
-  categoryRow: {
+  metaRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 15,
-    paddingBottom: 15,
+    alignItems: 'center',
+    marginBottom: 14,
+    paddingBottom: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: COLORS.divider,
   },
-  categoryText: {
+  tagPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: RADIUS.pill,
+  },
+  tagPillText: {
     fontSize: 12,
-    color: '#007AFF',
     fontWeight: '600',
   },
   targetUser: {
     fontSize: 12,
-    color: '#666',
+    color: COLORS.textMuted,
   },
   statsRow: {
     flexDirection: 'row',
@@ -258,15 +270,17 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 11,
-    color: '#999',
+    color: COLORS.textMuted,
     marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   statValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.text,
   },
-  tokenChipRow: {
+  tokenRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     marginBottom: 10,
@@ -275,63 +289,63 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
+    paddingVertical: 4,
+    borderRadius: RADIUS.sm,
     marginRight: 6,
     marginBottom: 4,
   },
   tokenChipText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
     marginLeft: 3,
   },
   equityRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#E8F5E9',
+    backgroundColor: COLORS.successBg,
     padding: 12,
-    borderRadius: 8,
+    borderRadius: RADIUS.md,
     marginBottom: 12,
   },
   equityLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#2E7D32',
+    color: COLORS.successDark,
   },
   equityValue: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1B5E20',
+    fontWeight: '800',
+    color: COLORS.successDark,
   },
-  detailsButton: {
+  ctaRow: {
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingTop: 6,
   },
-  detailsButtonText: {
-    color: '#007AFF',
+  ctaText: {
+    color: COLORS.accent,
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
   },
-  emptyContainer: {
+  empty: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 40,
   },
   emptyIcon: {
-    fontSize: 64,
-    marginBottom: 20,
+    fontSize: 56,
+    marginBottom: 16,
   },
-  emptyText: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 10,
+  emptyTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: COLORS.text,
+    marginBottom: 8,
   },
-  emptySubtext: {
-    fontSize: 16,
-    color: '#666',
+  emptySub: {
+    fontSize: 15,
+    color: COLORS.textSecondary,
     textAlign: 'center',
   },
 });

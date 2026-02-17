@@ -6,6 +6,7 @@ import { StatusBar, Text } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import 'react-native-gesture-handler';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { COLORS } from './src/theme';
 
 // Screens
 import LoginScreen from './src/screens/LoginScreen';
@@ -29,7 +30,9 @@ function FounderTabs() {
   return (
     <Tab.Navigator
       screenOptions={{
-        tabBarActiveTintColor: '#007AFF',
+        tabBarActiveTintColor: COLORS.accent,
+        tabBarInactiveTintColor: COLORS.textMuted,
+        tabBarStyle: { backgroundColor: COLORS.cardBg, borderTopColor: COLORS.border },
         headerShown: false,
       }}>
       <Tab.Screen 
@@ -49,7 +52,9 @@ function InvestorTabs() {
   return (
     <Tab.Navigator
       screenOptions={{
-        tabBarActiveTintColor: '#007AFF',
+        tabBarActiveTintColor: COLORS.accent,
+        tabBarInactiveTintColor: COLORS.textMuted,
+        tabBarStyle: { backgroundColor: COLORS.cardBg, borderTopColor: COLORS.border },
         headerShown: false,
       }}>
       <Tab.Screen 

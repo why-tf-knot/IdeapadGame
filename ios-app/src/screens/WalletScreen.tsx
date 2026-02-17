@@ -7,9 +7,11 @@ import {
   RefreshControl,
   Alert,
   TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native';
 import { creditsAPI } from '../services/api';
 import { WalletInfo, TOKEN_TYPES, TOKEN_META, TokenType } from '../types';
+import { COLORS, RADIUS, SHADOWS, SPACING } from '../theme';
 
 interface WalletScreenProps {
   navigation: any;
@@ -19,6 +21,7 @@ const WalletScreen: React.FC<WalletScreenProps> = ({ navigation }) => {
   const [walletInfo, setWalletInfo] = useState<WalletInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [claiming, setClaiming] = useState(false);
 
   useEffect(() => {
     loadWalletInfo();
@@ -63,13 +66,13 @@ const WalletScreen: React.FC<WalletScreenProps> = ({ navigation }) => {
     }
     switch (type) {
       case 'GRANT_TO_INVESTOR':
-        return '#34C759';
+        return COLORS.success;
       case 'INVEST_IN_IDEA':
-        return '#FF9500';
+        return COLORS.warning;
       case 'SPEND_ON_AI_SERVICE':
-        return '#007AFF';
+        return COLORS.accent;
       default:
-        return '#666';
+        return COLORS.textMuted;
     }
   };
 
@@ -85,15 +88,16 @@ const WalletScreen: React.FC<WalletScreenProps> = ({ navigation }) => {
 
   if (loading) {
     return (
-      <View style={styles.centerContainer}>
-        <Text style={styles.loadingText}>Loading wallet...</Text>
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color={COLORS.accent} />
+        <Text style={styles.loadingText}>Loading wallet…</Text>
       </View>
     );
   }
 
   if (!walletInfo) {
     return (
-      <View style={styles.centerContainer}>
+      <View style={styles.center}>
         <Text style={styles.errorText}>Failed to load wallet</Text>
       </View>
     );
@@ -102,16 +106,17 @@ const WalletScreen: React.FC<WalletScreenProps> = ({ navigation }) => {
   return (
     <ScrollView
       style={styles.container}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.accent} />}>
+      {/* Hero balance card */}
       <View style={styles.balanceCard}>
         <Text style={styles.balanceLabel}>Total Tokens</Text>
         <Text style={styles.balanceAmount}>
           {(walletInfo.wallet.balance || 0).toLocaleString()}
         </Text>
-        <Text style={styles.balanceSubtext}>AI tokens ready to invest</Text>
+        <Text style={styles.balanceSub}>AI tokens ready to invest</Text>
       </View>
 
-      {/* Per-token balances */}
+      {/* Per-token grid */}
       <View style={styles.tokenGrid}>
         {TOKEN_TYPES.map((tt) => {
           const meta = TOKEN_META[tt];
@@ -120,13 +125,34 @@ const WalletScreen: React.FC<WalletScreenProps> = ({ navigation }) => {
             <View key={tt} style={[styles.tokenCard, { borderLeftColor: meta.color }]}>
               <Text style={styles.tokenIcon}>{meta.icon}</Text>
               <Text style={styles.tokenName}>{meta.label}</Text>
-              <Text style={[styles.tokenBalance, { color: meta.color }]}>{bal.toLocaleString()}</Text>
+              <Text style={[styles.tokenBal, { color: meta.color }]}>{bal.toLocaleString()}</Text>
               <Text style={styles.tokenProvider}>{meta.provider}</Text>
             </View>
           );
         })}
       </View>
 
+      {/* Claim Monthly Grant */}
+      <TouchableOpacity
+        style={[styles.grantBtn, claiming && { opacity: 0.6 }]}
+        disabled={claiming}
+        activeOpacity={0.7}
+        onPress={async () => {
+          setClaiming(true);
+          try {
+            const result = await creditsAPI.claimMonthlyGrant();
+            Alert.alert('Tokens Granted!', result.message);
+            loadWalletInfo();
+          } catch (error: any) {
+            Alert.alert('Error', error.response?.data?.error || 'Failed to claim grant');
+          } finally {
+            setClaiming(false);
+          }
+        }}>
+        <Text style={styles.grantBtnText}>{claiming ? 'Claiming…' : '🎁  Claim Monthly Token Grant'}</Text>
+      </TouchableOpacity>
+
+      {/* Info card */}
       <View style={styles.infoCard}>
         <Text style={styles.infoTitle}>💡 How Tokens Work</Text>
         <Text style={styles.infoText}>
@@ -135,51 +161,48 @@ const WalletScreen: React.FC<WalletScreenProps> = ({ navigation }) => {
           • Founders spend tokens on the matching AI provider{'\n'}
           • Tokens consumed = equity percentage
         </Text>
-        <View style={styles.equityExample}>
-          <Text style={styles.equityExampleText}>
-            10,000 tokens consumed = 1% equity
-          </Text>
+        <View style={styles.equityBox}>
+          <Text style={styles.equityBoxText}>10,000 tokens consumed = 1% equity</Text>
         </View>
       </View>
 
+      {/* Recent Transactions */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Recent Transactions</Text>
 
         {walletInfo.transactions && walletInfo.transactions.length > 0 ? (
           walletInfo.transactions.map((transaction: any, index: number) => (
-            <View key={transaction._id || index} style={styles.transactionCard}>
-              <View style={styles.transactionIcon}>
-                <Text style={styles.transactionIconText}>
+            <View key={transaction._id || index} style={styles.txCard}>
+              <View style={styles.txIconWrap}>
+                <Text style={styles.txIconText}>
                   {getTransactionIcon(transaction.type, transaction.tokenType)}
                 </Text>
               </View>
 
-              <View style={styles.transactionInfo}>
-                <Text style={styles.transactionType}>
+              <View style={styles.txInfo}>
+                <Text style={styles.txType}>
                   {transaction.type.replace(/_/g, ' ')}
                 </Text>
                 {transaction.tokenType && (
-                  <Text style={[styles.transactionTokenBadge, { color: TOKEN_META[transaction.tokenType as TokenType]?.color || '#666' }]}>
+                  <Text style={[styles.txTokenBadge, { color: TOKEN_META[transaction.tokenType as TokenType]?.color || COLORS.textMuted }]}>
                     {TOKEN_META[transaction.tokenType as TokenType]?.label || transaction.tokenType} tokens
                   </Text>
                 )}
                 {transaction.memo && (
-                  <Text style={styles.transactionMemo} numberOfLines={1}>
+                  <Text style={styles.txMemo} numberOfLines={1}>
                     {transaction.memo}
                   </Text>
                 )}
-                <Text style={styles.transactionDate}>
+                <Text style={styles.txDate}>
                   {formatDate(transaction.createdAt)}
                 </Text>
               </View>
 
-              <View style={styles.transactionAmount}>
+              <View style={styles.txAmount}>
                 <Text
                   style={[
-                    styles.transactionAmountText,
-                    {
-                      color: getTransactionColor(transaction.type, transaction.tokenType),
-                    },
+                    styles.txAmountText,
+                    { color: getTransactionColor(transaction.type, transaction.tokenType) },
                   ]}>
                   {transaction.type === 'GRANT_TO_INVESTOR' ? '+' : '-'}
                   {transaction.amount}
@@ -188,19 +211,20 @@ const WalletScreen: React.FC<WalletScreenProps> = ({ navigation }) => {
             </View>
           ))
         ) : (
-          <View style={styles.emptyTransactions}>
-            <Text style={styles.emptyTransactionsText}>No transactions yet</Text>
-            <Text style={styles.emptyTransactionsSubtext}>
-              Start reviewing ideas to invest your credits!
+          <View style={styles.emptyTx}>
+            <Text style={styles.emptyTxTitle}>No transactions yet</Text>
+            <Text style={styles.emptyTxSub}>
+              Start reviewing ideas to invest your tokens!
             </Text>
           </View>
         )}
       </View>
 
       <TouchableOpacity
-        style={styles.helpButton}
+        style={styles.helpBtn}
+        activeOpacity={0.7}
         onPress={() => Alert.alert('Help', 'Invest Gemini, Anthropic, Perplexity, or ChatGPT tokens in ideas to earn equity!')}>
-        <Text style={styles.helpButtonText}>Need Help? 💬</Text>
+        <Text style={styles.helpBtnText}>Need Help? 💬</Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -209,70 +233,70 @@ const WalletScreen: React.FC<WalletScreenProps> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: COLORS.bg,
   },
-  centerContainer: {
+  center: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: COLORS.bg,
   },
   loadingText: {
-    fontSize: 16,
-    color: '#666',
+    marginTop: SPACING.sm,
+    fontSize: 14,
+    color: COLORS.textMuted,
   },
   errorText: {
     fontSize: 16,
-    color: '#FF3B30',
+    color: COLORS.error,
   },
+  /* ---- Hero balance ---- */
   balanceCard: {
-    backgroundColor: '#007AFF',
-    margin: 20,
-    padding: 30,
-    borderRadius: 20,
+    backgroundColor: COLORS.accent,
+    margin: SPACING.lg,
+    padding: 28,
+    borderRadius: RADIUS.xl,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 5,
+    ...SHADOWS.md,
   },
   balanceLabel: {
-    fontSize: 16,
-    color: '#fff',
-    opacity: 0.9,
-    marginBottom: 10,
+    fontSize: 14,
+    color: COLORS.white,
+    opacity: 0.85,
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    fontWeight: '600',
   },
   balanceAmount: {
     fontSize: 48,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 5,
+    fontWeight: '900',
+    color: COLORS.white,
+    marginBottom: 4,
   },
-  balanceSubtext: {
-    fontSize: 14,
-    color: '#fff',
-    opacity: 0.8,
+  balanceSub: {
+    fontSize: 13,
+    color: COLORS.white,
+    opacity: 0.75,
   },
+  /* ---- Token grid ---- */
   tokenGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginHorizontal: 15,
-    marginBottom: 15,
+    marginHorizontal: SPACING.md,
+    marginBottom: SPACING.md,
   },
   tokenCard: {
     width: '47%',
-    backgroundColor: '#fff',
+    backgroundColor: COLORS.cardBg,
     margin: '1.5%',
     padding: 14,
-    borderRadius: 12,
+    borderRadius: RADIUS.lg,
     borderLeftWidth: 4,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    ...SHADOWS.sm,
   },
   tokenIcon: {
     fontSize: 28,
@@ -281,150 +305,165 @@ const styles = StyleSheet.create({
   tokenName: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#333',
+    color: COLORS.text,
     marginBottom: 4,
   },
-  tokenBalance: {
+  tokenBal: {
     fontSize: 22,
-    fontWeight: 'bold',
+    fontWeight: '900',
     marginBottom: 2,
   },
   tokenProvider: {
     fontSize: 11,
-    color: '#999',
+    color: COLORS.textMuted,
   },
+  /* ---- Grant button ---- */
+  grantBtn: {
+    backgroundColor: COLORS.accent,
+    marginHorizontal: SPACING.lg,
+    marginBottom: SPACING.md,
+    padding: 16,
+    borderRadius: RADIUS.lg,
+    alignItems: 'center',
+    ...SHADOWS.sm,
+  },
+  grantBtnText: {
+    color: COLORS.white,
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  /* ---- Info card ---- */
   infoCard: {
-    backgroundColor: '#fff',
-    marginHorizontal: 20,
-    marginBottom: 20,
-    padding: 20,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    backgroundColor: COLORS.cardBg,
+    marginHorizontal: SPACING.lg,
+    marginBottom: SPACING.lg,
+    padding: SPACING.lg,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    ...SHADOWS.sm,
   },
   infoTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700',
     marginBottom: 12,
-    color: '#333',
+    color: COLORS.text,
   },
   infoText: {
     fontSize: 14,
-    color: '#666',
+    color: COLORS.textSecondary,
     lineHeight: 22,
     marginBottom: 12,
   },
-  equityExample: {
-    backgroundColor: '#E8F5E9',
+  equityBox: {
+    backgroundColor: COLORS.successBg,
     padding: 12,
-    borderRadius: 8,
+    borderRadius: RADIUS.md,
     alignItems: 'center',
   },
-  equityExampleText: {
+  equityBoxText: {
     fontSize: 13,
-    fontWeight: '600',
-    color: '#2E7D32',
+    fontWeight: '700',
+    color: COLORS.successDark,
   },
+  /* ---- Transactions ---- */
   section: {
-    marginHorizontal: 20,
-    marginBottom: 20,
+    marginHorizontal: SPACING.lg,
+    marginBottom: SPACING.lg,
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 15,
-    color: '#333',
+    fontWeight: '800',
+    marginBottom: 14,
+    color: COLORS.text,
   },
-  transactionCard: {
+  txCard: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
-    padding: 15,
-    borderRadius: 12,
+    backgroundColor: COLORS.cardBg,
+    padding: 14,
+    borderRadius: RADIUS.lg,
     marginBottom: 10,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    ...SHADOWS.sm,
   },
-  transactionIcon: {
+  txIconWrap: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: COLORS.formBg,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
-  transactionIconText: {
+  txIconText: {
     fontSize: 20,
   },
-  transactionInfo: {
+  txInfo: {
     flex: 1,
   },
-  transactionType: {
+  txType: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#333',
+    color: COLORS.text,
     textTransform: 'capitalize',
   },
-  transactionTokenBadge: {
+  txTokenBadge: {
     fontSize: 12,
     fontWeight: '600',
     marginTop: 2,
   },
-  transactionMemo: {
+  txMemo: {
     fontSize: 12,
-    color: '#666',
+    color: COLORS.textSecondary,
     marginTop: 2,
   },
-  transactionDate: {
+  txDate: {
     fontSize: 11,
-    color: '#999',
+    color: COLORS.textMuted,
     marginTop: 4,
   },
-  transactionAmount: {
+  txAmount: {
     marginLeft: 10,
   },
-  transactionAmountText: {
+  txAmountText: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '800',
   },
-  emptyTransactions: {
-    backgroundColor: '#fff',
+  emptyTx: {
+    backgroundColor: COLORS.cardBg,
     padding: 30,
-    borderRadius: 12,
+    borderRadius: RADIUS.lg,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
-  emptyTransactionsText: {
+  emptyTxTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
+    fontWeight: '700',
+    color: COLORS.text,
     marginBottom: 8,
   },
-  emptyTransactionsSubtext: {
+  emptyTxSub: {
     fontSize: 14,
-    color: '#666',
+    color: COLORS.textSecondary,
     textAlign: 'center',
   },
-  helpButton: {
-    backgroundColor: '#fff',
-    marginHorizontal: 20,
+  helpBtn: {
+    backgroundColor: COLORS.cardBg,
+    marginHorizontal: SPACING.lg,
     marginBottom: 30,
     padding: 16,
-    borderRadius: 12,
+    borderRadius: RADIUS.lg,
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#007AFF',
+    borderColor: COLORS.accent,
   },
-  helpButtonText: {
+  helpBtnText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#007AFF',
+    fontWeight: '700',
+    color: COLORS.accent,
   },
 });
 
