@@ -1,4 +1,5 @@
 import express, { Response } from 'express';
+import { Types } from 'mongoose';
 import { Idea } from '../models/Idea';
 import { InvestorIdeaStatus } from '../models/InvestorIdeaStatus';
 import { authMiddleware, roleMiddleware, AuthRequest } from '../middleware/auth';
@@ -50,6 +51,10 @@ router.post(
     try {
       const { ideaId } = req.params;
 
+      if (!Types.ObjectId.isValid(ideaId as string)) {
+        return res.status(400).json({ error: 'Invalid idea ID format' });
+      }
+
       // Check if idea exists
       const idea = await Idea.findById(ideaId);
       if (!idea) {
@@ -93,6 +98,10 @@ router.post(
   async (req: AuthRequest, res: Response) => {
     try {
       const { ideaId } = req.params;
+
+      if (!Types.ObjectId.isValid(ideaId as string)) {
+        return res.status(400).json({ error: 'Invalid idea ID format' });
+      }
 
       // Check if idea exists
       const idea = await Idea.findById(ideaId);

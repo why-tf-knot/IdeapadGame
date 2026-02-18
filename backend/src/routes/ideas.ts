@@ -1,4 +1,5 @@
 import express, { Response } from 'express';
+import { Types } from 'mongoose';
 import { Idea } from '../models/Idea';
 import { IdeaAiBalance } from '../models/IdeaAiBalance';
 import { authMiddleware, roleMiddleware, AuthRequest } from '../middleware/auth';
@@ -83,6 +84,10 @@ router.post(
   roleMiddleware(['FOUNDER']),
   async (req: AuthRequest, res: Response) => {
     try {
+      if (!Types.ObjectId.isValid(req.params.id as string)) {
+        return res.status(400).json({ error: 'Invalid idea ID format' });
+      }
+
       const idea = await Idea.findById(req.params.id);
 
       if (!idea) {
@@ -215,6 +220,10 @@ router.put(
   roleMiddleware(['FOUNDER']),
   async (req: AuthRequest, res: Response) => {
     try {
+      if (!Types.ObjectId.isValid(req.params.id as string)) {
+        return res.status(400).json({ error: 'Invalid idea ID format' });
+      }
+
       const idea = await Idea.findById(req.params.id);
 
       if (!idea) {
@@ -299,6 +308,10 @@ router.get(
   authMiddleware,
   async (req: AuthRequest, res: Response) => {
     try {
+      if (!Types.ObjectId.isValid(req.params.id as string)) {
+        return res.status(400).json({ error: 'Invalid idea ID format' });
+      }
+
       const idea = await Idea.findById(req.params.id).populate('founderId', 'name email');
 
       if (!idea) {

@@ -1,4 +1,5 @@
 import express, { Response } from 'express';
+import { Types } from 'mongoose';
 import { ChatThread } from '../models/ChatThread';
 import { Idea } from '../models/Idea';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
@@ -9,6 +10,17 @@ const router = express.Router();
 router.post('/threads', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const { ideaId, investorId, founderId } = req.body;
+
+    // Validate required fields and ObjectId format
+    if (!ideaId || !Types.ObjectId.isValid(ideaId)) {
+      return res.status(400).json({ error: 'Valid ideaId is required' });
+    }
+    if (!investorId || !Types.ObjectId.isValid(investorId)) {
+      return res.status(400).json({ error: 'Valid investorId is required' });
+    }
+    if (!founderId || !Types.ObjectId.isValid(founderId)) {
+      return res.status(400).json({ error: 'Valid founderId is required' });
+    }
 
     // Verify idea exists
     const idea = await Idea.findById(ideaId);
@@ -57,6 +69,10 @@ router.get('/threads', authMiddleware, async (req: AuthRequest, res: Response) =
 // Get thread by ID
 router.get('/threads/:threadId', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
+    if (!Types.ObjectId.isValid(req.params.threadId as string)) {
+      return res.status(400).json({ error: 'Invalid thread ID format' });
+    }
+
     const thread = await ChatThread.findById(req.params.threadId)
       .populate('ideaId', 'title')
       .populate('investorId', 'name')
@@ -87,8 +103,16 @@ router.post('/threads/:threadId/messages', authMiddleware, async (req: AuthReque
   try {
     const { text } = req.body;
 
+    if (!Types.ObjectId.isValid(req.params.threadId as string)) {
+      return res.status(400).json({ error: 'Invalid thread ID format' });
+    }
+
     if (!text) {
       return res.status(400).json({ error: 'Message text is required' });
+    }
+
+    if (text.length > 5000) {
+      return res.status(400).json({ error: 'Message text must be 5000 characters or less' });
     }
 
     const thread = await ChatThread.findById(req.params.threadId);

@@ -7,6 +7,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import 'react-native-gesture-handler';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS } from './src/theme';
+import ErrorBoundary from './src/components/ErrorBoundary';
 
 // Screens
 import LoginScreen from './src/screens/LoginScreen';
@@ -37,12 +38,17 @@ function FounderTabs() {
       }}>
       <Tab.Screen 
         name="MyIdeas" 
-        component={MyIdeasScreen}
         options={{ 
           tabBarLabel: 'My Ideas',
           title: 'My Ideas'
         }}
-      />
+      >
+        {(props: any) => (
+          <ErrorBoundary screenName="MyIdeas">
+            <MyIdeasScreen {...props} />
+          </ErrorBoundary>
+        )}
+      </Tab.Screen>
     </Tab.Navigator>
   );
 }
@@ -59,28 +65,43 @@ function InvestorTabs() {
       }}>
       <Tab.Screen 
         name="Review" 
-        component={PaperTossScreen}
         options={{ 
           tabBarLabel: 'Review',
           title: 'Review Ideas'
         }}
-      />
+      >
+        {() => (
+          <ErrorBoundary screenName="PaperToss">
+            <PaperTossScreen />
+          </ErrorBoundary>
+        )}
+      </Tab.Screen>
       <Tab.Screen 
         name="Saved" 
-        component={SavedIdeasScreen}
         options={{ 
           tabBarLabel: 'Saved',
           title: 'Saved Ideas'
         }}
-      />
+      >
+        {(props: any) => (
+          <ErrorBoundary screenName="SavedIdeas">
+            <SavedIdeasScreen {...props} />
+          </ErrorBoundary>
+        )}
+      </Tab.Screen>
       <Tab.Screen 
         name="Wallet" 
-        component={WalletScreen}
         options={{ 
           tabBarLabel: 'Wallet',
           title: 'My Wallet'
         }}
-      />
+      >
+        {(props: any) => (
+          <ErrorBoundary screenName="Wallet">
+            <WalletScreen {...props} />
+          </ErrorBoundary>
+        )}
+      </Tab.Screen>
     </Tab.Navigator>
   );
 }
@@ -184,15 +205,17 @@ export default function App() {
   }
 
   return (
-    <SafeAreaProvider>
-      <StatusBar barStyle="dark-content" />
-      <NavigationContainer>
-        {isAuthenticated ? (
-          <MainStack userRole={userRole} />
-        ) : (
-          <AuthStack onLogin={handleLogin} />
-        )}
-      </NavigationContainer>
-    </SafeAreaProvider>
+    <ErrorBoundary screenName="App">
+      <SafeAreaProvider>
+        <StatusBar barStyle="dark-content" />
+        <NavigationContainer>
+          {isAuthenticated ? (
+            <MainStack userRole={userRole} />
+          ) : (
+            <AuthStack onLogin={handleLogin} />
+          )}
+        </NavigationContainer>
+      </SafeAreaProvider>
+    </ErrorBoundary>
   );
 }

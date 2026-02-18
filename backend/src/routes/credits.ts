@@ -1,4 +1,5 @@
 import express, { Response } from 'express';
+import { Types } from 'mongoose';
 import { AiCreditWallet, TOKEN_TYPES, TokenType, tokenBalanceField } from '../models/AiCreditWallet';
 import { IdeaAiBalance } from '../models/IdeaAiBalance';
 import { AiCreditAllocation } from '../models/AiCreditAllocation';
@@ -73,6 +74,14 @@ router.post(
 
       if (!ideaId || !amount || amount <= 0) {
         return res.status(400).json({ error: 'Valid ideaId and amount are required' });
+      }
+
+      if (!Types.ObjectId.isValid(ideaId)) {
+        return res.status(400).json({ error: 'Invalid idea ID format' });
+      }
+
+      if (!Number.isInteger(amount) || amount > 10000) {
+        return res.status(400).json({ error: 'Amount must be an integer no greater than 10,000' });
       }
 
       // Validate token type
@@ -172,6 +181,10 @@ router.get(
     try {
       const { ideaId } = req.params;
 
+      if (!Types.ObjectId.isValid(ideaId as string)) {
+        return res.status(400).json({ error: 'Invalid idea ID format' });
+      }
+
       const ideaBalance = await IdeaAiBalance.findOne({ ideaId });
       const allocations = await AiCreditAllocation.find({ ideaId }).populate(
         'investorId',
@@ -211,6 +224,14 @@ router.post(
 
       if (!ideaId || !amount || !service || amount <= 0) {
         return res.status(400).json({ error: 'Valid ideaId, amount, and service are required' });
+      }
+
+      if (!Types.ObjectId.isValid(ideaId)) {
+        return res.status(400).json({ error: 'Invalid idea ID format' });
+      }
+
+      if (!Number.isInteger(amount) || amount > 10000) {
+        return res.status(400).json({ error: 'Amount must be an integer no greater than 10,000' });
       }
 
       // Validate token type
