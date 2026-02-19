@@ -1,0 +1,24 @@
+{
+  "name": "ideapad-game-monorepo",
+  "version": "2.0.0",
+  "private": true,
+  "description": "BuildPaper — Split architecture: Founder App + Investor App with shared messaging & credit transfer",
+  "scripts": {
+    "install:all": "cd shared-services && npm install && cd ../founder-backend && npm install && cd ../investor-backend && npm install && cd ../founder-app && npm install && cd ../investor-app && npm install",
+    "dev:shared": "cd shared-services && npm run dev",
+    "dev:founder-api": "cd founder-backend && npm run dev",
+    "dev:investor-api": "cd investor-backend && npm run dev",
+    "dev:founder-app": "cd founder-app && npx react-native start --port 8081",
+    "dev:investor-app": "cd investor-app && npx react-native start --port 8082",
+    "dev:backends": "concurrently \"npm run dev:shared\" \"npm run dev:founder-api\" \"npm run dev:investor-api\"",
+    "dev:apps": "concurrently \"npm run dev:founder-app\" \"npm run dev:investor-app\"",
+    "dev": "concurrently \"npm run dev:shared\" \"npm run dev:founder-api\" \"npm run dev:investor-api\"",
+    "build:shared": "cd shared-services && npm run build",
+    "build:founder-api": "cd founder-backend && npm run build",
+    "build:investor-api": "cd investor-backend && npm run build",
+    "build:backends": "npm run build:shared && npm run build:founder-api && npm run build:investor-api"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
