@@ -8,7 +8,7 @@
 import express, { Response } from 'express';
 import { Types } from 'mongoose';
 import axios from 'axios';
-import { AiCreditWallet, TOKEN_TYPES, TokenType, tokenBalanceField } from '../models/AiCreditWallet';
+import { AiCreditWallet, TOKEN_TYPES, TokenType, tokenBalanceField, INVESTOR_TIERS, InvestorTier, TIER_GRANTS, PRANA_MARKET_RATES, calcPranaValue } from '../models/AiCreditWallet';
 import { IdeaAiBalance } from '../models/IdeaAiBalance';
 import { AiCreditAllocation } from '../models/AiCreditAllocation';
 import { AiCreditTransaction } from '../models/AiCreditTransaction';
@@ -24,8 +24,26 @@ function ideaTokenField(tokenType: TokenType): string {
     ANTHROPIC: 'anthropicBalance',
     PERPLEXITY: 'perplexityBalance',
     CHATGPT: 'chatgptBalance',
+    MISTRAL: 'mistralBalance',
+    DEEPSEEK: 'deepseekBalance',
+    GROK: 'grokBalance',
+    LLAMA: 'llamaBalance',
   };
   return map[tokenType];
+}
+
+/** Build a balances object from a wallet or idea balance doc */
+function buildBalances(doc: any): Record<string, number> {
+  const b: Record<string, number> = {};
+  for (const tt of TOKEN_TYPES) {
+    b[tt.toLowerCase()] = doc[`${tt.toLowerCase()}Balance`] || 0;
+  }
+  return b;
+}
+
+/** Sum all token balances from a doc */
+function sumBalances(doc: any): number {
+  return TOKEN_TYPES.reduce((s, tt) => s + ((doc[`${tt.toLowerCase()}Balance`] || 0) as number), 0);
 }
 
 const router = express.Router();
@@ -48,14 +66,12 @@ router.get(
 
       res.json({
         wallet: {
-          balances: {
-            gemini: wallet.geminiBalance,
-            anthropic: wallet.anthropicBalance,
-            perplexity: wallet.perplexityBalance,
-            chatgpt: wallet.chatgptBalance,
-          },
-          balance: wallet.geminiBalance + wallet.anthropicBalance +
-                   wallet.perplexityBalance + wallet.chatgptBalance,
+          tier: wallet.tier || 'SHISHYA',
+          pranaBalance: wallet.pranaBalance || 0,
+          pranaValue: calcPranaValue(wallet),
+          pranaRates: PRANA_MARKET_RATES,
+          balances: buildBalances(wallet),
+          balance: sumBalances(wallet),
         },
         transactions,
       });
@@ -151,18 +167,8 @@ router.post(
 
       res.json({
         message: `${tokenType} tokens invested successfully`,
-        newBalances: {
-          gemini: wallet.geminiBalance,
-          anthropic: wallet.anthropicBalance,
-          perplexity: wallet.perplexityBalance,
-          chatgpt: wallet.chatgptBalance,
-        },
-        ideaBalances: {
-          gemini: ideaBalance.geminiBalance,
-          anthropic: ideaBalance.anthropicBalance,
-          perplexity: ideaBalance.perplexityBalance,
-          chatgpt: ideaBalance.chatgptBalance,
-        },
+        newBalances: buildBalances(wallet),
+        ideaBalances: buildBalances(ideaBalance),
         newBalance: (wallet as any)[balField],
         ideaBalance: (ideaBalance as any)[incField],
       });
@@ -188,12 +194,7 @@ router.get(
       const allocations = await AiCreditAllocation.find({ ideaId }).populate('investorId', 'name email');
 
       res.json({
-        balances: {
-          gemini: ideaBalance?.geminiBalance || 0,
-          anthropic: ideaBalance?.anthropicBalance || 0,
-          perplexity: ideaBalance?.perplexityBalance || 0,
-          chatgpt: ideaBalance?.chatgptBalance || 0,
-        },
+        balances: ideaBalance ? buildBalances(ideaBalance) : buildBalances({}),
         balance: ideaBalance?.balance || 0,
         allocations: allocations.map((a) => ({
           investor: a.investorId,
@@ -208,13 +209,65 @@ router.get(
   }
 );
 
-// ─── Monthly grant ───────────────────────────────────────
-const MONTHLY_GRANT: Record<TokenType, number> = {
-  GEMINI: parseInt(process.env.MONTHLY_GRANT_GEMINI || '250'),
-  ANTHROPIC: parseInt(process.env.MONTHLY_GRANT_ANTHROPIC || '250'),
-  PERPLEXITY: parseInt(process.env.MONTHLY_GRANT_PERPLEXITY || '250'),
-  CHATGPT: parseInt(process.env.MONTHLY_GRANT_CHATGPT || '250'),
-};
+// ─── Prana market rates ──────────────────────────────────
+router.get(
+  '/prana/rates',
+  authMiddleware,
+  async (_req: AuthRequest, res: Response) => {
+    res.json({
+      currency: 'PRANA',
+      symbol: '₽',
+      rates: PRANA_MARKET_RATES,
+      tokenTypes: TOKEN_TYPES,
+      updatedAt: new Date().toISOString(),
+    });
+  }
+);
+
+// ─── Tier selection ──────────────────────────────────────
+router.get(
+  '/tiers',
+  authMiddleware,
+  investorOnly,
+  async (_req: AuthRequest, res: Response) => {
+    const tiers = INVESTOR_TIERS.map((t) => ({
+      id: t,
+      grants: TIER_GRANTS[t],
+      totalGrant: Object.values(TIER_GRANTS[t]).reduce((a, b) => a + b, 0),
+    }));
+    res.json({ tiers });
+  }
+);
+
+router.post(
+  '/tier/select',
+  authMiddleware,
+  investorOnly,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const { tier } = req.body;
+      if (!tier || !INVESTOR_TIERS.includes(tier)) {
+        return res.status(400).json({ error: `Invalid tier. Must be one of: ${INVESTOR_TIERS.join(', ')}` });
+      }
+
+      const wallet = await AiCreditWallet.findOneAndUpdate(
+        { userId: req.userId },
+        { tier },
+        { new: true, upsert: true }
+      );
+
+      res.json({
+        message: `Tier updated to ${tier}`,
+        tier: wallet.tier,
+      });
+    } catch (error) {
+      console.error('Tier select error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+);
+
+// ─── Monthly grant (tier-based) ──────────────────────────
 
 router.post(
   '/grant',
@@ -222,7 +275,7 @@ router.post(
   investorOnly,
   async (req: AuthRequest, res: Response) => {
     try {
-      const wallet = await AiCreditWallet.findOne({ userId: req.userId });
+      let wallet = await AiCreditWallet.findOne({ userId: req.userId });
       if (!wallet) return res.status(404).json({ error: 'Wallet not found' });
 
       // Enforce 30-day cooldown
@@ -237,11 +290,14 @@ router.post(
         }
       }
 
+      const tier: InvestorTier = wallet.tier || 'SHISHYA';
+      const grantAmounts = TIER_GRANTS[tier];
+
       for (const tt of TOKEN_TYPES) {
         const field = tokenBalanceField(tt);
-        (wallet as any)[field] = ((wallet as any)[field] || 0) + MONTHLY_GRANT[tt];
+        (wallet as any)[field] = ((wallet as any)[field] || 0) + grantAmounts[tt];
       }
-      const totalGranted = Object.values(MONTHLY_GRANT).reduce((a, b) => a + b, 0);
+      const totalGranted = Object.values(grantAmounts).reduce((a, b) => a + b, 0);
       wallet.totalBalance += totalGranted;
       wallet.lastGrantAt = new Date();
       await wallet.save();
@@ -252,8 +308,8 @@ router.post(
           toUserId: req.userId,
           type: 'GRANT_TO_INVESTOR',
           tokenType: tt,
-          amount: MONTHLY_GRANT[tt],
-          memo: `Monthly ${tt} token grant`,
+          amount: grantAmounts[tt],
+          memo: `Monthly ${tt} token grant (${tier} tier)`,
         }).save();
       }
 
@@ -263,10 +319,10 @@ router.post(
           await axios.post(`${SHARED_URL}/api/transfers/initiate`, {
             type: 'MONTHLY_GRANT',
             tokenType: tt,
-            amount: MONTHLY_GRANT[tt],
+            amount: grantAmounts[tt],
             toUserId: req.userId?.toString(),
             initiatedBy: 'investor-backend',
-            memo: `Monthly ${tt} token grant`,
+            memo: `Monthly ${tt} token grant (${tier} tier)`,
           }, {
             headers: { 'X-Service-Secret': SERVICE_SECRET },
           });
@@ -276,14 +332,11 @@ router.post(
       }
 
       res.json({
-        message: 'Monthly token grant applied',
-        granted: MONTHLY_GRANT,
-        newBalances: {
-          gemini: wallet.geminiBalance,
-          anthropic: wallet.anthropicBalance,
-          perplexity: wallet.perplexityBalance,
-          chatgpt: wallet.chatgptBalance,
-        },
+        message: `Monthly token grant applied (${tier} tier)`,
+        tier,
+        granted: grantAmounts,
+        pranaValue: calcPranaValue(wallet),
+        newBalances: buildBalances(wallet),
       });
     } catch (error) {
       console.error('Grant tokens error:', error);

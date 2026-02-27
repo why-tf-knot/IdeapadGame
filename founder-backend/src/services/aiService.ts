@@ -6,7 +6,7 @@
 
 import axios from 'axios';
 
-export const TOKEN_TYPES = ['GEMINI', 'ANTHROPIC', 'PERPLEXITY', 'CHATGPT'] as const;
+export const TOKEN_TYPES = ['GEMINI', 'ANTHROPIC', 'PERPLEXITY', 'CHATGPT', 'MISTRAL', 'DEEPSEEK', 'GROK', 'LLAMA'] as const;
 export type TokenType = typeof TOKEN_TYPES[number];
 
 interface AIServiceResult {
@@ -64,6 +64,10 @@ const PROVIDERS: Record<TokenType, { name: string; envKey: string; model: string
   ANTHROPIC: { name: 'Anthropic Claude', envKey: 'ANTHROPIC_API_KEY', model: 'claude-sonnet-4-20250514' },
   PERPLEXITY: { name: 'Perplexity AI', envKey: 'PERPLEXITY_API_KEY', model: 'sonar-medium-online' },
   CHATGPT: { name: 'OpenAI ChatGPT', envKey: 'OPENAI_API_KEY', model: 'gpt-4' },
+  MISTRAL: { name: 'Mistral AI', envKey: 'MISTRAL_API_KEY', model: 'mistral-large-latest' },
+  DEEPSEEK: { name: 'DeepSeek', envKey: 'DEEPSEEK_API_KEY', model: 'deepseek-chat' },
+  GROK: { name: 'xAI Grok', envKey: 'GROK_API_KEY', model: 'grok-2' },
+  LLAMA: { name: 'Meta Llama', envKey: 'LLAMA_API_KEY', model: 'llama-3-70b' },
 };
 
 export async function runAiTool(service: string, idea: any, tokenType: TokenType = 'CHATGPT'): Promise<AIServiceResult> {
@@ -109,6 +113,14 @@ async function callProvider(tokenType: TokenType, apiKey: string, prompt: string
       return callPerplexity(apiKey, prompt, model);
     case 'CHATGPT':
       return callOpenAI(apiKey, prompt, model);
+    case 'MISTRAL':
+      return callMistral(apiKey, prompt, model);
+    case 'DEEPSEEK':
+      return callDeepSeek(apiKey, prompt, model);
+    case 'GROK':
+      return callGrok(apiKey, prompt, model);
+    case 'LLAMA':
+      return callLlama(apiKey, prompt, model);
     default:
       throw new Error(`Unsupported provider: ${tokenType}`);
   }
@@ -160,6 +172,59 @@ async function callOpenAI(apiKey: string, prompt: string, model: string): Promis
   return res.data?.choices?.[0]?.message?.content || '';
 }
 
+async function callMistral(apiKey: string, prompt: string, model: string): Promise<string> {
+  const res = await axios.post('https://api.mistral.ai/v1/chat/completions', {
+    model,
+    messages: [{ role: 'user', content: prompt }],
+    max_tokens: 2048,
+    temperature: 0.7,
+  }, {
+    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    timeout: 30000,
+  });
+  return res.data?.choices?.[0]?.message?.content || '';
+}
+
+async function callDeepSeek(apiKey: string, prompt: string, model: string): Promise<string> {
+  const res = await axios.post('https://api.deepseek.com/v1/chat/completions', {
+    model,
+    messages: [{ role: 'user', content: prompt }],
+    max_tokens: 2048,
+    temperature: 0.7,
+  }, {
+    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    timeout: 30000,
+  });
+  return res.data?.choices?.[0]?.message?.content || '';
+}
+
+async function callGrok(apiKey: string, prompt: string, model: string): Promise<string> {
+  const res = await axios.post('https://api.x.ai/v1/chat/completions', {
+    model,
+    messages: [{ role: 'user', content: prompt }],
+    max_tokens: 2048,
+    temperature: 0.7,
+  }, {
+    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    timeout: 30000,
+  });
+  return res.data?.choices?.[0]?.message?.content || '';
+}
+
+async function callLlama(apiKey: string, prompt: string, model: string): Promise<string> {
+  // Uses Together.ai or similar Llama hosting endpoint
+  const res = await axios.post('https://api.together.xyz/v1/chat/completions', {
+    model: 'meta-llama/Llama-3-70b-chat-hf',
+    messages: [{ role: 'user', content: prompt }],
+    max_tokens: 2048,
+    temperature: 0.7,
+  }, {
+    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    timeout: 30000,
+  });
+  return res.data?.choices?.[0]?.message?.content || '';
+}
+
 function getPlaceholderResponse(service: string, idea: any, tokenType: TokenType): string {
   switch (service) {
     case 'LLM_SUMMARY_IMPROVE':
@@ -174,7 +239,10 @@ function getPlaceholderResponse(service: string, idea: any, tokenType: TokenType
 }
 
 export function estimateCreditCost(service: string, tokenType: TokenType = 'CHATGPT'): number {
-  const multipliers: Record<TokenType, number> = { GEMINI: 0.8, ANTHROPIC: 1.2, PERPLEXITY: 1.0, CHATGPT: 1.0 };
+  const multipliers: Record<TokenType, number> = {
+    GEMINI: 0.8, ANTHROPIC: 1.2, PERPLEXITY: 1.0, CHATGPT: 1.0,
+    MISTRAL: 0.9, DEEPSEEK: 0.5, GROK: 1.1, LLAMA: 0.3,
+  };
   const baseCosts: Record<string, number> = { LLM_SUMMARY_IMPROVE: 10, LLM_PITCH_DRAFT: 20, LLM_ROADMAP_GENERATE: 20 };
   return Math.ceil((baseCosts[service] || 15) * multipliers[tokenType]);
 }

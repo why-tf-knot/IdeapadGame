@@ -2,7 +2,7 @@ import express, { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { User } from '../models/User';
-import { AiCreditWallet } from '../models/AiCreditWallet';
+import { AiCreditWallet, TOKEN_TYPES, tokenBalanceField } from '../models/AiCreditWallet';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
 
 const router = express.Router();
@@ -34,11 +34,16 @@ router.post('/register', async (req: Request, res: Response) => {
     // Create wallet with zero balances
     const wallet = new AiCreditWallet({
       userId: user._id,
+      pranaBalance: 0,
       totalBalance: 0,
       geminiBalance: 0,
       anthropicBalance: 0,
       perplexityBalance: 0,
       chatgptBalance: 0,
+      mistralBalance: 0,
+      deepseekBalance: 0,
+      grokBalance: 0,
+      llamaBalance: 0,
     });
     await wallet.save();
 
@@ -110,8 +115,15 @@ router.get('/me', authMiddleware, async (req: AuthRequest, res: Response) => {
 
     const wallet = await AiCreditWallet.findOne({ userId: user._id });
     const walletBalance = wallet
-      ? wallet.geminiBalance + wallet.anthropicBalance + wallet.perplexityBalance + wallet.chatgptBalance
+      ? TOKEN_TYPES.reduce((s, tt) => s + ((wallet as any)[`${tt.toLowerCase()}Balance`] || 0), 0)
       : 0;
+
+    const walletBalances: Record<string, number> | null = wallet
+      ? TOKEN_TYPES.reduce((acc, tt) => {
+          acc[tt.toLowerCase()] = (wallet as any)[`${tt.toLowerCase()}Balance`] || 0;
+          return acc;
+        }, {} as Record<string, number>)
+      : null;
 
     res.json({
       user: {
@@ -121,12 +133,7 @@ router.get('/me', authMiddleware, async (req: AuthRequest, res: Response) => {
         role: user.role,
       },
       walletBalance,
-      walletBalances: wallet ? {
-        gemini: wallet.geminiBalance,
-        anthropic: wallet.anthropicBalance,
-        perplexity: wallet.perplexityBalance,
-        chatgpt: wallet.chatgptBalance,
-      } : null,
+      walletBalances,
     });
   } catch (error) {
     console.error('Get user error:', error);

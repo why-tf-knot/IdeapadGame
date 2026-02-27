@@ -157,6 +157,14 @@ export const FONTS = {
     textTransform: 'uppercase' as TextStyle['textTransform'],
     letterSpacing: 0.8,
   },
+
+  // Shorthand font sizes (for inline usage: fontSize: FONTS.sm)
+  xs: 11,
+  sm: 13,
+  md: 15,
+  lg: 18,
+  xl: 22,
+  xxl: 28,
 };
 
 // ─── Spacing ─────────────────────────────────────────────────

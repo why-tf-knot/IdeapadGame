@@ -11,6 +11,8 @@ import {
   TokenBalances,
   ChatThread,
   ChatMessage,
+  PranaBalanceResponse,
+  PranaExchangeResponse,
 } from '../types';
 
 // Founder backend
@@ -103,6 +105,36 @@ export const creditsAPI = {
 
   spend: async (ideaId: string, amount: number, service: string, tokenType: TokenType): Promise<SpendResponse> => {
     const response = await api.post('/credits/spend', { ideaId, amount, service, tokenType });
+    return response.data;
+  },
+};
+
+// ─── Prana API (founder Prana wallet & exchange) ───────
+
+export const pranaAPI = {
+  /** Get current Prana balance, exchange rates, and affordability per token */
+  getBalance: async (): Promise<PranaBalanceResponse> => {
+    const response = await api.get('/credits/prana/balance');
+    return response.data;
+  },
+
+  /** Get current market exchange rates */
+  getRates: async (): Promise<{ rates: Record<TokenType, number> }> => {
+    const response = await api.get('/credits/prana/rates');
+    return response.data;
+  },
+
+  /** Exchange Prana for AI credits on a specific idea */
+  exchange: async (
+    ideaId: string,
+    tokenType: TokenType,
+    credits: number
+  ): Promise<PranaExchangeResponse> => {
+    const response = await api.post('/credits/prana/exchange', {
+      ideaId,
+      tokenType,
+      credits,
+    });
     return response.data;
   },
 };

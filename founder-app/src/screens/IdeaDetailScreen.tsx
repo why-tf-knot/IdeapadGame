@@ -58,7 +58,10 @@ const AI_TOOLS: AITool[] = [
 const IdeaDetailScreen: React.FC<IdeaDetailScreenProps> = ({ route, navigation }) => {
   const { ideaId } = route.params;
   const [idea, setIdea] = useState<Idea | null>(null);
-  const [tokenBalances, setTokenBalances] = useState<TokenBalances>({ gemini: 0, anthropic: 0, perplexity: 0, chatgpt: 0 });
+  const [tokenBalances, setTokenBalances] = useState<TokenBalances>({
+    gemini: 0, anthropic: 0, perplexity: 0, chatgpt: 0,
+    mistral: 0, deepseek: 0, grok: 0, llama: 0,
+  });
   const [selectedToken, setSelectedToken] = useState<TokenType>('CHATGPT');
   const [loading, setLoading] = useState(true);
   const [processingTool, setProcessingTool] = useState<string | null>(null);
@@ -217,6 +220,12 @@ const IdeaDetailScreen: React.FC<IdeaDetailScreenProps> = ({ route, navigation }
           <Text style={styles.creditsSubtext}>
             Selected: {TOKEN_META[selectedToken].icon} {TOKEN_META[selectedToken].label} — powered by {TOKEN_META[selectedToken].provider}
           </Text>
+          <TouchableOpacity
+            style={styles.exchangePranaButton}
+            onPress={() => navigation.navigate('PranaExchange', { ideaId: idea._id })}
+          >
+            <Text style={styles.exchangePranaText}>₽ Exchange Prana for Credits</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Idea Details */}
@@ -423,6 +432,19 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: COLORS.white,
     opacity: 0.8,
+  },
+  exchangePranaButton: {
+    marginTop: SPACING.sm,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingVertical: 10,
+    paddingHorizontal: SPACING.md,
+    borderRadius: RADIUS.pill,
+    alignItems: 'center',
+  },
+  exchangePranaText: {
+    color: COLORS.white,
+    fontWeight: '700',
+    fontSize: 14,
   },
   section: {
     marginHorizontal: SPACING.md,

@@ -1,22 +1,43 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   Dimensions,
-  Animated,
-  PanResponder,
   Alert,
   Modal,
   TouchableOpacity,
   ScrollView,
-  ActivityIndicator,
   Platform,
 } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  useFrameCallback,
+  withSpring,
+  withTiming,
+  runOnJS,
+  Easing,
+  SharedValue,
+  FrameInfo,
+} from 'react-native-reanimated';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import { reviewAPI, creditsAPI } from '../services/api';
 import { Idea, TokenType, TOKEN_TYPES, TOKEN_META } from '../types';
 import { COLORS as THEME, RADIUS, SHADOWS, SPACING } from '../theme';
+import {
+  PHYSICS,
+  computeVelocity,
+  stepRejectPhysics,
+  stepSavePhysics,
+  flutterRotation,
+  flutterY,
+  clamp,
+  lerp,
+  VelocitySample,
+  PhysicsState,
+} from '../utils/paperPhysics';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH * 0.88;
@@ -55,25 +76,21 @@ const STAGE_COLORS: Record<string, string> = {
   Launched: COLORS.red,
 };
 
-// ─── Animation Config ───────────────────────────────────
-const ANIM = {
-  CRUMPLE_DURATION: 320,
-  FLYING_DURATION: 420,
-  SPRING_FRICTION: 7,
-  SPRING_TENSION: 40,
-  REJECT_THRESHOLD_Y: 120,
-  REJECT_VELOCITY: 0.7,
-  SAVE_THRESHOLD_X: 150,
-  SAVE_VELOCITY_X: 0.7,
-  SAVE_MIN_X: 100,
-  ENTRANCE_FRICTION: 6,
-  ENTRANCE_TENSION: 55,
-};
-
 const hapticOptions = {
   enableVibrateFallback: true,
   ignoreAndroidSystemSettings: false,
 };
+
+// ─── Card Phase State Machine ───────────────────────────
+const PHASE = {
+  LOADING: 0,
+  IDLE: 1,        // card resting with subtle flutter
+  DRAGGING: 2,    // user is touching — smoothed physics drag
+  TOSS_REJECT: 3, // physics sim: gravity + tumble + crumple
+  TOSS_SAVE: 4,   // physics sim: arc + spin + perspective shrink
+  SNAP_BACK: 5,   // spring return to center
+  DONE: 6,        // offscreen — trigger API call
+} as const;
 
 // ─── Pitch Card Data Helper ─────────────────────────────
 interface PitchCardItem {
@@ -91,7 +108,6 @@ const buildPitchCards = (idea: Idea): PitchCardItem[] => {
     if (idea.pitchHow) cards.push({ emoji: '⚙️', label: 'How it Works', text: idea.pitchHow });
     return cards;
   }
-  // Fallback to legacy fields
   const cards: PitchCardItem[] = [];
   if (idea.problem) cards.push({ emoji: '🔥', label: 'Problem', text: idea.problem });
   if (idea.solution) cards.push({ emoji: '✅', label: 'Solution', text: idea.solution });
@@ -103,7 +119,7 @@ const buildPitchCards = (idea: Idea): PitchCardItem[] => {
 };
 
 // ═════════════════════════════════════════════════════════
-// Component
+// Component — Real Physics Paper Toss
 // ═════════════════════════════════════════════════════════
 const PaperTossScreen: React.FC = () => {
   const [currentIdea, setCurrentIdea] = useState<Idea | null>(null);
@@ -114,143 +130,251 @@ const PaperTossScreen: React.FC = () => {
   const [selectedTokenType, setSelectedTokenType] = useState<TokenType>('CHATGPT');
   const [isAnimating, setIsAnimating] = useState(false);
 
-  // ─── Animated values ────────────────────────────────
-  const pan = useRef(new Animated.ValueXY()).current;
-  const cardScale = useRef(new Animated.Value(0.85)).current;
-  const cardOpacity = useRef(new Animated.Value(0)).current;
-  const spinnerRotation = useRef(new Animated.Value(0)).current;
+  // ─── Reanimated Shared Values ───────────────────────
+  const cardX = useSharedValue(0);
+  const cardY = useSharedValue(0);
+  const cardRotation = useSharedValue(0);       // degrees
+  const cardScale = useSharedValue(0.85);
+  const cardOpacity = useSharedValue(0);
+  const phase = useSharedValue<number>(PHASE.LOADING);
 
-  const rotate = pan.x.interpolate({
-    inputRange: [-SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2],
-    outputRange: ['-25deg', '0deg', '25deg'],
-    extrapolate: 'clamp',
-  });
+  // Physics state
+  const velX = useSharedValue(0);               // px/s
+  const velY = useSharedValue(0);               // px/s
+  const angularVel = useSharedValue(0);          // rad/s
+  const physicsTime = useSharedValue(0);         // elapsed sim time
 
-  // Reject indicator opacity driven by downward swipe
-  const rejectIndicatorOpacity = pan.y.interpolate({
-    inputRange: [0, ANIM.REJECT_THRESHOLD_Y],
-    outputRange: [0, 1],
-    extrapolate: 'clamp',
-  });
-  const rejectIndicatorScale = pan.y.interpolate({
-    inputRange: [0, ANIM.REJECT_THRESHOLD_Y],
-    outputRange: [0.7, 1.15],
-    extrapolate: 'clamp',
-  });
+  // Global clock for idle flutter
+  const globalTime = useSharedValue(0);
 
-  // Save indicator opacity driven by rightward swipe
-  const saveIndicatorOpacity = pan.x.interpolate({
-    inputRange: [0, ANIM.SAVE_THRESHOLD_X],
-    outputRange: [0, 1],
-    extrapolate: 'clamp',
-  });
-  const saveIndicatorScale = pan.x.interpolate({
-    inputRange: [0, ANIM.SAVE_THRESHOLD_X],
-    outputRange: [0.7, 1.15],
-    extrapolate: 'clamp',
-  });
+  // Velocity tracking buffer
+  const velocityBuffer = useSharedValue<VelocitySample[]>([]);
 
-  // ─── Cleanup ────────────────────────────────────────
+  // Drag origin offset
+  const dragStartX = useSharedValue(0);
+  const dragStartY = useSharedValue(0);
+
+  // Pending action after toss completes
+  const pendingAction = useSharedValue<'reject' | 'save' | 'none'>('none');
+
+  // Spinner
+  const spinnerAngle = useSharedValue(0);
+
+  // ─── Spinner Animation ──────────────────────────────
   useEffect(() => {
-    return () => {
-      pan.removeAllListeners();
-      cardScale.removeAllListeners();
-      cardOpacity.removeAllListeners();
-      spinnerRotation.removeAllListeners();
-    };
-  }, [pan, cardScale, cardOpacity, spinnerRotation]);
-
-  // ─── Spinner loop ───────────────────────────────────
-  useEffect(() => {
-    const loop = Animated.loop(
-      Animated.timing(spinnerRotation, {
-        toValue: 1,
+    const spin = () => {
+      spinnerAngle.value = 0;
+      spinnerAngle.value = withTiming(360, {
         duration: 1200,
-        useNativeDriver: true,
-      }),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [spinnerRotation]);
-
-  const spinDeg = spinnerRotation.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0deg', '360deg'],
-  });
-
-  // ─── Load first idea on mount ───────────────────────
-  useEffect(() => {
-    loadNextIdea();
+        easing: Easing.linear,
+      });
+    };
+    spin();
+    const interval = setInterval(spin, 1200);
+    return () => clearInterval(interval);
   }, []);
 
-  // ─── Data loading ───────────────────────────────────
-  const loadNextIdea = async () => {
+  const spinnerStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${spinnerAngle.value}deg` }],
+  }));
+
+  // ─── Swipe Indicator Animated Styles ────────────────
+  const rejectIndicatorStyle = useAnimatedStyle(() => {
+    const progress = clamp(cardY.value / PHYSICS.REJECT_MIN_DY, 0, 1);
+    return {
+      opacity: phase.value === PHASE.DRAGGING ? progress : 0,
+      transform: [{ scale: lerp(0.7, 1.15, progress) }],
+    };
+  });
+
+  const saveIndicatorStyle = useAnimatedStyle(() => {
+    const progress = clamp(cardX.value / PHYSICS.SAVE_MIN_DX, 0, 1);
+    return {
+      opacity: phase.value === PHASE.DRAGGING ? progress : 0,
+      transform: [{ scale: lerp(0.7, 1.15, progress) }],
+    };
+  });
+
+  // ─── Card Animated Style ────────────────────────────
+  const cardAnimatedStyle = useAnimatedStyle(() => {
+    // Idle flutter (only when card is resting)
+    let flutterRot = 0;
+    let flutterTransY = 0;
+    if (phase.value === PHASE.IDLE) {
+      flutterRot = flutterRotation(globalTime.value);
+      flutterTransY = flutterY(globalTime.value);
+    }
+
+    return {
+      transform: [
+        { translateX: cardX.value },
+        { translateY: cardY.value + flutterTransY },
+        { rotate: `${cardRotation.value + flutterRot}deg` },
+        { scale: cardScale.value },
+      ],
+      opacity: cardOpacity.value,
+    };
+  });
+
+  // ─── JS Callbacks (invoked from UI thread via runOnJS) ──
+  const triggerHaptic = useCallback((type: string) => {
+    try {
+      ReactNativeHapticFeedback.trigger(type as any, hapticOptions);
+    } catch {}
+  }, []);
+
+  const onRejectComplete = useCallback(async () => {
+    if (!currentIdea) return;
+    setIsAnimating(true);
+    try {
+      await reviewAPI.rejectIdea(currentIdea._id);
+      loadNextIdea();
+    } catch {
+      setIsAnimating(false);
+      Alert.alert('Error', 'Failed to reject idea');
+    }
+  }, [currentIdea]);
+
+  const onSaveComplete = useCallback(async () => {
+    if (!currentIdea) return;
+    setIsAnimating(true);
+    try {
+      await reviewAPI.saveIdea(currentIdea._id);
+      setShowCreditModal(true);
+    } catch {
+      setIsAnimating(false);
+      Alert.alert('Error', 'Failed to save idea');
+    }
+  }, [currentIdea]);
+
+  // ─── Physics Frame Callback ─────────────────────────
+  // Executes every frame (~16ms) on the UI thread for
+  // real-time Newtonian physics simulation
+  useFrameCallback((frameInfo: FrameInfo) => {
+    // Cap dt to prevent physics explosion on frame drops
+    const dt = Math.min((frameInfo.timeSincePreviousFrame ?? 16) / 1000, 0.05);
+
+    // Tick global clock (used for idle flutter)
+    globalTime.value += dt;
+
+    // ── Reject Toss: gravity + drag + turbulence + crumple ──
+    if (phase.value === PHASE.TOSS_REJECT) {
+      const state: PhysicsState = {
+        x: cardX.value,
+        y: cardY.value,
+        vx: velX.value,
+        vy: velY.value,
+        rotation: cardRotation.value,
+        angularVel: angularVel.value,
+        scale: cardScale.value,
+        opacity: cardOpacity.value,
+        time: physicsTime.value,
+      };
+
+      const next = stepRejectPhysics(state, dt, SCREEN_HEIGHT);
+
+      cardX.value = next.x;
+      cardY.value = next.y;
+      velX.value = next.vx;
+      velY.value = next.vy;
+      cardRotation.value = next.rotation;
+      angularVel.value = next.angularVel;
+      cardScale.value = next.scale;
+      cardOpacity.value = next.opacity;
+      physicsTime.value = next.time;
+
+      // Terminal condition: card below screen or fully transparent
+      if (next.y > SCREEN_HEIGHT + PHYSICS.OFFSCREEN_MARGIN || next.opacity <= 0.01) {
+        phase.value = PHASE.DONE;
+        runOnJS(onRejectComplete)();
+      }
+    }
+
+    // ── Save Toss: lighter gravity arc + spin + perspective shrink ──
+    if (phase.value === PHASE.TOSS_SAVE) {
+      const state: PhysicsState = {
+        x: cardX.value,
+        y: cardY.value,
+        vx: velX.value,
+        vy: velY.value,
+        rotation: cardRotation.value,
+        angularVel: angularVel.value,
+        scale: cardScale.value,
+        opacity: cardOpacity.value,
+        time: physicsTime.value,
+      };
+
+      const next = stepSavePhysics(state, dt, SCREEN_WIDTH);
+
+      cardX.value = next.x;
+      cardY.value = next.y;
+      velX.value = next.vx;
+      velY.value = next.vy;
+      cardRotation.value = next.rotation;
+      angularVel.value = next.angularVel;
+      cardScale.value = next.scale;
+      cardOpacity.value = next.opacity;
+      physicsTime.value = next.time;
+
+      // Terminal condition: past right edge or fully transparent
+      if (next.x > SCREEN_WIDTH + PHYSICS.OFFSCREEN_MARGIN || next.opacity <= 0.01) {
+        phase.value = PHASE.DONE;
+        runOnJS(onSaveComplete)();
+      }
+    }
+  });
+
+  // ─── Load Next Idea ─────────────────────────────────
+  const loadNextIdea = useCallback(async () => {
     setLoading(true);
     setIsAnimating(false);
 
-    // Reset positions
-    pan.setValue({ x: 0, y: 0 });
-    cardScale.setValue(0.85);
-    cardOpacity.setValue(0);
+    // Reset all physics state
+    phase.value = PHASE.LOADING;
+    cardX.value = 0;
+    cardY.value = 0;
+    cardRotation.value = 0;
+    cardScale.value = 0.85;
+    cardOpacity.value = 0;
+    velX.value = 0;
+    velY.value = 0;
+    angularVel.value = 0;
+    physicsTime.value = 0;
+    velocityBuffer.value = [];
+    pendingAction.value = 'none';
 
     try {
       const response = await reviewAPI.getNext();
       setCurrentIdea(response.idea);
 
       if (response.idea) {
-        // Spring entrance animation
-        Animated.parallel([
-          Animated.spring(cardScale, {
-            toValue: 1,
-            friction: ANIM.ENTRANCE_FRICTION,
-            tension: ANIM.ENTRANCE_TENSION,
-            useNativeDriver: true,
-          }),
-          Animated.timing(cardOpacity, {
-            toValue: 1,
-            duration: 350,
-            useNativeDriver: true,
-          }),
-        ]).start();
+        // Spring entrance: scale 0.85 → 1 with overshoot
+        cardScale.value = withSpring(1, {
+          damping: PHYSICS.SPRING_DAMPING,
+          stiffness: PHYSICS.SPRING_STIFFNESS,
+          mass: PHYSICS.SPRING_MASS,
+        });
+        // Fade in
+        cardOpacity.value = withTiming(1, {
+          duration: 350,
+          easing: Easing.out(Easing.cubic),
+        });
+        // Enter idle state (enables flutter)
+        phase.value = PHASE.IDLE;
       }
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to load idea');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  // ─── Actions ────────────────────────────────────────
-  const handleReject = async () => {
-    if (!currentIdea || isAnimating) return;
-    setIsAnimating(true);
-    ReactNativeHapticFeedback.trigger('notificationWarning', hapticOptions);
+  // ─── Mount ──────────────────────────────────────────
+  useEffect(() => {
+    loadNextIdea();
+  }, []);
 
-    try {
-      await reviewAPI.rejectIdea(currentIdea._id);
-      loadNextIdea();
-    } catch (error) {
-      setIsAnimating(false);
-      Alert.alert('Error', 'Failed to reject idea');
-      resetCardPosition();
-    }
-  };
-
-  const handleSave = async () => {
-    if (!currentIdea || isAnimating) return;
-    setIsAnimating(true);
-    ReactNativeHapticFeedback.trigger('notificationSuccess', hapticOptions);
-
-    try {
-      await reviewAPI.saveIdea(currentIdea._id);
-      setShowCreditModal(true);
-    } catch (error) {
-      setIsAnimating(false);
-      Alert.alert('Error', 'Failed to save idea');
-      resetCardPosition();
-    }
-  };
-
+  // ─── Credit Allocation Handler ──────────────────────
   const handleCreditAllocation = async () => {
     if (selectedAmount > 0 && currentIdea) {
       try {
@@ -267,100 +391,137 @@ const PaperTossScreen: React.FC = () => {
     loadNextIdea();
   };
 
-  const resetCardPosition = () => {
-    Animated.parallel([
-      Animated.spring(pan, {
-        toValue: { x: 0, y: 0 },
-        friction: ANIM.SPRING_FRICTION,
-        tension: ANIM.SPRING_TENSION,
-        useNativeDriver: false,
-      }),
-      Animated.spring(cardScale, {
-        toValue: 1,
-        friction: ANIM.SPRING_FRICTION,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  };
+  // ─── Pan Gesture (Gesture Handler v2 + Reanimated) ──
+  const panGesture = Gesture.Pan()
+    .enabled(!isAnimating)
+    .onBegin(() => {
+      // Only start drag from idle or snap-back
+      if (phase.value !== PHASE.IDLE && phase.value !== PHASE.SNAP_BACK) return;
 
-  // ─── Gesture Handler ────────────────────────────────
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => !isAnimating,
-      onPanResponderGrant: () => {
-        ReactNativeHapticFeedback.trigger('impactLight', hapticOptions);
-        Animated.spring(cardScale, {
-          toValue: 0.96,
-          friction: ANIM.SPRING_FRICTION,
-          useNativeDriver: true,
-        }).start();
-      },
-      onPanResponderMove: Animated.event([null, { dx: pan.x, dy: pan.y }], {
-        useNativeDriver: false,
-      }),
-      onPanResponderRelease: (_, gestureState) => {
-        const { dx, dy, vy, vx } = gestureState;
+      phase.value = PHASE.DRAGGING;
+      dragStartX.value = cardX.value;
+      dragStartY.value = cardY.value;
+      velocityBuffer.value = [];
 
-        // Restore scale first
-        Animated.spring(cardScale, {
-          toValue: 1,
-          friction: ANIM.SPRING_FRICTION,
-          useNativeDriver: true,
-        }).start();
+      // Subtle "pickup" — card compresses slightly
+      cardScale.value = withSpring(0.96, {
+        damping: PHYSICS.SPRING_DAMPING,
+        stiffness: PHYSICS.SPRING_STIFFNESS * 2,
+      });
 
-        // REJECT: swipe down
-        if (dy > ANIM.REJECT_THRESHOLD_Y && vy > ANIM.REJECT_VELOCITY) {
-          Animated.parallel([
-            Animated.timing(pan, {
-              toValue: { x: dx * 0.5, y: SCREEN_HEIGHT + 100 },
-              duration: ANIM.CRUMPLE_DURATION,
-              useNativeDriver: false,
-            }),
-            Animated.timing(cardScale, {
-              toValue: 0.25,
-              duration: ANIM.CRUMPLE_DURATION,
-              useNativeDriver: true,
-            }),
-            Animated.timing(cardOpacity, {
-              toValue: 0,
-              duration: ANIM.CRUMPLE_DURATION,
-              useNativeDriver: true,
-            }),
-          ]).start(() => handleReject());
-        }
-        // SAVE: swipe right
-        else if (
-          dx > ANIM.SAVE_THRESHOLD_X ||
-          (dx > ANIM.SAVE_MIN_X && vx > ANIM.SAVE_VELOCITY_X)
-        ) {
-          Animated.parallel([
-            Animated.timing(pan, {
-              toValue: { x: SCREEN_WIDTH + 120, y: dy - 60 },
-              duration: ANIM.FLYING_DURATION,
-              useNativeDriver: false,
-            }),
-            Animated.timing(cardScale, {
-              toValue: 0.75,
-              duration: ANIM.FLYING_DURATION,
-              useNativeDriver: true,
-            }),
-            Animated.timing(cardOpacity, {
-              toValue: 0,
-              duration: ANIM.FLYING_DURATION,
-              useNativeDriver: true,
-            }),
-          ]).start(() => handleSave());
-        }
-        // SNAP BACK
-        else {
-          ReactNativeHapticFeedback.trigger('impactMedium', hapticOptions);
-          resetCardPosition();
-        }
-      },
-    }),
-  ).current;
+      runOnJS(triggerHaptic)('impactLight');
+    })
+    .onUpdate((e) => {
+      if (phase.value !== PHASE.DRAGGING) return;
 
-  // ─── Category badge color ───────────────────────────
+      // ── Smoothed position (lerp for momentum feel) ──
+      const targetX = dragStartX.value + e.translationX;
+      const targetY = dragStartY.value + e.translationY;
+      cardX.value = lerp(cardX.value, targetX, 1 - PHYSICS.DRAG_SMOOTHING);
+      cardY.value = lerp(cardY.value, targetY, 1 - PHYSICS.DRAG_SMOOTHING);
+
+      // ── Velocity-driven tilt while dragging ──
+      const tiltDeg = clamp(
+        e.velocityX * PHYSICS.DRAG_TILT_FACTOR * 0.001,
+        -PHYSICS.DRAG_MAX_TILT,
+        PHYSICS.DRAG_MAX_TILT,
+      );
+      cardRotation.value = lerp(cardRotation.value, tiltDeg, 0.15);
+
+      // ── Record velocity sample ──
+      const now = Date.now();
+      const buf = velocityBuffer.value.slice();
+      buf.push({ x: e.absoluteX, y: e.absoluteY, t: now });
+      while (buf.length > PHYSICS.VELOCITY_BUFFER_SIZE) {
+        buf.shift();
+      }
+      velocityBuffer.value = buf;
+    })
+    .onEnd(() => {
+      if (phase.value !== PHASE.DRAGGING) return;
+
+      // ── Compute release velocity from tracked samples ──
+      const now = Date.now();
+      const { vx, vy, speed } = computeVelocity(velocityBuffer.value, now);
+      const dx = cardX.value;
+      const dy = cardY.value;
+
+      // ── Classify throw ──
+      const isRejectDist = dy > PHYSICS.REJECT_MIN_DY;
+      const isRejectVel = vy > PHYSICS.REJECT_MIN_SPEED;
+      const isReject = isRejectDist && isRejectVel;
+
+      const isSaveDist = dx > PHYSICS.SAVE_MIN_DX;
+      const isSaveVel = vx > PHYSICS.SAVE_MIN_SPEED;
+      const isSaveFast = dx > PHYSICS.SAVE_FAST_DX && vx > PHYSICS.SAVE_FAST_SPEED;
+      const isSave = (isSaveDist && isSaveVel) || isSaveFast;
+
+      if (isReject) {
+        // ── Launch reject physics ──
+        phase.value = PHASE.TOSS_REJECT;
+        velX.value = vx;
+        velY.value = Math.max(vy, PHYSICS.REJECT_MIN_SPEED);
+        // Angular velocity from horizontal component + random paper tumble
+        angularVel.value = vx * 0.003 + (Math.random() - 0.5) * 4;
+        physicsTime.value = 0;
+        pendingAction.value = 'reject';
+        runOnJS(triggerHaptic)('notificationWarning');
+
+      } else if (isSave) {
+        // ── Launch save physics ──
+        phase.value = PHASE.TOSS_SAVE;
+        velX.value = Math.max(vx, PHYSICS.SAVE_MIN_SPEED);
+        velY.value = vy - 200; // slight upward launch for natural arc
+        angularVel.value = vx * 0.002 + 2; // spin
+        physicsTime.value = 0;
+        pendingAction.value = 'save';
+        runOnJS(triggerHaptic)('notificationSuccess');
+
+      } else {
+        // ── Snap back (spring physics) ──
+        phase.value = PHASE.SNAP_BACK;
+
+        // Use release velocity as spring initial velocity for natural feel
+        cardX.value = withSpring(0, {
+          damping: PHYSICS.SPRING_DAMPING,
+          stiffness: PHYSICS.SPRING_STIFFNESS,
+          mass: PHYSICS.SPRING_MASS,
+          velocity: vx * 0.001,
+        });
+        cardY.value = withSpring(0, {
+          damping: PHYSICS.SPRING_DAMPING,
+          stiffness: PHYSICS.SPRING_STIFFNESS,
+          mass: PHYSICS.SPRING_MASS,
+          velocity: vy * 0.001,
+        });
+        cardRotation.value = withSpring(0, {
+          damping: PHYSICS.SPRING_DAMPING * 1.2,
+          stiffness: PHYSICS.SPRING_STIFFNESS,
+        });
+        cardScale.value = withSpring(1, {
+          damping: PHYSICS.SPRING_DAMPING,
+          stiffness: PHYSICS.SPRING_STIFFNESS,
+        });
+
+        // Return to idle (flutter resumes)
+        phase.value = PHASE.IDLE;
+
+        runOnJS(triggerHaptic)('impactMedium');
+      }
+    });
+
+  // ─── Tap Gesture (open detail modal) ────────────────
+  const tapGesture = Gesture.Tap()
+    .onEnd(() => {
+      if (phase.value === PHASE.IDLE || phase.value === PHASE.SNAP_BACK) {
+        runOnJS(setShowDetails)(true);
+      }
+    });
+
+  // Pan takes priority; Tap only fires if no drag happened
+  const composedGesture = Gesture.Race(panGesture, tapGesture);
+
+  // ─── Derived colors ─────────────────────────────────
   const categoryColor = currentIdea
     ? CATEGORY_COLORS[currentIdea.category] || COLORS.gold
     : COLORS.gold;
@@ -374,7 +535,7 @@ const PaperTossScreen: React.FC = () => {
   if (loading) {
     return (
       <View style={styles.container}>
-        <Animated.View style={{ transform: [{ rotate: spinDeg }] }}>
+        <Animated.View style={spinnerStyle}>
           <Text style={styles.spinnerEmoji}>🔄</Text>
         </Animated.View>
         <Text style={styles.loadingText}>Finding next idea…</Text>
@@ -404,10 +565,10 @@ const PaperTossScreen: React.FC = () => {
   }
 
   // ═════════════════════════════════════════════════════
-  // Build pitch preview cards for main card face
+  // Build pitch preview cards
   // ═════════════════════════════════════════════════════
   const pitchCards = buildPitchCards(currentIdea);
-  const previewPitchCards = pitchCards.slice(0, 2); // show max 2 on the main card
+  const previewPitchCards = pitchCards.slice(0, 2);
 
   // ═════════════════════════════════════════════════════
   // MAIN RENDER
@@ -425,10 +586,7 @@ const PaperTossScreen: React.FC = () => {
         style={[
           styles.indicator,
           styles.trashIndicator,
-          {
-            opacity: rejectIndicatorOpacity,
-            transform: [{ scale: rejectIndicatorScale }],
-          },
+          rejectIndicatorStyle,
         ]}
       >
         <View style={[styles.indicatorCircle, { backgroundColor: 'rgba(230,57,70,0.15)' }]}>
@@ -442,10 +600,7 @@ const PaperTossScreen: React.FC = () => {
         style={[
           styles.indicator,
           styles.saveIndicator,
-          {
-            opacity: saveIndicatorOpacity,
-            transform: [{ scale: saveIndicatorScale }],
-          },
+          saveIndicatorStyle,
         ]}
       >
         <View style={[styles.indicatorCircle, { backgroundColor: THEME.accentLight }]}>
@@ -454,83 +609,69 @@ const PaperTossScreen: React.FC = () => {
         <Text style={[styles.indicatorLabel, { color: THEME.accent }]}>Save</Text>
       </Animated.View>
 
-      {/* ──── Paper Card ────────────────────────────── */}
-      <Animated.View
-        style={[
-          styles.card,
-          {
-            transform: [
-              { translateX: pan.x },
-              { translateY: pan.y },
-              { rotate },
-              { scale: cardScale },
-            ],
-            opacity: cardOpacity,
-          },
-        ]}
-        {...panResponder.panHandlers}
-      >
-        <TouchableOpacity
-          style={styles.cardTouchable}
-          onPress={() => setShowDetails(true)}
-          activeOpacity={0.95}
+      {/* ──── Paper Card (real physics) ─────────────── */}
+      <GestureDetector gesture={composedGesture}>
+        <Animated.View
+          style={[styles.card, cardAnimatedStyle]}
         >
-          {/* Top row: category + stage */}
-          <View style={styles.cardTopRow}>
-            <View style={[styles.categoryBadge, { backgroundColor: categoryColor + '22', borderColor: categoryColor + '55' }]}>
-              <View style={[styles.categoryDot, { backgroundColor: categoryColor }]} />
-              <Text style={[styles.categoryText, { color: categoryColor }]}>
-                {currentIdea.category}
-              </Text>
+          <View style={styles.cardTouchable}>
+            {/* Top row: category + stage */}
+            <View style={styles.cardTopRow}>
+              <View style={[styles.categoryBadge, { backgroundColor: categoryColor + '22', borderColor: categoryColor + '55' }]}>
+                <View style={[styles.categoryDot, { backgroundColor: categoryColor }]} />
+                <Text style={[styles.categoryText, { color: categoryColor }]}>
+                  {currentIdea.category}
+                </Text>
+              </View>
+              <View style={[styles.stageBadge, { backgroundColor: stageColor + '22', borderColor: stageColor + '55' }]}>
+                <Text style={[styles.stageText, { color: stageColor }]}>
+                  {currentIdea.stage}
+                </Text>
+              </View>
             </View>
-            <View style={[styles.stageBadge, { backgroundColor: stageColor + '22', borderColor: stageColor + '55' }]}>
-              <Text style={[styles.stageText, { color: stageColor }]}>
-                {currentIdea.stage}
-              </Text>
-            </View>
-          </View>
 
-          {/* Title */}
-          <Text style={styles.cardTitle} numberOfLines={2}>
-            {currentIdea.pitchTitle || currentIdea.title}
-          </Text>
+            {/* Title */}
+            <Text style={styles.cardTitle} numberOfLines={2}>
+              {currentIdea.pitchTitle || currentIdea.title}
+            </Text>
 
-          {/* Summary */}
-          <Text style={styles.cardSummary} numberOfLines={2}>
-            {currentIdea.oneLineSummary}
-          </Text>
+            {/* Summary */}
+            <Text style={styles.cardSummary} numberOfLines={2}>
+              {currentIdea.oneLineSummary}
+            </Text>
 
-          {/* Divider line */}
-          <View style={styles.divider} />
+            {/* Divider */}
+            <View style={styles.divider} />
 
-          {/* Pitch preview cards */}
-          {previewPitchCards.length > 0 && (
-            <View style={styles.pitchPreviewContainer}>
-              {previewPitchCards.map((pc, idx) => (
-                <View key={idx} style={styles.pitchPreviewCard}>
-                  <Text style={styles.pitchPreviewEmoji}>{pc.emoji}</Text>
-                  <View style={styles.pitchPreviewText}>
-                    <Text style={styles.pitchPreviewLabel}>{pc.label}</Text>
-                    <Text style={styles.pitchPreviewBody} numberOfLines={2}>
-                      {pc.text}
-                    </Text>
+            {/* Pitch preview cards */}
+            {previewPitchCards.length > 0 && (
+              <View style={styles.pitchPreviewContainer}>
+                {previewPitchCards.map((pc, idx) => (
+                  <View key={idx} style={styles.pitchPreviewCard}>
+                    <Text style={styles.pitchPreviewEmoji}>{pc.emoji}</Text>
+                    <View style={styles.pitchPreviewText}>
+                      <Text style={styles.pitchPreviewLabel}>{pc.label}</Text>
+                      <Text style={styles.pitchPreviewBody} numberOfLines={2}>
+                        {pc.text}
+                      </Text>
+                    </View>
                   </View>
-                </View>
-              ))}
-            </View>
-          )}
+                ))}
+              </View>
+            )}
 
-          {/* Bottom hint */}
-          <View style={styles.cardBottomRow}>
-            <Text style={styles.tapHint}>Tap for full details</Text>
-            <View style={styles.swipeHints}>
-              <Text style={styles.swipeHintText}>↓ reject</Text>
-              <Text style={styles.swipeHintDot}>·</Text>
-              <Text style={styles.swipeHintText}>→ save</Text>
+            {/* Bottom hint */}
+            <View style={styles.cardBottomRow}>
+              <Text style={styles.tapHint}>Tap for full details</Text>
+              <View style={styles.swipeHints}>
+                <Text style={styles.swipeHintText}>↓ reject</Text>
+                <Text style={styles.swipeHintDot}>·</Text>
+                <Text style={styles.swipeHintText}>→ save</Text>
+              </View>
             </View>
           </View>
-        </TouchableOpacity>
-      </Animated.View>
+        </Animated.View>
+      </GestureDetector>
 
       {/* ═══════════════════════════════════════════════ */}
       {/* DETAIL MODAL                                   */}
@@ -542,7 +683,6 @@ const PaperTossScreen: React.FC = () => {
         onRequestClose={() => setShowDetails(false)}
       >
         <View style={styles.detailModal}>
-          {/* Header */}
           <View style={styles.detailHeader}>
             <View style={{ flex: 1 }}>
               <Text style={styles.detailHeaderTitle}>Idea Details</Text>
@@ -561,7 +701,6 @@ const PaperTossScreen: React.FC = () => {
             contentContainerStyle={styles.detailScrollContent}
             showsVerticalScrollIndicator={false}
           >
-            {/* Top badges */}
             <View style={styles.detailBadgeRow}>
               <View style={[styles.categoryBadge, { backgroundColor: categoryColor + '22', borderColor: categoryColor + '55' }]}>
                 <View style={[styles.categoryDot, { backgroundColor: categoryColor }]} />
@@ -576,13 +715,11 @@ const PaperTossScreen: React.FC = () => {
               </View>
             </View>
 
-            {/* Title + summary */}
             <Text style={styles.detailTitle}>
               {currentIdea.pitchTitle || currentIdea.title}
             </Text>
             <Text style={styles.detailSummary}>{currentIdea.oneLineSummary}</Text>
 
-            {/* Pitch cards */}
             {pitchCards.length > 0 && (
               <View style={styles.pitchCardGrid}>
                 {pitchCards.map((pc, idx) => (
@@ -597,7 +734,6 @@ const PaperTossScreen: React.FC = () => {
               </View>
             )}
 
-            {/* Extra legacy fields that don't appear in pitch cards */}
             {currentIdea.monetization && !currentIdea.pitchIdea && (
               <View style={styles.legacySection}>
                 <Text style={styles.legacySectionTitle}>💰  Monetization</Text>
@@ -627,7 +763,6 @@ const PaperTossScreen: React.FC = () => {
       >
         <View style={styles.creditOverlay}>
           <View style={styles.creditContainer}>
-            {/* Header */}
             <View style={styles.creditHeader}>
               <Text style={styles.creditEmoji}>⚡</Text>
               <Text style={styles.creditTitle}>Invest Tokens</Text>
@@ -636,7 +771,6 @@ const PaperTossScreen: React.FC = () => {
               </Text>
             </View>
 
-            {/* Token type selector */}
             <View style={styles.creditGrid}>
               {TOKEN_TYPES.map((tt) => {
                 const meta = TOKEN_META[tt];
@@ -665,7 +799,6 @@ const PaperTossScreen: React.FC = () => {
               })}
             </View>
 
-            {/* Amount options */}
             <View style={styles.creditGrid}>
               {[25, 50, 100, 200].map((amount) => {
                 const isSelected = selectedAmount === amount;
@@ -703,7 +836,6 @@ const PaperTossScreen: React.FC = () => {
               })}
             </View>
 
-            {/* Actions */}
             <TouchableOpacity
               style={[
                 styles.creditInvestBtn,
@@ -737,18 +869,15 @@ const PaperTossScreen: React.FC = () => {
 };
 
 // ═══════════════════════════════════════════════════════
-// STYLES
+// STYLES (unchanged from original)
 // ═══════════════════════════════════════════════════════
 const styles = StyleSheet.create({
-  // ─── Container ──────────────────────────────────────
   container: {
     flex: 1,
     backgroundColor: COLORS.bg,
     justifyContent: 'center',
     alignItems: 'center',
   },
-
-  // ─── Header ─────────────────────────────────────────
   header: {
     position: 'absolute',
     top: Platform.OS === 'ios' ? 60 : 36,
@@ -766,8 +895,6 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     marginTop: 2,
   },
-
-  // ─── Loading State ──────────────────────────────────
   spinnerEmoji: {
     fontSize: 48,
   },
@@ -782,8 +909,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.textMuted,
   },
-
-  // ─── Empty State ────────────────────────────────────
   emptyContainer: {
     alignItems: 'center',
     paddingHorizontal: 40,
@@ -818,8 +943,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-
-  // ─── Indicators ─────────────────────────────────────
   indicator: {
     position: 'absolute',
     alignItems: 'center',
@@ -849,8 +972,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
-
-  // ─── Paper Card ─────────────────────────────────────
   card: {
     width: CARD_WIDTH,
     height: CARD_HEIGHT,
@@ -858,7 +979,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.card,
     borderWidth: 1,
     borderColor: COLORS.border,
-    // Layered shadow for depth
     ...Platform.select({
       ios: {
         shadowColor: '#000',
@@ -876,8 +996,6 @@ const styles = StyleSheet.create({
     padding: 24,
     justifyContent: 'flex-start',
   },
-
-  // Card top row
   cardTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -914,8 +1032,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.3,
   },
-
-  // Card body
   cardTitle: {
     fontSize: 24,
     fontWeight: '800',
@@ -935,8 +1051,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.border,
     marginBottom: 16,
   },
-
-  // Pitch preview on card face
   pitchPreviewContainer: {
     gap: 10,
     marginBottom: 12,
@@ -971,8 +1085,6 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     lineHeight: 18,
   },
-
-  // Card bottom
   cardBottomRow: {
     position: 'absolute',
     bottom: 20,
@@ -999,8 +1111,6 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
     marginHorizontal: 6,
   },
-
-  // ─── Detail Modal ───────────────────────────────────
   detailModal: {
     flex: 1,
     backgroundColor: COLORS.bg,
@@ -1060,8 +1170,6 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     marginBottom: 24,
   },
-
-  // Pitch detail cards
   pitchCardGrid: {
     gap: 14,
   },
@@ -1093,8 +1201,6 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
     lineHeight: 23,
   },
-
-  // Legacy sections
   legacySection: {
     marginTop: 20,
     backgroundColor: COLORS.card,
@@ -1114,8 +1220,6 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     lineHeight: 23,
   },
-
-  // ─── Credit Modal ───────────────────────────────────
   creditOverlay: {
     flex: 1,
     backgroundColor: COLORS.overlay,

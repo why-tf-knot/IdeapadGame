@@ -21,6 +21,7 @@ import PitchSummaryScreen from './src/screens/PitchSummaryScreen';
 import ThreadsListScreen from './src/screens/ThreadsListScreen';
 import ChatScreen from './src/screens/ChatScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
+import PranaExchangeScreen from './src/screens/PranaExchangeScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -64,6 +65,20 @@ function FounderTabs({ onLogout }: { onLogout: () => void }) {
         {(props: any) => (
           <ErrorBoundary screenName="ThreadsList">
             <ThreadsListScreen {...props} />
+          </ErrorBoundary>
+        )}
+      </Tab.Screen>
+
+      <Tab.Screen
+        name="Prana"
+        options={{
+          tabBarLabel: 'Prana ₽',
+          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>💰</Text>,
+        }}
+      >
+        {(props: any) => (
+          <ErrorBoundary screenName="PranaExchange">
+            <PranaExchangeScreen {...props} />
           </ErrorBoundary>
         )}
       </Tab.Screen>
@@ -122,10 +137,16 @@ function MainStack({ onLogout }: { onLogout: () => void }) {
         options={{ title: 'Idea Details' }}
       />
       <Stack.Screen
-        name="Chat"
-        component={ChatScreen}
-        options={{ title: 'Chat' }}
+        name="PranaExchange"
+        component={PranaExchangeScreen}
+        options={{ title: 'Exchange Prana ₽' }}
       />
+      <Stack.Screen
+        name="Chat"
+        options={{ title: 'Chat' }}
+      >
+        {(props: any) => <ChatScreen {...props} />}
+      </Stack.Screen>
     </Stack.Navigator>
   );
 }

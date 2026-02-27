@@ -7,6 +7,10 @@ export interface IIdeaAiBalance extends Document {
   anthropicBalance: number;
   perplexityBalance: number;
   chatgptBalance: number;
+  mistralBalance: number;
+  deepseekBalance: number;
+  grokBalance: number;
+  llamaBalance: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -19,6 +23,10 @@ const IdeaAiBalanceSchema = new Schema<IIdeaAiBalance>(
     anthropicBalance: { type: Number, default: 0, min: 0 },
     perplexityBalance: { type: Number, default: 0, min: 0 },
     chatgptBalance: { type: Number, default: 0, min: 0 },
+    mistralBalance: { type: Number, default: 0, min: 0 },
+    deepseekBalance: { type: Number, default: 0, min: 0 },
+    grokBalance: { type: Number, default: 0, min: 0 },
+    llamaBalance: { type: Number, default: 0, min: 0 },
   },
   { timestamps: true }
 );

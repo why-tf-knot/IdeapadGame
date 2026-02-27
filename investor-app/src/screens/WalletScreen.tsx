@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { creditsAPI } from '../services/api';
-import { WalletInfo, TOKEN_TYPES, TOKEN_META, TokenType } from '../types';
+import { WalletInfo, TOKEN_TYPES, TOKEN_META, TokenType, TIER_META, InvestorTier } from '../types';
 import { COLORS, RADIUS, SHADOWS, SPACING } from '../theme';
 
 interface WalletScreenProps {
@@ -116,6 +116,35 @@ const WalletScreen: React.FC<WalletScreenProps> = ({ navigation }) => {
         <Text style={styles.balanceSub}>AI tokens ready to invest</Text>
       </View>
 
+      {/* Current Tier Banner */}
+      {(() => {
+        const tier: InvestorTier = walletInfo.wallet.tier || 'SHISHYA';
+        const meta = TIER_META[tier];
+        return (
+          <TouchableOpacity
+            style={[styles.tierBanner, { borderColor: meta.color }]}
+            activeOpacity={0.7}
+            onPress={() =>
+              navigation.navigate('TierSelection', {
+                currentTier: tier,
+                onTierChanged: () => loadWalletInfo(),
+              })
+            }
+          >
+            <Text style={styles.tierBannerIcon}>{meta.icon}</Text>
+            <View style={styles.tierBannerInfo}>
+              <Text style={[styles.tierBannerName, { color: meta.color }]}>
+                {meta.label} Tier
+              </Text>
+              <Text style={styles.tierBannerSub}>
+                {meta.totalGrant.toLocaleString()} tokens / month
+              </Text>
+            </View>
+            <Text style={styles.tierBannerArrow}>›</Text>
+          </TouchableOpacity>
+        );
+      })()}
+
       {/* Per-token grid */}
       <View style={styles.tokenGrid}>
         {TOKEN_TYPES.map((tt) => {
@@ -133,24 +162,32 @@ const WalletScreen: React.FC<WalletScreenProps> = ({ navigation }) => {
       </View>
 
       {/* Claim Monthly Grant */}
-      <TouchableOpacity
-        style={[styles.grantBtn, claiming && { opacity: 0.6 }]}
-        disabled={claiming}
-        activeOpacity={0.7}
-        onPress={async () => {
-          setClaiming(true);
-          try {
-            const result = await creditsAPI.claimMonthlyGrant();
-            Alert.alert('Tokens Granted!', result.message);
-            loadWalletInfo();
-          } catch (error: any) {
-            Alert.alert('Error', error.response?.data?.error || 'Failed to claim grant');
-          } finally {
-            setClaiming(false);
-          }
-        }}>
-        <Text style={styles.grantBtnText}>{claiming ? 'Claiming…' : '🎁  Claim Monthly Token Grant'}</Text>
-      </TouchableOpacity>
+      {(() => {
+        const tier: InvestorTier = walletInfo.wallet.tier || 'SHISHYA';
+        const meta = TIER_META[tier];
+        return (
+          <TouchableOpacity
+            style={[styles.grantBtn, { backgroundColor: meta.color }, claiming && { opacity: 0.6 }]}
+            disabled={claiming}
+            activeOpacity={0.7}
+            onPress={async () => {
+              setClaiming(true);
+              try {
+                const result = await creditsAPI.claimMonthlyGrant();
+                Alert.alert('Tokens Granted!', result.message);
+                loadWalletInfo();
+              } catch (error: any) {
+                Alert.alert('Error', error.response?.data?.error || 'Failed to claim grant');
+              } finally {
+                setClaiming(false);
+              }
+            }}>
+            <Text style={styles.grantBtnText}>
+              {claiming ? 'Claiming…' : `${meta.icon}  Claim ${meta.label} Grant (${meta.totalGrant} tokens)`}
+            </Text>
+          </TouchableOpacity>
+        );
+      })()}
 
       {/* Info card */}
       <View style={styles.infoCard}>
@@ -319,7 +356,6 @@ const styles = StyleSheet.create({
   },
   /* ---- Grant button ---- */
   grantBtn: {
-    backgroundColor: COLORS.accent,
     marginHorizontal: SPACING.lg,
     marginBottom: SPACING.md,
     padding: 16,
@@ -329,8 +365,41 @@ const styles = StyleSheet.create({
   },
   grantBtnText: {
     color: COLORS.white,
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  /* ---- Tier banner ---- */
+  tierBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.cardBg,
+    marginHorizontal: SPACING.lg,
+    marginBottom: SPACING.md,
+    padding: 14,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1.5,
+    ...SHADOWS.sm,
+  },
+  tierBannerIcon: {
+    fontSize: 28,
+    marginRight: 12,
+  },
+  tierBannerInfo: {
+    flex: 1,
+  },
+  tierBannerName: {
     fontSize: 16,
     fontWeight: '800',
+  },
+  tierBannerSub: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+  },
+  tierBannerArrow: {
+    fontSize: 28,
+    color: COLORS.textMuted,
+    fontWeight: '300',
   },
   /* ---- Info card ---- */
   infoCard: {

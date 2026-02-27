@@ -19,6 +19,7 @@ import IdeaEquityScreen from './src/screens/IdeaEquityScreen';
 import ThreadsListScreen from './src/screens/ThreadsListScreen';
 import ChatScreen from './src/screens/ChatScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
+import TierSelectionScreen from './src/screens/TierSelectionScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -133,10 +134,16 @@ function MainStack({ onLogout }: { onLogout: () => void }) {
         options={{ title: 'Equity Breakdown' }}
       />
       <Stack.Screen
-        name="Chat"
-        component={ChatScreen}
-        options={{ title: 'Chat' }}
+        name="TierSelection"
+        component={TierSelectionScreen}
+        options={{ title: 'Select Tier' }}
       />
+      <Stack.Screen
+        name="Chat"
+        options={{ title: 'Chat' }}
+      >
+        {(props: any) => <ChatScreen {...props} />}
+      </Stack.Screen>
     </Stack.Navigator>
   );
 }

@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { User } from '../models/User';
+import { FounderPranaWallet, FOUNDER_INITIAL_PRANA, PRANA_MARKET_RATES } from '../models/FounderPranaWallet';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
 
 const router = express.Router();
@@ -30,6 +31,12 @@ router.post('/register', async (req: Request, res: Response) => {
     });
     await user.save();
 
+    // Create Prana wallet for the new founder
+    await FounderPranaWallet.create({
+      userId: user._id,
+      pranaBalance: FOUNDER_INITIAL_PRANA,
+    });
+
     const token = jwt.sign(
       { userId: user._id, role: 'FOUNDER' },
       process.env.JWT_SECRET || 'your-secret-key',
@@ -43,6 +50,7 @@ router.post('/register', async (req: Request, res: Response) => {
         name: user.name,
         email: user.email,
         role: 'FOUNDER',
+        pranaBalance: FOUNDER_INITIAL_PRANA,
       },
     });
   } catch (error) {
@@ -98,12 +106,24 @@ router.get('/me', authMiddleware, async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
+    // Load or lazily create Prana wallet
+    let pranaWallet = await FounderPranaWallet.findOne({ userId: user._id });
+    if (!pranaWallet) {
+      pranaWallet = await FounderPranaWallet.create({
+        userId: user._id,
+        pranaBalance: FOUNDER_INITIAL_PRANA,
+      });
+    }
+
     res.json({
       user: {
         id: user._id,
         name: user.name,
         email: user.email,
         role: user.role,
+        pranaBalance: pranaWallet.pranaBalance,
+        totalExchanged: pranaWallet.totalExchanged,
+        pranaRates: PRANA_MARKET_RATES,
       },
     });
   } catch (error) {

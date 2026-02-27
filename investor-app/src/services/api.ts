@@ -13,6 +13,7 @@ import {
   TokenBalances,
   ChatThread,
   ChatMessage,
+  InvestorTier,
 } from '../types';
 
 // Investor backend
@@ -103,8 +104,18 @@ export const creditsAPI = {
     return response.data;
   },
 
-  claimMonthlyGrant: async (): Promise<{ message: string; granted: Record<string, number>; newBalances: TokenBalances }> => {
+  claimMonthlyGrant: async (): Promise<{ message: string; tier: InvestorTier; granted: Record<string, number>; newBalances: TokenBalances }> => {
     const response = await api.post('/credits/grant');
+    return response.data;
+  },
+
+  selectTier: async (tier: InvestorTier): Promise<{ message: string; tier: InvestorTier }> => {
+    const response = await api.post('/credits/tier/select', { tier });
+    return response.data;
+  },
+
+  getTiers: async (): Promise<{ tiers: { id: InvestorTier; grants: Record<string, number>; totalGrant: number }[] }> => {
+    const response = await api.get('/credits/tiers');
     return response.data;
   },
 };
