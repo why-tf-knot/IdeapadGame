@@ -470,7 +470,7 @@
         <div id="reviewPhase">
           <div style="padding:12px 20px 0;">
             <div style="font-size:24px;font-weight:800;">Review Ideas</div>
-            <div style="font-size:13px;color:#8899B0;">Tap card · drag ↓ throw · drag → save</div>
+            <div style="font-size:13px;color:#8899B0;">Swipe → save · Swipe ↓ crumple & throw</div>
           </div>
           <div class="toss-stats" id="tossStats">
             <span>📥 Saved: <b class="count" id="saveCount">0</b></span>
@@ -1140,14 +1140,15 @@ const IDEAS = [
 ];
 
 // ─── State ────────────────────────────────────────────────
-// Phase machine: 'card' → 'crumpled' → 'ball-dragging' → 'flying' → 'result' → back to 'card'
+// Phase machine: 'card' → 'card-dragging-down' → 'flying' → 'result' → back to 'card'
 let GS = {
   phase: 'card',        // current phase
   cardIndex: 0,
   saveCount: 0,
   rejectCount: 0,
-  // Card drag (before tap)
+  // Card drag
   cardDragStartX: 0, cardDragStartY: 0,
+  hasCrumpled: false,   // did card crumple during this drag?
   // Ball drag
   ballStartX: 0, ballStartY: 0,   // where ball appeared after crumple
   ballX: 0, ballY: 0,             // current ball position
@@ -1217,158 +1218,140 @@ function renderCard(index) {
     '<div style="height:1px;background:#1E2D45;margin:14px 0;"></div>' +
     '<div class="pitch-preview"><div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;"><span>🎯</span><span class="label">THE PROBLEM</span></div><div class="body">' + idea.problem + '</div></div>' +
     '<div class="pitch-preview" style="margin-top:8px;"><div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;"><span>💡</span><span class="label">THE SOLUTION</span></div><div class="body">' + idea.solution + '</div></div>' +
-    '<div style="display:flex;justify-content:center;margin-top:14px;font-size:12px;color:#556680;">👆 Tap to crumple · then drag ↓ throw or → save</div>';
+    '<div style="display:flex;justify-content:center;margin-top:14px;font-size:12px;color:#556680;">👆 Swipe → to save · Swipe ↓ to crumple & throw</div>';
   area.appendChild(card);
 
-  // Tap / click on card → crumple
+  // Direct card drag — swipe right = save, swipe down = crumple into ball & throw
   card.addEventListener('pointerdown', onCardPointerDown);
-  card.addEventListener('pointermove', onCardPointerMove);
-  card.addEventListener('pointerup', onCardPointerUp);
-  card.addEventListener('pointercancel', onCardPointerUp);
 
   document.getElementById('binScore').textContent = GS.score;
 }
 
 // ═══════════════════════════════════════════════════════════
-//  CARD INTERACTION — Tap to crumple
+//  CARD INTERACTION — Direct swipe on the card
+//  RIGHT → save (card slides out)
+//  DOWN  → card crumples into ball mid-drag → room + power
 // ═══════════════════════════════════════════════════════════
 
 function onCardPointerDown(e) {
   if (GS.phase !== 'card') return;
   const card = document.getElementById('currentCard');
   if (!card) return;
+  e.preventDefault();
   card.setPointerCapture(e.pointerId);
   GS.cardDragStartX = e.clientX;
   GS.cardDragStartY = e.clientY;
+  GS.dragDX = 0;
+  GS.dragDY = 0;
+  GS.hasCrumpled = false;   // track if we already crumpled during this drag
+  GS.power = 0;
+  GS.roomOpacity = 0;
   card.classList.remove('idle-float', 'snap-back');
+  card.style.transition = 'none';
+
+  card.addEventListener('pointermove', onCardPointerMove);
+  card.addEventListener('pointerup', onCardPointerUp);
+  card.addEventListener('pointercancel', onCardPointerUp);
 }
 
 function onCardPointerMove(e) {
-  // Allow small movement so tap is still recognized; we don't move the card
-}
-
-function onCardPointerUp(e) {
-  if (GS.phase !== 'card') return;
+  if (GS.phase !== 'card' && GS.phase !== 'card-dragging-down') return;
   const card = document.getElementById('currentCard');
   if (!card) return;
-  const dx = Math.abs(e.clientX - GS.cardDragStartX);
-  const dy = Math.abs(e.clientY - GS.cardDragStartY);
 
-  // If pointer barely moved, treat as tap → crumple
-  if (dx < 15 && dy < 15) {
-    crumpleCard(card);
-  } else {
-    // Moved too much → snap back
-    card.classList.add('idle-float');
-  }
-}
-
-// ═══════════════════════════════════════════════════════════
-//  CRUMPLE → SHOW BALL
-// ═══════════════════════════════════════════════════════════
-
-function crumpleCard(card) {
-  GS.phase = 'crumpling'; // transitional
-  card.classList.add('crumpling');
-
-  // Get card center position for ball placement
-  const area = document.getElementById('tossArea');
-  const areaRect = area.getBoundingClientRect();
-  const cardRect = card.getBoundingClientRect();
-  const centerX = cardRect.left + cardRect.width / 2 - areaRect.left;
-  const centerY = cardRect.top + cardRect.height / 2 - areaRect.top;
-
-  // After crumple animation, show the ball
-  setTimeout(() => {
-    card.style.display = 'none';
-
-    // Place paper ball where card was
-    const ball = document.getElementById('paperBall');
-    // Use position relative to tossBg container
-    const bg = document.getElementById('tossBg');
-    const bgRect = bg.getBoundingClientRect();
-    const bx = cardRect.left + cardRect.width / 2 - bgRect.left;
-    const by = cardRect.top + cardRect.height / 2 - bgRect.top;
-
-    GS.ballStartX = bx;
-    GS.ballStartY = by;
-    GS.ballX = bx;
-    GS.ballY = by;
-
-    ball.style.left = bx + 'px';
-    ball.style.top = by + 'px';
-    ball.classList.add('visible');
-
-    // Generate wind for this throw
-    GS.wind = (Math.random() - 0.5) * 2.4;
-    updateWindHUD();
-
-    // Init canvas if needed
-    if (!TG.canvas) initCanvas();
-
-    GS.phase = 'crumpled';
-
-    // Attach ball drag listeners
-    ball.addEventListener('pointerdown', onBallDown);
-  }, 420);
-}
-
-// ═══════════════════════════════════════════════════════════
-//  BALL DRAG — Right = Save, Down = Room reveals + Power
-// ═══════════════════════════════════════════════════════════
-
-function onBallDown(e) {
-  if (GS.phase !== 'crumpled') return;
-  e.preventDefault();
-  const ball = document.getElementById('paperBall');
-  ball.setPointerCapture(e.pointerId);
-  ball.classList.add('dragging');
-  GS.pointerId = e.pointerId;
-  GS.phase = 'ball-dragging';
-  GS.dragStartX = e.clientX;
-  GS.dragStartY = e.clientY;
-  GS.dragDX = 0;
-  GS.dragDY = 0;
-  GS.roomOpacity = 0;
-  GS.power = 0;
-
-  ball.addEventListener('pointermove', onBallMove);
-  ball.addEventListener('pointerup', onBallUp);
-  ball.addEventListener('pointercancel', onBallUp);
-}
-
-function onBallMove(e) {
-  if (GS.phase !== 'ball-dragging') return;
-  const dx = e.clientX - GS.dragStartX;
-  const dy = e.clientY - GS.dragStartY;
+  const dx = e.clientX - GS.cardDragStartX;
+  const dy = e.clientY - GS.cardDragStartY;
   GS.dragDX = dx;
   GS.dragDY = dy;
 
-  // Move ball
-  GS.ballX = GS.ballStartX + dx;
-  GS.ballY = GS.ballStartY + dy;
-  const ball = document.getElementById('paperBall');
-  ball.style.left = GS.ballX + 'px';
-  ball.style.top = GS.ballY + 'px';
+  // Ignore tiny movements (dead zone)
+  if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
 
-  // ── Dragging DOWN → room fades in, power builds ──
-  if (dy > 30 && dy > Math.abs(dx) * 0.7) {
-    GS.power = Math.min(1, dy / 250);
-    GS.roomOpacity = Math.min(1, dy / 180);
+  // ── SWIPING RIGHT → card slides right, show INVEST badge ──
+  if (dx > 10 && dx > Math.abs(dy) * 0.8 && !GS.hasCrumpled) {
+    GS.phase = 'card'; // stay in card phase for right swipe
+    const progress = Math.min(1, dx / 180);
+    card.style.transform = 'translateX(' + dx + 'px) rotate(' + (dx * 0.06) + 'deg)';
+    card.style.opacity = Math.max(0.3, 1 - progress * 0.5);
 
-    // Show room canvas behind
+    // Show INVEST badge
+    const sb = document.getElementById('saveBadge');
+    sb.classList.toggle('visible', progress > 0.15);
+
+    // Hide reject badge
+    document.getElementById('rejectBadge').classList.remove('visible');
+
+    // Show save zone hint
+    document.getElementById('saveZoneHint').classList.toggle('visible', progress > 0.2);
+
+    // Hide room/power stuff
+    document.getElementById('throwCanvas').style.opacity = '0';
+    document.getElementById('powerMeter').classList.remove('visible');
+    document.getElementById('powerLabel').classList.remove('visible');
+    document.getElementById('throwHud').classList.remove('visible');
+
+  // ── SWIPING DOWN → crumple card into ball, show room + power ──
+  } else if (dy > 15 && dy > Math.abs(dx) * 0.6) {
+
+    // First time crossing down threshold → crumple the card
+    if (!GS.hasCrumpled) {
+      GS.hasCrumpled = true;
+      GS.phase = 'card-dragging-down';
+
+      // Crumple animation on the card
+      card.classList.add('crumpling');
+
+      // Compute ball start position from card center
+      const bg = document.getElementById('tossBg');
+      const bgRect = bg.getBoundingClientRect();
+      const cardRect = card.getBoundingClientRect();
+      const bx = cardRect.left + cardRect.width / 2 - bgRect.left;
+      const by = cardRect.top + cardRect.height / 2 - bgRect.top;
+      GS.ballStartX = bx;
+      GS.ballStartY = by;
+      GS.ballX = bx;
+      GS.ballY = by;
+
+      // After crumple animation finishes, hide card and show ball
+      setTimeout(() => {
+        card.style.display = 'none';
+        const ball = document.getElementById('paperBall');
+        ball.style.left = GS.ballX + 'px';
+        ball.style.top = GS.ballY + 'px';
+        ball.classList.add('visible');
+      }, 350);
+
+      // Generate wind
+      GS.wind = (Math.random() - 0.5) * 2.4;
+      updateWindHUD();
+      if (!TG.canvas) initCanvas();
+    }
+
+    // Move ball as user drags further down (even during crumple animation)
+    const effectiveDY = dy - 15; // subtract the threshold
+    GS.ballX = GS.ballStartX + dx * 0.3; // slight horizontal drift
+    GS.ballY = GS.ballStartY + effectiveDY;
+    const ball = document.getElementById('paperBall');
+    if (ball.classList.contains('visible')) {
+      ball.style.left = GS.ballX + 'px';
+      ball.style.top = GS.ballY + 'px';
+    }
+
+    // Room fades in based on down distance
+    GS.power = Math.min(1, effectiveDY / 220);
+    GS.roomOpacity = Math.min(1, effectiveDY / 160);
+
     const cv = document.getElementById('throwCanvas');
     cv.style.opacity = GS.roomOpacity;
-    // Draw room on canvas
     if (!TG.ctx) initCanvas();
     drawRoomFrame();
 
-    // Show power meter
+    // Power meter
     document.getElementById('powerMeter').classList.add('visible');
     document.getElementById('powerLabel').classList.add('visible');
     document.getElementById('powerFill').style.height = (GS.power * 100) + '%';
 
-    // Show HUD when room is visible enough
+    // HUD when room is visible enough
     if (GS.roomOpacity > 0.4) {
       document.getElementById('throwHud').classList.add('visible');
     }
@@ -1376,73 +1359,88 @@ function onBallMove(e) {
     // Fade out review phase UI
     document.getElementById('reviewPhase').style.opacity = Math.max(0, 1 - GS.roomOpacity * 1.5);
 
-    // Hide save hint
+    // Hide save hints
     document.getElementById('saveZoneHint').classList.remove('visible');
-
-    // Show NOPE badge on the ball area
-    const rb = document.getElementById('rejectBadge');
-    rb.style.position = 'fixed';
-    rb.style.display = 'none'; // don't show badge during ball drag
-
-  // ── Dragging RIGHT → save indicator ──
-  } else if (dx > 30 && dx > Math.abs(dy) * 0.7) {
-    // Hide room/power
-    document.getElementById('throwCanvas').style.opacity = '0';
-    document.getElementById('powerMeter').classList.remove('visible');
-    document.getElementById('powerLabel').classList.remove('visible');
-    document.getElementById('throwHud').classList.remove('visible');
-    document.getElementById('reviewPhase').style.opacity = '1';
-
-    // Show save zone hint
-    const saveProgress = Math.min(1, dx / 150);
-    document.getElementById('saveZoneHint').classList.toggle('visible', saveProgress > 0.2);
-    GS.power = 0;
+    document.getElementById('saveBadge').classList.remove('visible');
 
   } else {
-    // Neutral — hide everything
+    // Neutral / slight drag — just tilt the card slightly
+    if (!GS.hasCrumpled) {
+      card.style.transform = 'translateX(' + (dx * 0.3) + 'px) translateY(' + (dy * 0.3) + 'px) rotate(' + (dx * 0.03) + 'deg)';
+    }
+    // Hide all indicators
+    document.getElementById('saveBadge').classList.remove('visible');
+    document.getElementById('rejectBadge').classList.remove('visible');
+    document.getElementById('saveZoneHint').classList.remove('visible');
     document.getElementById('throwCanvas').style.opacity = '0';
     document.getElementById('powerMeter').classList.remove('visible');
     document.getElementById('powerLabel').classList.remove('visible');
     document.getElementById('throwHud').classList.remove('visible');
-    document.getElementById('saveZoneHint').classList.remove('visible');
     document.getElementById('reviewPhase').style.opacity = '1';
     GS.power = 0;
   }
 }
 
-function onBallUp(e) {
-  if (GS.phase !== 'ball-dragging') return;
-  const ball = document.getElementById('paperBall');
-  ball.classList.remove('dragging');
-  ball.removeEventListener('pointermove', onBallMove);
-  ball.removeEventListener('pointerup', onBallUp);
-  ball.removeEventListener('pointercancel', onBallUp);
+function onCardPointerUp(e) {
+  if (GS.phase !== 'card' && GS.phase !== 'card-dragging-down') return;
+  const card = document.getElementById('currentCard');
+
+  // Remove listeners
+  if (card) {
+    card.removeEventListener('pointermove', onCardPointerMove);
+    card.removeEventListener('pointerup', onCardPointerUp);
+    card.removeEventListener('pointercancel', onCardPointerUp);
+  }
 
   const dx = GS.dragDX;
   const dy = GS.dragDY;
 
-  // ── SAVE: dragged far enough right ──
-  if (dx > 100 && dx > Math.abs(dy) * 0.7) {
+  // ── SAVE: swiped card far enough right (no crumple happened) ──
+  if (!GS.hasCrumpled && dx > 100 && dx > Math.abs(dy) * 0.7) {
+    // Animate card flying off to the right
+    if (card) {
+      card.style.transition = 'transform 0.4s ease-out, opacity 0.3s ease-out';
+      card.style.transform = 'translateX(500px) rotate(20deg)';
+      card.style.opacity = '0';
+    }
+    document.getElementById('saveBadge').classList.remove('visible');
+    document.getElementById('saveZoneHint').classList.remove('visible');
     doSave();
     return;
   }
 
-  // ── THROW: dragged far enough down with power ──
-  if (dy > 60 && GS.power > 0.15) {
+  // ── THROW: dragged down, crumpled, enough power ──
+  if (GS.hasCrumpled && dy > 50 && GS.power > 0.15) {
     launchThrow();
     return;
   }
 
-  // ── Not enough — snap ball back ──
-  GS.phase = 'crumpled';
-  GS.ballX = GS.ballStartX;
-  GS.ballY = GS.ballStartY;
-  ball.style.left = GS.ballStartX + 'px';
-  ball.style.top = GS.ballStartY + 'px';
-  hideRoomCanvas();
-  hidePowerUI();
-  document.getElementById('reviewPhase').style.opacity = '1';
-  document.getElementById('saveZoneHint').classList.remove('visible');
+  // ── Not enough — snap back ──
+  if (GS.hasCrumpled) {
+    // Ball snaps back to start position
+    GS.phase = 'card';
+    GS.hasCrumpled = false;
+    // Reset: hide ball, show card again
+    hideBallUI();
+    hideRoomCanvas();
+    hidePowerUI();
+    document.getElementById('reviewPhase').style.opacity = '1';
+    document.getElementById('saveZoneHint').classList.remove('visible');
+    // Re-render the card
+    renderCard(GS.cardIndex);
+  } else {
+    // Card wasn't crumpled, just snap it back
+    GS.phase = 'card';
+    if (card) {
+      card.style.transition = 'transform 0.35s cubic-bezier(.175,.885,.32,1.275)';
+      card.style.transform = '';
+      card.style.opacity = '1';
+      setTimeout(() => { card.classList.add('idle-float'); card.style.transition = ''; }, 350);
+    }
+    document.getElementById('saveBadge').classList.remove('visible');
+    document.getElementById('rejectBadge').classList.remove('visible');
+    document.getElementById('saveZoneHint').classList.remove('visible');
+  }
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1472,6 +1470,7 @@ function doSave() {
 
 function launchThrow() {
   GS.phase = 'flying';
+  GS.hasCrumpled = false;
 
   // Count as reject
   GS.rejectCount++;
@@ -1480,7 +1479,10 @@ function launchThrow() {
   // Hide ball DOM — canvas takes over
   const ball = document.getElementById('paperBall');
   ball.classList.remove('visible');
-  ball.removeEventListener('pointerdown', onBallDown);
+
+  // Also hide the card if it's still around
+  const card = document.getElementById('currentCard');
+  if (card) card.style.display = 'none';
 
   // Fully show room
   document.getElementById('throwCanvas').style.opacity = '1';
@@ -1634,7 +1636,6 @@ function endThrow() {
 function hideBallUI() {
   const ball = document.getElementById('paperBall');
   ball.classList.remove('visible', 'dragging');
-  ball.removeEventListener('pointerdown', onBallDown);
 }
 
 function hideRoomCanvas() {
