@@ -91,10 +91,34 @@
   
   /* ── INVESTOR: Paper Toss ── */
   .paper-toss-bg { background:#0A1628; min-height:728px; position:relative; overflow:hidden; }
+  .paper-toss-area {
+    position:relative; width:100%; height:520px; display:flex; align-items:center; justify-content:center;
+    touch-action:none; user-select:none; -webkit-user-select:none;
+  }
   .paper-card {
-    width:88%; margin:0 auto; background:#142038; border:2px solid #1E2D45;
+    width:88%; background:#142038; border:2px solid #1E2D45;
     border-radius:24px; padding:24px; box-shadow:0 8px 32px rgba(0,0,0,0.5);
-    position:relative; animation:float 3s ease-in-out infinite;
+    position:absolute; cursor:grab; touch-action:none; will-change:transform, opacity;
+    transition:none;
+  }
+  .paper-card.idle-float {
+    animation:float 3s ease-in-out infinite;
+  }
+  .paper-card.dragging { cursor:grabbing; }
+  .paper-card.gone {
+    pointer-events:none;
+    transition:transform 0.5s cubic-bezier(.2,.8,.3,1), opacity 0.4s ease-out;
+  }
+  .paper-card.gone.reject-anim {
+    transform:translateY(600px) rotate(25deg) scale(0.3) !important;
+    opacity:0 !important;
+  }
+  .paper-card.gone.save-anim {
+    transform:translateX(500px) translateY(-80px) rotate(15deg) scale(0.4) !important;
+    opacity:0 !important;
+  }
+  .paper-card.snap-back {
+    transition:transform 0.4s cubic-bezier(.175,.885,.32,1.275);
   }
   @keyframes float {
     0%,100% { transform:translateY(0) rotate(-0.5deg); }
@@ -113,11 +137,41 @@
   .pitch-preview .body { font-size:13px; color:#8899B0; margin-top:4px; line-height:18px; }
   .toss-indicators {
     display:flex; justify-content:space-between; align-items:flex-end;
-    padding:0 20px; margin-top:12px; opacity:0.5;
+    padding:0 20px; margin-top:0; transition:opacity 0.2s;
   }
-  .toss-ind { display:flex; flex-direction:column; align-items:center; gap:4px; }
+  .toss-ind { display:flex; flex-direction:column; align-items:center; gap:4px; transition:transform 0.2s, opacity 0.2s; }
   .toss-ind .circle { width:44px; height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:20px; }
   .toss-ind .lbl { font-size:10px; font-weight:700; letter-spacing:0.5px; }
+  /* Reject/Save overlay badges on card */
+  .toss-overlay-badge {
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) rotate(-15deg) scale(0.5);
+    font-size:28px; font-weight:900; letter-spacing:3px; padding:12px 24px;
+    border-radius:14px; border:4px solid; opacity:0; transition:opacity 0.15s, transform 0.15s;
+    pointer-events:none; z-index:10; text-transform:uppercase;
+  }
+  .toss-overlay-badge.reject { color:#E63946; border-color:#E63946; background:rgba(230,57,70,0.1); transform:translate(-50%,-50%) rotate(-15deg); }
+  .toss-overlay-badge.save { color:#6C5CE7; border-color:#6C5CE7; background:rgba(108,92,231,0.1); transform:translate(-50%,-50%) rotate(15deg); }
+  .toss-overlay-badge.visible { opacity:1; transform:translate(-50%,-50%) rotate(-15deg) scale(1); }
+  .toss-overlay-badge.save.visible { transform:translate(-50%,-50%) rotate(15deg) scale(1); }
+  /* Loading spinner for next card */
+  .card-loading { display:flex; flex-direction:column; align-items:center; gap:12px; color:#8899B0; }
+  .card-loading .spinner { width:36px; height:36px; border:3px solid #1E2D45; border-top-color:#6C5CE7; border-radius:50%; animation:spin 0.8s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  /* Score toast */
+  .toss-toast {
+    position:absolute; top:40px; left:50%; transform:translateX(-50%); padding:8px 20px;
+    border-radius:12px; font-size:14px; font-weight:800; z-index:20;
+    opacity:0; transition:opacity 0.3s, transform 0.3s; pointer-events:none;
+  }
+  .toss-toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+  .toss-toast.reject-toast { background:rgba(230,57,70,0.2); color:#E63946; border:1px solid rgba(230,57,70,0.4); }
+  .toss-toast.save-toast { background:rgba(108,92,231,0.2); color:#6C5CE7; border:1px solid rgba(108,92,231,0.4); }
+  /* Stats bar */
+  .toss-stats {
+    display:flex; justify-content:center; gap:20px; padding:8px; font-size:12px; font-weight:700; color:#556680;
+  }
+  .toss-stats span { display:flex; align-items:center; gap:4px; }
+  .toss-stats .count { color:#F0F4FA; }
   
   /* ── INVESTOR: Wallet ── */
   .hero-balance {
@@ -313,48 +367,33 @@
       <button class="screen-btn" onclick="showScreen('inv','profile')">Profile</button>
     </div>
 
-    <!-- ─ Paper Toss ─ -->
+    <!-- ─ Paper Toss (Interactive) ─ -->
     <div class="screen-view active" id="inv-toss">
-      <div class="paper-toss-bg">
+      <div class="paper-toss-bg" id="tossBg">
         <div style="padding:12px 20px 0;">
           <div style="font-size:24px;font-weight:800;">Review Ideas</div>
-          <div style="font-size:13px;color:#8899B0;">Swipe to decide</div>
+          <div style="font-size:13px;color:#8899B0;">Swipe ↓ to reject · Swipe → to save</div>
         </div>
-        <div style="padding:20px 0;">
-          <div class="paper-card">
-            <div style="display:flex;gap:8px;align-items:center;">
-              <span class="cat-badge" style="background:rgba(164,123,250,0.22);color:#A78BFA;border:1px solid rgba(164,123,250,0.55);">● SaaS</span>
-              <span class="cat-badge" style="background:rgba(253,203,110,0.18);color:#FFB547;border:1px solid rgba(253,203,110,0.4);">🚀 MVP</span>
-            </div>
-            <h2>TechFlow AI</h2>
-            <div class="summary">AI-powered workflow automation that saves developers 10+ hours per week</div>
-            <div style="height:1px;background:#1E2D45;margin:14px 0;"></div>
-            <div class="pitch-preview">
-              <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
-                <span>🎯</span><span class="label">THE PROBLEM</span>
-              </div>
-              <div class="body">Developers waste hours on repetitive workflow tasks that could easily be automated with AI</div>
-            </div>
-            <div class="pitch-preview" style="margin-top:8px;">
-              <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
-                <span>💡</span><span class="label">THE SOLUTION</span>
-              </div>
-              <div class="body">Smart automation engine that learns your workflow patterns and handles them autonomously</div>
-            </div>
-            <div style="display:flex;justify-content:space-between;margin-top:14px;font-size:12px;color:#556680;">
-              <span>Tap for full details</span>
-              <span>↓ reject · → save</span>
-            </div>
-          </div>
+        <div class="toss-stats" id="tossStats">
+          <span>📥 Saved: <b class="count" id="saveCount">0</b></span>
+          <span>🗑️ Rejected: <b class="count" id="rejectCount">0</b></span>
+          <span>📄 Remaining: <b class="count" id="remainCount">6</b></span>
         </div>
-        <div class="toss-indicators">
-          <div class="toss-ind">
+        <div class="paper-toss-area" id="tossArea">
+          <!-- Toast notifications -->
+          <div class="toss-toast reject-toast" id="rejectToast">🗑️ Rejected!</div>
+          <div class="toss-toast save-toast" id="saveToast">📥 Saved & Invested!</div>
+          <!-- Card rendered by JS -->
+        </div>
+        <div class="toss-indicators" id="tossIndicators" style="opacity:0.5;">
+          <div class="toss-ind" id="rejectInd">
             <div class="circle" style="background:rgba(230,57,70,0.15);">🗑️</div>
-            <div class="lbl" style="color:#E63946;">REJECT</div>
+            <div class="lbl" style="color:#E63946;">REJECT ↓</div>
           </div>
-          <div class="toss-ind">
+          <div style="font-size:11px;color:#556680;align-self:center;">drag the card</div>
+          <div class="toss-ind" id="saveInd">
             <div class="circle" style="background:rgba(108,92,231,0.15);">📥</div>
-            <div class="lbl" style="color:#6C5CE7;">SAVE</div>
+            <div class="lbl" style="color:#6C5CE7;">SAVE →</div>
           </div>
         </div>
       </div>
@@ -839,6 +878,299 @@
 </div>
 
 <script>
+// ─── Demo Idea Cards ──────────────────────────────────────
+const IDEAS = [
+  {
+    name:'TechFlow AI', category:'SaaS', catColor:'#A78BFA', catBg:'rgba(164,123,250,0.22)', catBorder:'rgba(164,123,250,0.55)',
+    stage:'MVP', stageColor:'#FFB547', summary:'AI-powered workflow automation that saves developers 10+ hours per week',
+    problem:'Developers waste hours on repetitive workflow tasks that could easily be automated with AI',
+    solution:'Smart automation engine that learns your workflow patterns and handles them autonomously'
+  },
+  {
+    name:'EduMatch', category:'App', catColor:'#4F8EF7', catBg:'rgba(79,142,247,0.22)', catBorder:'rgba(79,142,247,0.55)',
+    stage:'Prototype', stageColor:'#4F8EF7', summary:'Connect students with perfect tutors using AI matching algorithms',
+    problem:'Students struggle to find tutors who match their learning style and schedule',
+    solution:'AI-powered matching engine that pairs students with ideal tutors based on 50+ factors'
+  },
+  {
+    name:'GreenGrid', category:'Hardware', catColor:'#00D2D3', catBg:'rgba(0,210,211,0.22)', catBorder:'rgba(0,210,211,0.55)',
+    stage:'Idea', stageColor:'#FDCB6E', summary:'Smart energy grid optimization for residential solar panels',
+    problem:'Residential solar owners waste 30-40% of generated energy due to poor grid management',
+    solution:'IoT-based smart controller that optimizes energy storage, usage, and grid sell-back in real-time'
+  },
+  {
+    name:'FitQuest', category:'App', catColor:'#F472B6', catBg:'rgba(244,114,182,0.22)', catBorder:'rgba(244,114,182,0.55)',
+    stage:'MVP', stageColor:'#FFB547', summary:'Gamified fitness app that turns workouts into RPG adventures',
+    problem:'People lose motivation to exercise because traditional fitness tracking is boring',
+    solution:'RPG-style quest system where real workouts power your character\'s progression through an epic storyline'
+  },
+  {
+    name:'MealPilot', category:'AI Tool', catColor:'#FB923C', catBg:'rgba(251,146,60,0.22)', catBorder:'rgba(251,146,60,0.55)',
+    stage:'Prototype', stageColor:'#4F8EF7', summary:'AI meal planner that adapts to your fridge contents and dietary goals',
+    problem:'Meal planning is tedious and leads to food waste when you buy ingredients you don\'t use',
+    solution:'Computer vision scans your fridge, AI generates meal plans using what you already have, auto-orders what\'s missing'
+  },
+  {
+    name:'CodeReview.ai', category:'SaaS', catColor:'#A78BFA', catBg:'rgba(164,123,250,0.22)', catBorder:'rgba(164,123,250,0.55)',
+    stage:'Launched', stageColor:'#E63946', summary:'AI-powered code review assistant that catches bugs before they ship',
+    problem:'Code reviews are slow bottlenecks — reviewers miss subtle bugs and style inconsistencies',
+    solution:'AI scans every PR for bugs, security issues, and style violations with human-level accuracy in seconds'
+  },
+];
+
+let tossState = {
+  cardIndex: 0,
+  saveCount: 0,
+  rejectCount: 0,
+  isDragging: false,
+  startX: 0, startY: 0,
+  currentX: 0, currentY: 0,
+  velocityX: 0, velocityY: 0,
+  lastMoveTime: 0,
+  lastMoveX: 0, lastMoveY: 0,
+  animating: false,
+};
+
+function renderCard(index) {
+  const area = document.getElementById('tossArea');
+  // Remove old cards (keep toasts)
+  area.querySelectorAll('.paper-card, .card-loading, .toss-overlay-badge, .all-done-msg').forEach(el => el.remove());
+
+  if (index >= IDEAS.length) {
+    // All done
+    const done = document.createElement('div');
+    done.className = 'all-done-msg';
+    done.innerHTML = `
+      <div style="text-align:center;padding:40px 20px;color:#8899B0;">
+        <div style="font-size:64px;margin-bottom:16px;">🎉</div>
+        <div style="font-size:22px;font-weight:800;color:#F0F4FA;margin-bottom:8px;">All Caught Up!</div>
+        <div style="font-size:14px;line-height:22px;">You've reviewed all available ideas.<br>Check back later for new pitches.</div>
+        <button onclick="resetToss()" style="margin-top:20px;padding:12px 28px;border-radius:14px;background:#6C5CE7;color:#fff;border:none;font-size:15px;font-weight:700;cursor:pointer;border-bottom:3px solid #4A3DB5;">🔄 Review Again</button>
+      </div>`;
+    area.appendChild(done);
+    return;
+  }
+
+  const idea = IDEAS[index];
+  const card = document.createElement('div');
+  card.className = 'paper-card idle-float';
+  card.id = 'currentCard';
+  card.innerHTML = `
+    <div class="toss-overlay-badge reject" id="rejectBadge">NOPE</div>
+    <div class="toss-overlay-badge save" id="saveBadge">INVEST</div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <span class="cat-badge" style="background:${idea.catBg};color:${idea.catColor};border:1px solid ${idea.catBorder};">● ${idea.category}</span>
+      <span class="cat-badge" style="background:rgba(253,203,110,0.18);color:${idea.stageColor};border:1px solid rgba(253,203,110,0.4);">🚀 ${idea.stage}</span>
+    </div>
+    <h2>${idea.name}</h2>
+    <div class="summary">${idea.summary}</div>
+    <div style="height:1px;background:#1E2D45;margin:14px 0;"></div>
+    <div class="pitch-preview">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+        <span>🎯</span><span class="label">THE PROBLEM</span>
+      </div>
+      <div class="body">${idea.problem}</div>
+    </div>
+    <div class="pitch-preview" style="margin-top:8px;">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+        <span>💡</span><span class="label">THE SOLUTION</span>
+      </div>
+      <div class="body">${idea.solution}</div>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-top:14px;font-size:12px;color:#556680;">
+      <span>⬇ swipe down to reject</span>
+      <span>swipe right to save ➡</span>
+    </div>`;
+
+  area.appendChild(card);
+
+  // Bind drag events
+  card.addEventListener('pointerdown', onPointerDown);
+  card.addEventListener('pointermove', onPointerMove);
+  card.addEventListener('pointerup', onPointerUp);
+  card.addEventListener('pointercancel', onPointerUp);
+
+  document.getElementById('remainCount').textContent = IDEAS.length - index;
+}
+
+// ─── Drag / Toss Physics ──────────────────────────────────
+
+function onPointerDown(e) {
+  if (tossState.animating) return;
+  const card = document.getElementById('currentCard');
+  if (!card) return;
+  card.setPointerCapture(e.pointerId);
+  card.classList.remove('idle-float','snap-back');
+  card.classList.add('dragging');
+  tossState.isDragging = true;
+  tossState.startX = e.clientX;
+  tossState.startY = e.clientY;
+  tossState.currentX = 0;
+  tossState.currentY = 0;
+  tossState.velocityX = 0;
+  tossState.velocityY = 0;
+  tossState.lastMoveTime = performance.now();
+  tossState.lastMoveX = e.clientX;
+  tossState.lastMoveY = e.clientY;
+}
+
+function onPointerMove(e) {
+  if (!tossState.isDragging || tossState.animating) return;
+  const card = document.getElementById('currentCard');
+  if (!card) return;
+
+  const dx = e.clientX - tossState.startX;
+  const dy = e.clientY - tossState.startY;
+  tossState.currentX = dx;
+  tossState.currentY = dy;
+
+  // Velocity tracking
+  const now = performance.now();
+  const dt = (now - tossState.lastMoveTime) / 1000;
+  if (dt > 0) {
+    tossState.velocityX = (e.clientX - tossState.lastMoveX) / dt;
+    tossState.velocityY = (e.clientY - tossState.lastMoveY) / dt;
+  }
+  tossState.lastMoveTime = now;
+  tossState.lastMoveX = e.clientX;
+  tossState.lastMoveY = e.clientY;
+
+  // Transform card: translate + tilt based on velocity
+  const tilt = Math.max(-25, Math.min(25, dx * 0.06));
+  const scale = Math.max(0.92, 1 - Math.abs(dy) * 0.0003 - Math.abs(dx) * 0.0002);
+  card.style.transform = `translate(${dx}px, ${dy}px) rotate(${tilt}deg) scale(${scale})`;
+
+  // Show reject/save badge overlay
+  const rejectBadge = document.getElementById('rejectBadge');
+  const saveBadge = document.getElementById('saveBadge');
+  const rejectProgress = Math.min(1, Math.max(0, dy / 120));
+  const saveProgress = Math.min(1, Math.max(0, dx / 120));
+  
+  if (dy > 40 && dy > Math.abs(dx)) {
+    rejectBadge.classList.add('visible');
+    rejectBadge.style.opacity = Math.min(1, rejectProgress);
+    saveBadge.classList.remove('visible');
+  } else if (dx > 40 && dx > dy) {
+    saveBadge.classList.add('visible');
+    saveBadge.style.opacity = Math.min(1, saveProgress);
+    rejectBadge.classList.remove('visible');
+  } else {
+    rejectBadge.classList.remove('visible');
+    saveBadge.classList.remove('visible');
+  }
+
+  // Animate indicators
+  const rejectInd = document.getElementById('rejectInd');
+  const saveInd = document.getElementById('saveInd');
+  const indicators = document.getElementById('tossIndicators');
+  if (dy > 40 && dy > Math.abs(dx)) {
+    rejectInd.style.transform = `scale(${1 + rejectProgress * 0.3})`;
+    indicators.style.opacity = 1;
+  } else if (dx > 40) {
+    saveInd.style.transform = `scale(${1 + saveProgress * 0.3})`;
+    indicators.style.opacity = 1;
+  } else {
+    rejectInd.style.transform = 'scale(1)';
+    saveInd.style.transform = 'scale(1)';
+    indicators.style.opacity = 0.5;
+  }
+}
+
+function onPointerUp(e) {
+  if (!tossState.isDragging) return;
+  tossState.isDragging = false;
+  const card = document.getElementById('currentCard');
+  if (!card || tossState.animating) return;
+  card.classList.remove('dragging');
+
+  const dx = tossState.currentX;
+  const dy = tossState.currentY;
+  const vx = tossState.velocityX;
+  const vy = tossState.velocityY;
+
+  // Check reject: swipe down
+  const isReject = (dy > 100 && vy > 300) || (dy > 160);
+  // Check save: swipe right
+  const isSave = (dx > 120 && vx > 300) || (dx > 180);
+
+  // Reset indicator overlays
+  const rejectBadge = document.getElementById('rejectBadge');
+  const saveBadge = document.getElementById('saveBadge');
+
+  if (isReject) {
+    doReject(card);
+  } else if (isSave) {
+    doSave(card);
+  } else {
+    // Snap back
+    card.classList.add('snap-back');
+    card.style.transform = 'translate(0,0) rotate(0deg) scale(1)';
+    if (rejectBadge) rejectBadge.classList.remove('visible');
+    if (saveBadge) saveBadge.classList.remove('visible');
+    document.getElementById('tossIndicators').style.opacity = 0.5;
+    document.getElementById('rejectInd').style.transform = 'scale(1)';
+    document.getElementById('saveInd').style.transform = 'scale(1)';
+    setTimeout(() => {
+      if (card) {
+        card.classList.remove('snap-back');
+        card.classList.add('idle-float');
+      }
+    }, 400);
+  }
+}
+
+function doReject(card) {
+  tossState.animating = true;
+  card.classList.add('gone','reject-anim');
+  showToast('reject');
+  tossState.rejectCount++;
+  document.getElementById('rejectCount').textContent = tossState.rejectCount;
+  document.getElementById('tossIndicators').style.opacity = 0.5;
+  document.getElementById('rejectInd').style.transform = 'scale(1)';
+
+  setTimeout(() => {
+    tossState.cardIndex++;
+    tossState.animating = false;
+    renderCard(tossState.cardIndex);
+  }, 500);
+}
+
+function doSave(card) {
+  tossState.animating = true;
+  card.classList.add('gone','save-anim');
+  showToast('save');
+  tossState.saveCount++;
+  document.getElementById('saveCount').textContent = tossState.saveCount;
+  document.getElementById('tossIndicators').style.opacity = 0.5;
+  document.getElementById('saveInd').style.transform = 'scale(1)';
+
+  setTimeout(() => {
+    tossState.cardIndex++;
+    tossState.animating = false;
+    renderCard(tossState.cardIndex);
+  }, 500);
+}
+
+function showToast(type) {
+  const toast = document.getElementById(type === 'reject' ? 'rejectToast' : 'saveToast');
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 1200);
+}
+
+function resetToss() {
+  tossState.cardIndex = 0;
+  tossState.saveCount = 0;
+  tossState.rejectCount = 0;
+  document.getElementById('saveCount').textContent = '0';
+  document.getElementById('rejectCount').textContent = '0';
+  renderCard(0);
+}
+
+// Initialize Paper Toss
+renderCard(0);
+
+// ─── Navigation ───────────────────────────────────────────
+
 function switchApp(app) {
   document.querySelectorAll('.topbar .tab').forEach(t => t.classList.remove('active'));
   event.target.classList.add('active');
@@ -852,7 +1184,6 @@ function showScreen(prefix, name) {
   phone.querySelectorAll('.screen-btn').forEach(b => b.classList.remove('active'));
   document.getElementById(`${prefix}-${name}`).classList.add('active');
   event.target.classList.add('active');
-  // Update tab bar
   phone.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
 }
 
