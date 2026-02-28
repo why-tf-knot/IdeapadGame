@@ -176,13 +176,13 @@
   /* ── Unified Gesture: Canvas + Ball + Power ── */
   #throwCanvas {
     position:absolute; top:0; left:0; width:100%; height:100%;
-    z-index:1; opacity:0; transition:opacity 0.15s; pointer-events:none;
+    z-index:1; opacity:0; transition:opacity 0.3s; pointer-events:none;
   }
-  #reviewPhase { position:relative; z-index:2; transition:opacity 0.2s; }
+  #reviewPhase { position:relative; z-index:2; transition:opacity 0.3s; }
   .throw-hud {
     position:absolute; top:10px; left:0; right:0; padding:0 12px;
     display:flex; justify-content:space-between; align-items:flex-start;
-    pointer-events:none; z-index:16; opacity:0; transition:opacity 0.2s;
+    pointer-events:none; z-index:16; opacity:0; transition:opacity 0.3s;
   }
   .throw-hud.visible { opacity:1; }
   .throw-hud-left { display:flex; gap:6px; }
@@ -213,40 +213,50 @@
     position:absolute; width:36px; height:36px; border-radius:50%;
     background:radial-gradient(circle at 35% 35%, #fafaf5, #e8e7dd 50%, #d0cfc5 80%, #b8b7ad);
     box-shadow:2px 3px 8px rgba(0,0,0,0.35), inset -1px -1px 3px rgba(0,0,0,0.1);
-    display:none; z-index:12; transform:translate(-50%,-50%);
-    pointer-events:none;
+    display:none; z-index:20; transform:translate(-50%,-50%);
+    cursor:grab; touch-action:none;
   }
   .paper-ball.visible { display:block; }
+  .paper-ball.dragging { cursor:grabbing; }
   .paper-ball::after {
     content:''; position:absolute; top:28%; left:18%; width:55%; height:44%;
     border:1px solid rgba(140,135,125,0.2); border-radius:30%; transform:rotate(25deg);
   }
   /* Power meter */
   .power-meter {
-    position:absolute; right:14px; top:35%; height:180px; width:10px;
-    background:rgba(10,22,40,0.85); border-radius:5px;
+    position:absolute; right:14px; top:25%; height:220px; width:12px;
+    background:rgba(10,22,40,0.85); border-radius:6px;
     border:1px solid rgba(255,255,255,0.12);
-    z-index:18; opacity:0; transition:opacity 0.2s; overflow:hidden;
+    z-index:18; opacity:0; transition:opacity 0.25s; overflow:hidden;
   }
   .power-meter.visible { opacity:1; }
   .power-fill {
     position:absolute; bottom:0; width:100%; height:0%;
-    border-radius:5px;
-    background:linear-gradient(to top, #E63946, #FDCB6E 50%, #00B894);
+    border-radius:6px;
+    background:linear-gradient(to top, #00B894  0%, #FDCB6E 50%, #E63946 100%);
     transition:height 0.06s;
   }
   .power-label-text {
-    position:absolute; right:30px; top:44%; font-size:9px; font-weight:800;
+    position:absolute; right:32px; top:33%; font-size:9px; font-weight:800;
     color:#556680; letter-spacing:1px; writing-mode:vertical-rl;
-    z-index:18; opacity:0; transition:opacity 0.2s;
+    z-index:18; opacity:0; transition:opacity 0.25s;
   }
   .power-label-text.visible { opacity:1; }
+  /* Save indicator during ball drag */
+  .save-zone-hint {
+    position:absolute; right:8px; top:50%; transform:translateY(-50%);
+    font-size:11px; font-weight:800; color:#6C5CE7; writing-mode:vertical-rl;
+    letter-spacing:2px; opacity:0; transition:opacity 0.3s; z-index:18;
+    text-shadow:0 0 12px rgba(108,92,231,0.5);
+  }
+  .save-zone-hint.visible { opacity:1; }
   /* Card crumple-in-place */
   @keyframes crumpleInPlace {
     0% { border-radius:24px; opacity:1; transform:scale(1) rotate(0deg); }
-    30% { border-radius:30%; opacity:0.8; transform:scale(0.55) rotate(45deg); }
-    60% { border-radius:42%; opacity:0.55; transform:scale(0.25) rotate(160deg); }
-    100% { border-radius:50%; opacity:0; transform:scale(0.08) rotate(360deg); }
+    20% { border-radius:28%; opacity:0.9; transform:scale(0.65) rotate(30deg); }
+    50% { border-radius:38%; opacity:0.7; transform:scale(0.3) rotate(120deg); }
+    80% { border-radius:46%; opacity:0.4; transform:scale(0.12) rotate(280deg); }
+    100% { border-radius:50%; opacity:0; transform:scale(0.06) rotate(360deg); }
   }
   .paper-card.crumpling {
     animation:crumpleInPlace 0.38s ease-in forwards !important;
@@ -484,6 +494,8 @@
         <!-- Power meter -->
         <div class="power-meter" id="powerMeter"><div class="power-fill" id="powerFill"></div></div>
         <div class="power-label-text" id="powerLabel">POWER</div>
+        <!-- Save zone hint -->
+        <div class="save-zone-hint" id="saveZoneHint">📥 SAVE →</div>
         <!-- HUD -->
         <div class="throw-hud" id="throwHud">
           <div class="throw-hud-left">
@@ -990,8 +1002,8 @@
 
 <script>
 // ═══════════════════════════════════════════════════════════
-//  BuildPaper — Paper Toss Game Engine
-//  Card Review + 3D Room Throw Mini-Game
+//  BuildPaper — Unified Paper Toss Game Engine
+//  Tap card → crumple → drag ball (↓ throw / → save)
 // ═══════════════════════════════════════════════════════════
 
 // ─── Demo Idea Cards ──────────────────────────────────────
@@ -1022,46 +1034,56 @@ const IDEAS = [
     solution:'AI scans every PR for bugs, security issues, and style violations with human-level accuracy in seconds' },
 ];
 
-// ─── Card Review State ────────────────────────────────────
-let tossState = {
-  cardIndex: 0, saveCount: 0, rejectCount: 0,
-  isDragging: false, startX: 0, startY: 0, currentX: 0, currentY: 0,
-  velocityX: 0, velocityY: 0, lastMoveTime: 0, lastMoveX: 0, lastMoveY: 0,
-  animating: false,
-};
-
-// ─── Throw Game State ─────────────────────────────────────
-const TG = {
-  canvas: null, ctx: null, active: false,
-  W: 375, H: 728,
-  // Room geometry
-  vpX: 187, vpY: 40,
-  binX: 187, binY: 210, binW: 52, binH: 58, binOpenR: 22,
-  // Ball
-  ballX: 187, ballY: 610, ballR: 18,
-  startX: 187, startY: 610,
-  // Wind
-  wind: 0,
+// ─── State ────────────────────────────────────────────────
+// Phase machine: 'card' → 'crumpled' → 'ball-dragging' → 'flying' → 'result' → back to 'card'
+let GS = {
+  phase: 'card',        // current phase
+  cardIndex: 0,
+  saveCount: 0,
+  rejectCount: 0,
+  // Card drag (before tap)
+  cardDragStartX: 0, cardDragStartY: 0,
+  // Ball drag
+  ballStartX: 0, ballStartY: 0,   // where ball appeared after crumple
+  ballX: 0, ballY: 0,             // current ball position
+  dragStartX: 0, dragStartY: 0,   // pointer start
+  dragDX: 0, dragDY: 0,           // accumulated drag delta
+  pointerId: null,
+  // Room reveal
+  roomOpacity: 0,
+  // Throw
+  power: 0,
+  // Flight
+  flightT: 0, flightSpeed: 0, flightLaunchX: 0, flightLaunchY: 0,
+  trail: [],
+  animFrame: null, frameTime: 0,
   // Scoring
   score: 0, streak: 0, bestStreak: 0, papersInBin: [],
-  // Throw state machine: ready | dragging | flying | result
-  phase: 'ready',
-  dragStartX: 0, dragStartY: 0, dragX: 0, dragY: 0,
-  lastDX: 0, lastDY: 0, lastDTime: 0, relVx: 0, relVy: 0,
-  // Flight
-  flightT: 0, flightSpeed: 0, flightAimX: 0, flightLaunchX: 0,
-  trail: [],
-  // Animation
-  animFrame: null, frameTime: 0,
+  // Wind
+  wind: 0,
+};
+
+// ─── Throw Game constants ─────────────────────────────────
+const TG = {
+  canvas: null, ctx: null,
+  W: 375, H: 728,
+  vpX: 187, vpY: 40,
+  binX: 187, binY: 210, binW: 52, binH: 58, binOpenR: 22,
+  ballR: 18,
 };
 
 // ═══════════════════════════════════════════════════════════
-//  PART 1 — Card Review (swipe right = save, swipe down = reject → throw)
+//  CARD RENDERING
 // ═══════════════════════════════════════════════════════════
 
 function renderCard(index) {
   const area = document.getElementById('tossArea');
   area.querySelectorAll('.paper-card,.card-loading,.all-done-msg').forEach(el => el.remove());
+
+  // Reset to card phase
+  GS.phase = 'card';
+  hideBallUI();
+  hideRoomCanvas();
 
   if (index >= IDEAS.length) {
     const d = document.createElement('div');
@@ -1069,7 +1091,7 @@ function renderCard(index) {
     d.innerHTML = '<div style="text-align:center;padding:40px 20px;color:#8899B0;">' +
       '<div style="font-size:64px;margin-bottom:16px;">🎉</div>' +
       '<div style="font-size:22px;font-weight:800;color:#F0F4FA;margin-bottom:8px;">All Caught Up!</div>' +
-      '<div style="font-size:14px;line-height:22px;">You reviewed all ideas.<br>Bin score: ' + TG.score + ' 🏀</div>' +
+      '<div style="font-size:14px;line-height:22px;">You reviewed all ideas.<br>Bin score: ' + GS.score + ' 🏀</div>' +
       '<button onclick="resetToss()" style="margin-top:20px;padding:12px 28px;border-radius:14px;background:#6C5CE7;color:#fff;border:none;font-size:15px;font-weight:700;cursor:pointer;border-bottom:3px solid #4A3DB5;">🔄 Review Again</button></div>';
     area.appendChild(d);
     return;
@@ -1090,115 +1112,436 @@ function renderCard(index) {
     '<div style="height:1px;background:#1E2D45;margin:14px 0;"></div>' +
     '<div class="pitch-preview"><div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;"><span>🎯</span><span class="label">THE PROBLEM</span></div><div class="body">' + idea.problem + '</div></div>' +
     '<div class="pitch-preview" style="margin-top:8px;"><div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;"><span>💡</span><span class="label">THE SOLUTION</span></div><div class="body">' + idea.solution + '</div></div>' +
-    '<div style="display:flex;justify-content:space-between;margin-top:14px;font-size:12px;color:#556680;"><span>⬇ drag down → throw</span><span>drag right → save ➡</span></div>';
+    '<div style="display:flex;justify-content:center;margin-top:14px;font-size:12px;color:#556680;">👆 Tap to crumple · then drag ↓ throw or → save</div>';
   area.appendChild(card);
 
-  card.addEventListener('pointerdown', onCardDown);
-  card.addEventListener('pointermove', onCardMove);
-  card.addEventListener('pointerup', onCardUp);
-  card.addEventListener('pointercancel', onCardUp);
-  document.getElementById('binScore').textContent = TG.score;
+  // Tap / click on card → crumple
+  card.addEventListener('pointerdown', onCardPointerDown);
+  card.addEventListener('pointermove', onCardPointerMove);
+  card.addEventListener('pointerup', onCardPointerUp);
+  card.addEventListener('pointercancel', onCardPointerUp);
+
+  document.getElementById('binScore').textContent = GS.score;
 }
 
-function onCardDown(e) {
-  if (tossState.animating) return;
+// ═══════════════════════════════════════════════════════════
+//  CARD INTERACTION — Tap to crumple
+// ═══════════════════════════════════════════════════════════
+
+function onCardPointerDown(e) {
+  if (GS.phase !== 'card') return;
   const card = document.getElementById('currentCard');
   if (!card) return;
   card.setPointerCapture(e.pointerId);
-  card.classList.remove('idle-float','snap-back');
-  card.classList.add('dragging');
-  tossState.isDragging = true;
-  tossState.startX = e.clientX; tossState.startY = e.clientY;
-  tossState.currentX = 0; tossState.currentY = 0;
-  tossState.velocityX = 0; tossState.velocityY = 0;
-  tossState.lastMoveTime = performance.now();
-  tossState.lastMoveX = e.clientX; tossState.lastMoveY = e.clientY;
+  GS.cardDragStartX = e.clientX;
+  GS.cardDragStartY = e.clientY;
+  card.classList.remove('idle-float', 'snap-back');
 }
 
-function onCardMove(e) {
-  if (!tossState.isDragging || tossState.animating) return;
+function onCardPointerMove(e) {
+  // Allow small movement so tap is still recognized; we don't move the card
+}
+
+function onCardPointerUp(e) {
+  if (GS.phase !== 'card') return;
   const card = document.getElementById('currentCard');
   if (!card) return;
-  const dx = e.clientX - tossState.startX;
-  const dy = e.clientY - tossState.startY;
-  tossState.currentX = dx; tossState.currentY = dy;
-  const now = performance.now();
-  const dt = (now - tossState.lastMoveTime) / 1000;
-  if (dt > 0) {
-    tossState.velocityX = (e.clientX - tossState.lastMoveX) / dt;
-    tossState.velocityY = (e.clientY - tossState.lastMoveY) / dt;
-  }
-  tossState.lastMoveTime = now;
-  tossState.lastMoveX = e.clientX; tossState.lastMoveY = e.clientY;
+  const dx = Math.abs(e.clientX - GS.cardDragStartX);
+  const dy = Math.abs(e.clientY - GS.cardDragStartY);
 
-  const tilt = Math.max(-25, Math.min(25, dx * 0.06));
-  const scale = Math.max(0.92, 1 - Math.abs(dy) * 0.0003 - Math.abs(dx) * 0.0002);
-  card.style.transform = 'translate(' + dx + 'px,' + dy + 'px) rotate(' + tilt + 'deg) scale(' + scale + ')';
-
-  const rb = document.getElementById('rejectBadge');
-  const sb = document.getElementById('saveBadge');
-  const rp = Math.min(1, Math.max(0, dy / 120));
-  const sp = Math.min(1, Math.max(0, dx / 120));
-  if (dy > 40 && dy > Math.abs(dx)) { rb.classList.add('visible'); rb.style.opacity = rp; sb.classList.remove('visible'); }
-  else if (dx > 40 && dx > dy) { sb.classList.add('visible'); sb.style.opacity = sp; rb.classList.remove('visible'); }
-  else { rb.classList.remove('visible'); sb.classList.remove('visible'); }
-
-  const ri = document.getElementById('rejectInd'), si = document.getElementById('saveInd'), ind = document.getElementById('tossIndicators');
-  if (dy > 40 && dy > Math.abs(dx)) { ri.style.transform = 'scale(' + (1 + rp * 0.3) + ')'; ind.style.opacity = 1; }
-  else if (dx > 40) { si.style.transform = 'scale(' + (1 + sp * 0.3) + ')'; ind.style.opacity = 1; }
-  else { ri.style.transform = 'scale(1)'; si.style.transform = 'scale(1)'; ind.style.opacity = 0.5; }
-}
-
-function onCardUp(e) {
-  if (!tossState.isDragging) return;
-  tossState.isDragging = false;
-  const card = document.getElementById('currentCard');
-  if (!card || tossState.animating) return;
-  card.classList.remove('dragging');
-  const dx = tossState.currentX, dy = tossState.currentY;
-  const vx = tossState.velocityX, vy = tossState.velocityY;
-  const isReject = (dy > 100 && vy > 300) || (dy > 160);
-  const isSave = (dx > 120 && vx > 300) || (dx > 180);
-  const rb = document.getElementById('rejectBadge'), sb = document.getElementById('saveBadge');
-
-  if (isReject) {
-    doReject(card);
-  } else if (isSave) {
-    doSave(card);
+  // If pointer barely moved, treat as tap → crumple
+  if (dx < 15 && dy < 15) {
+    crumpleCard(card);
   } else {
-    card.classList.add('snap-back');
-    card.style.transform = 'translate(0,0) rotate(0deg) scale(1)';
-    if (rb) rb.classList.remove('visible'); if (sb) sb.classList.remove('visible');
-    document.getElementById('tossIndicators').style.opacity = 0.5;
-    document.getElementById('rejectInd').style.transform = 'scale(1)';
-    document.getElementById('saveInd').style.transform = 'scale(1)';
-    setTimeout(() => { if (card) { card.classList.remove('snap-back'); card.classList.add('idle-float'); } }, 400);
+    // Moved too much → snap back
+    card.classList.add('idle-float');
   }
 }
 
-function doReject(card) {
-  tossState.animating = true;
-  tossState.rejectCount++;
-  document.getElementById('rejectCount').textContent = tossState.rejectCount;
-  document.getElementById('tossIndicators').style.opacity = 0.5;
-  document.getElementById('rejectInd').style.transform = 'scale(1)';
+// ═══════════════════════════════════════════════════════════
+//  CRUMPLE → SHOW BALL
+// ═══════════════════════════════════════════════════════════
 
-  // ── Crumple the card, then launch throw room ──
+function crumpleCard(card) {
+  GS.phase = 'crumpling'; // transitional
   card.classList.add('crumpling');
+
+  // Get card center position for ball placement
+  const area = document.getElementById('tossArea');
+  const areaRect = area.getBoundingClientRect();
+  const cardRect = card.getBoundingClientRect();
+  const centerX = cardRect.left + cardRect.width / 2 - areaRect.left;
+  const centerY = cardRect.top + cardRect.height / 2 - areaRect.top;
+
+  // After crumple animation, show the ball
   setTimeout(() => {
-    startThrowRoom();
-  }, 600);
+    card.style.display = 'none';
+
+    // Place paper ball where card was
+    const ball = document.getElementById('paperBall');
+    // Use position relative to tossBg container
+    const bg = document.getElementById('tossBg');
+    const bgRect = bg.getBoundingClientRect();
+    const bx = cardRect.left + cardRect.width / 2 - bgRect.left;
+    const by = cardRect.top + cardRect.height / 2 - bgRect.top;
+
+    GS.ballStartX = bx;
+    GS.ballStartY = by;
+    GS.ballX = bx;
+    GS.ballY = by;
+
+    ball.style.left = bx + 'px';
+    ball.style.top = by + 'px';
+    ball.classList.add('visible');
+
+    // Generate wind for this throw
+    GS.wind = (Math.random() - 0.5) * 2.4;
+    updateWindHUD();
+
+    // Init canvas if needed
+    if (!TG.canvas) initCanvas();
+
+    GS.phase = 'crumpled';
+
+    // Attach ball drag listeners
+    ball.addEventListener('pointerdown', onBallDown);
+  }, 420);
 }
 
-function doSave(card) {
-  tossState.animating = true;
-  card.classList.add('gone','save-anim');
+// ═══════════════════════════════════════════════════════════
+//  BALL DRAG — Right = Save, Down = Room reveals + Power
+// ═══════════════════════════════════════════════════════════
+
+function onBallDown(e) {
+  if (GS.phase !== 'crumpled') return;
+  e.preventDefault();
+  const ball = document.getElementById('paperBall');
+  ball.setPointerCapture(e.pointerId);
+  ball.classList.add('dragging');
+  GS.pointerId = e.pointerId;
+  GS.phase = 'ball-dragging';
+  GS.dragStartX = e.clientX;
+  GS.dragStartY = e.clientY;
+  GS.dragDX = 0;
+  GS.dragDY = 0;
+  GS.roomOpacity = 0;
+  GS.power = 0;
+
+  ball.addEventListener('pointermove', onBallMove);
+  ball.addEventListener('pointerup', onBallUp);
+  ball.addEventListener('pointercancel', onBallUp);
+}
+
+function onBallMove(e) {
+  if (GS.phase !== 'ball-dragging') return;
+  const dx = e.clientX - GS.dragStartX;
+  const dy = e.clientY - GS.dragStartY;
+  GS.dragDX = dx;
+  GS.dragDY = dy;
+
+  // Move ball
+  GS.ballX = GS.ballStartX + dx;
+  GS.ballY = GS.ballStartY + dy;
+  const ball = document.getElementById('paperBall');
+  ball.style.left = GS.ballX + 'px';
+  ball.style.top = GS.ballY + 'px';
+
+  // ── Dragging DOWN → room fades in, power builds ──
+  if (dy > 30 && dy > Math.abs(dx) * 0.7) {
+    GS.power = Math.min(1, dy / 250);
+    GS.roomOpacity = Math.min(1, dy / 180);
+
+    // Show room canvas behind
+    const cv = document.getElementById('throwCanvas');
+    cv.style.opacity = GS.roomOpacity;
+    // Draw room on canvas
+    if (!TG.ctx) initCanvas();
+    drawRoomFrame();
+
+    // Show power meter
+    document.getElementById('powerMeter').classList.add('visible');
+    document.getElementById('powerLabel').classList.add('visible');
+    document.getElementById('powerFill').style.height = (GS.power * 100) + '%';
+
+    // Show HUD when room is visible enough
+    if (GS.roomOpacity > 0.4) {
+      document.getElementById('throwHud').classList.add('visible');
+    }
+
+    // Fade out review phase UI
+    document.getElementById('reviewPhase').style.opacity = Math.max(0, 1 - GS.roomOpacity * 1.5);
+
+    // Hide save hint
+    document.getElementById('saveZoneHint').classList.remove('visible');
+
+    // Show NOPE badge on the ball area
+    const rb = document.getElementById('rejectBadge');
+    rb.style.position = 'fixed';
+    rb.style.display = 'none'; // don't show badge during ball drag
+
+  // ── Dragging RIGHT → save indicator ──
+  } else if (dx > 30 && dx > Math.abs(dy) * 0.7) {
+    // Hide room/power
+    document.getElementById('throwCanvas').style.opacity = '0';
+    document.getElementById('powerMeter').classList.remove('visible');
+    document.getElementById('powerLabel').classList.remove('visible');
+    document.getElementById('throwHud').classList.remove('visible');
+    document.getElementById('reviewPhase').style.opacity = '1';
+
+    // Show save zone hint
+    const saveProgress = Math.min(1, dx / 150);
+    document.getElementById('saveZoneHint').classList.toggle('visible', saveProgress > 0.2);
+    GS.power = 0;
+
+  } else {
+    // Neutral — hide everything
+    document.getElementById('throwCanvas').style.opacity = '0';
+    document.getElementById('powerMeter').classList.remove('visible');
+    document.getElementById('powerLabel').classList.remove('visible');
+    document.getElementById('throwHud').classList.remove('visible');
+    document.getElementById('saveZoneHint').classList.remove('visible');
+    document.getElementById('reviewPhase').style.opacity = '1';
+    GS.power = 0;
+  }
+}
+
+function onBallUp(e) {
+  if (GS.phase !== 'ball-dragging') return;
+  const ball = document.getElementById('paperBall');
+  ball.classList.remove('dragging');
+  ball.removeEventListener('pointermove', onBallMove);
+  ball.removeEventListener('pointerup', onBallUp);
+  ball.removeEventListener('pointercancel', onBallUp);
+
+  const dx = GS.dragDX;
+  const dy = GS.dragDY;
+
+  // ── SAVE: dragged far enough right ──
+  if (dx > 100 && dx > Math.abs(dy) * 0.7) {
+    doSave();
+    return;
+  }
+
+  // ── THROW: dragged far enough down with power ──
+  if (dy > 60 && GS.power > 0.15) {
+    launchThrow();
+    return;
+  }
+
+  // ── Not enough — snap ball back ──
+  GS.phase = 'crumpled';
+  GS.ballX = GS.ballStartX;
+  GS.ballY = GS.ballStartY;
+  ball.style.left = GS.ballStartX + 'px';
+  ball.style.top = GS.ballStartY + 'px';
+  hideRoomCanvas();
+  hidePowerUI();
+  document.getElementById('reviewPhase').style.opacity = '1';
+  document.getElementById('saveZoneHint').classList.remove('visible');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SAVE ACTION
+// ═══════════════════════════════════════════════════════════
+
+function doSave() {
+  GS.phase = 'card'; // will be reset in renderCard
+  GS.saveCount++;
+  document.getElementById('saveCount').textContent = GS.saveCount;
   showToast('save');
-  tossState.saveCount++;
-  document.getElementById('saveCount').textContent = tossState.saveCount;
-  document.getElementById('tossIndicators').style.opacity = 0.5;
-  document.getElementById('saveInd').style.transform = 'scale(1)';
-  setTimeout(() => { tossState.cardIndex++; tossState.animating = false; renderCard(tossState.cardIndex); }, 500);
+  hideBallUI();
+  hideRoomCanvas();
+  hidePowerUI();
+  document.getElementById('saveZoneHint').classList.remove('visible');
+  document.getElementById('reviewPhase').style.opacity = '1';
+
+  setTimeout(() => {
+    GS.cardIndex++;
+    renderCard(GS.cardIndex);
+  }, 400);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  THROW — Launch ball toward bin
+// ═══════════════════════════════════════════════════════════
+
+function launchThrow() {
+  GS.phase = 'flying';
+
+  // Count as reject
+  GS.rejectCount++;
+  document.getElementById('rejectCount').textContent = GS.rejectCount;
+
+  // Hide ball DOM — canvas takes over
+  const ball = document.getElementById('paperBall');
+  ball.classList.remove('visible');
+  ball.removeEventListener('pointerdown', onBallDown);
+
+  // Fully show room
+  document.getElementById('throwCanvas').style.opacity = '1';
+  document.getElementById('reviewPhase').style.opacity = '0';
+  document.getElementById('reviewPhase').style.pointerEvents = 'none';
+  document.getElementById('throwHud').classList.add('visible');
+  hidePowerUI();
+  document.getElementById('saveZoneHint').classList.remove('visible');
+
+  // Calculate launch params
+  // Ball is at GS.ballX, GS.ballY — throw FROM there toward the bin
+  GS.flightT = 0;
+  GS.flightSpeed = 0.8 + GS.power * 1.4; // power affects speed
+  GS.flightLaunchX = GS.ballX;
+  GS.flightLaunchY = GS.ballY;
+  GS.trail = [];
+
+  // Score/streak HUD
+  document.getElementById('throwScore').textContent = GS.score;
+  document.getElementById('throwStreak').textContent = GS.streak + '🔥';
+
+  GS.frameTime = performance.now();
+  renderFlight();
+}
+
+function renderFlight() {
+  if (GS.phase !== 'flying') return;
+  const ctx = TG.ctx, W = TG.W, H = TG.H;
+  const now = performance.now();
+  const dt = Math.min(0.04, (now - GS.frameTime) / 1000);
+  GS.frameTime = now;
+
+  ctx.clearRect(0, 0, W, H);
+  drawRoom(ctx, W, H);
+
+  // Update flight
+  const spd = GS.flightSpeed * 1.1;
+  GS.flightT += dt * spd;
+  const t = GS.flightT;
+
+  // Interpolate ball position from launch to bin
+  const targetX = TG.binX + GS.wind * 60 * t;
+  const targetY = TG.binY + 8;
+  GS.ballX = GS.flightLaunchX + (targetX - GS.flightLaunchX) * t;
+  // Arc: ball goes up then comes down
+  const arcH = 80 + 60 * GS.power;
+  GS.ballY = GS.flightLaunchY + (targetY - GS.flightLaunchY) * t - arcH * Math.sin(Math.PI * t * 0.9);
+
+  // Wind drift
+  GS.ballX += GS.wind * 50 * t * t;
+
+  // Ball shrinks as it recedes
+  const ballScale = 1 - t * 0.7;
+  const r = Math.max(3, TG.ballR * ballScale);
+
+  // Draw bin behind when ball is far
+  if (t < 0.8) drawBin(ctx);
+
+  // Trail
+  if (GS.trail.length === 0 || Math.hypot(GS.ballX - GS.trail[GS.trail.length-1].x, GS.ballY - GS.trail[GS.trail.length-1].y) > 10) {
+    GS.trail.push({ x: GS.ballX, y: GS.ballY, r: r });
+    if (GS.trail.length > 14) GS.trail.shift();
+  }
+  drawTrail(ctx);
+  drawBall(ctx, GS.ballX, GS.ballY, r, t * 720);
+
+  // Draw bin rim on top when ball goes "behind"
+  if (t >= 0.8) drawBin(ctx);
+
+  // Wind particles
+  drawWindParticles(ctx, dt);
+
+  // Check completion
+  if (t >= 1.0) {
+    checkHit();
+    return;
+  }
+  if (GS.ballX < -30 || GS.ballX > W + 30 || GS.ballY < -30 || t > 1.5) {
+    showResult(false);
+    return;
+  }
+
+  GS.animFrame = requestAnimationFrame(renderFlight);
+}
+
+function checkHit() {
+  const dist = Math.abs(GS.ballX - TG.binX);
+  if (dist < TG.binOpenR) {
+    showResult(true, dist < TG.binOpenR * 0.35);
+  } else {
+    showResult(false);
+  }
+}
+
+function showResult(scored, perfect) {
+  GS.phase = 'result';
+  cancelAnimationFrame(GS.animFrame);
+  const rEl = document.getElementById('throwResult');
+  const tEl = document.getElementById('throwResultText');
+  const sEl = document.getElementById('throwResultSub');
+
+  // Draw final frame
+  const ctx = TG.ctx;
+  ctx.clearRect(0, 0, TG.W, TG.H);
+  drawRoom(ctx, TG.W, TG.H);
+
+  if (scored) {
+    GS.score++; GS.streak++;
+    if (GS.streak > GS.bestStreak) GS.bestStreak = GS.streak;
+    GS.papersInBin.push({ x: (Math.random()-0.5)*18, y: Math.random()*18, c: 'hsl('+(Math.random()*50+30)+',10%,'+(82+Math.random()*10)+'%)' });
+    if (GS.papersInBin.length > 8) GS.papersInBin.shift();
+    drawBin(ctx);
+    tEl.textContent = perfect ? '🎯 SWISH!' : '✅ IN!';
+    tEl.style.color = perfect ? '#FDCB6E' : '#00B894';
+    sEl.textContent = GS.streak > 1 ? GS.streak + ' in a row! 🔥' : 'Nice throw!';
+  } else {
+    GS.streak = 0;
+    drawBin(ctx);
+    drawBall(ctx, Math.max(20, Math.min(TG.W-20, GS.ballX)), Math.min(GS.ballY+20, TG.H*0.42), TG.ballR*0.35, 45);
+    tEl.textContent = '❌ MISS!';
+    tEl.style.color = '#E63946';
+    sEl.textContent = 'Still rejected though 😏';
+  }
+  rEl.classList.add('show');
+  document.getElementById('throwScore').textContent = GS.score;
+  document.getElementById('throwStreak').textContent = GS.streak + '🔥';
+
+  setTimeout(endThrow, 1500);
+}
+
+function endThrow() {
+  GS.phase = 'card';
+  cancelAnimationFrame(GS.animFrame);
+  hideRoomCanvas();
+  hideBallUI();
+  hidePowerUI();
+  document.getElementById('throwHud').classList.remove('visible');
+  document.getElementById('throwResult').classList.remove('show');
+  document.getElementById('reviewPhase').style.opacity = '1';
+  document.getElementById('reviewPhase').style.pointerEvents = '';
+  document.getElementById('binScore').textContent = GS.score;
+
+  GS.cardIndex++;
+  renderCard(GS.cardIndex);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  HELPER: Show/Hide UI
+// ═══════════════════════════════════════════════════════════
+
+function hideBallUI() {
+  const ball = document.getElementById('paperBall');
+  ball.classList.remove('visible', 'dragging');
+  ball.removeEventListener('pointerdown', onBallDown);
+}
+
+function hideRoomCanvas() {
+  const cv = document.getElementById('throwCanvas');
+  cv.style.opacity = '0';
+  cv.style.pointerEvents = 'none';
+}
+
+function hidePowerUI() {
+  document.getElementById('powerMeter').classList.remove('visible');
+  document.getElementById('powerLabel').classList.remove('visible');
+  document.getElementById('powerFill').style.height = '0%';
 }
 
 function showToast(type) {
@@ -1208,8 +1551,8 @@ function showToast(type) {
 }
 
 function resetToss() {
-  tossState.cardIndex = 0; tossState.saveCount = 0; tossState.rejectCount = 0;
-  TG.score = 0; TG.streak = 0; TG.papersInBin = [];
+  GS.cardIndex = 0; GS.saveCount = 0; GS.rejectCount = 0;
+  GS.score = 0; GS.streak = 0; GS.papersInBin = [];
   document.getElementById('saveCount').textContent = '0';
   document.getElementById('rejectCount').textContent = '0';
   document.getElementById('binScore').textContent = '0';
@@ -1217,51 +1560,24 @@ function resetToss() {
 }
 
 // ═══════════════════════════════════════════════════════════
-//  PART 2 — Throw Room (Canvas-based 3D office + paper toss)
+//  CANVAS — Room + Bin + Ball rendering
 // ═══════════════════════════════════════════════════════════
 
-function initThrowGame() {
+function initCanvas() {
   TG.canvas = document.getElementById('throwCanvas');
   TG.ctx = TG.canvas.getContext('2d');
-  TG.canvas.addEventListener('pointerdown', onThrowDown);
-  TG.canvas.addEventListener('pointermove', onThrowMove);
-  TG.canvas.addEventListener('pointerup', onThrowUp);
-  TG.canvas.addEventListener('pointercancel', onThrowUp);
 }
 
-function startThrowRoom() {
-  if (!TG.canvas) initThrowGame();
-  TG.active = true;
-  TG.phase = 'ready';
-  TG.wind = (Math.random() - 0.5) * 2.4;
-  TG.ballX = TG.startX; TG.ballY = TG.startY;
-  TG.flightT = 0; TG.trail = [];
-  updateWindHUD();
-
-  // Hide review UI, show canvas + HUD
-  const rp = document.getElementById('reviewPhase');
-  rp.style.opacity = '0';
-  rp.style.pointerEvents = 'none';
-  const cv = document.getElementById('throwCanvas');
-  cv.style.opacity = '1';
-  cv.style.pointerEvents = 'auto';
-  document.getElementById('throwHud').classList.add('visible');
-  document.getElementById('throwResult').classList.remove('show');
-  document.getElementById('throwScore').textContent = TG.score;
-  document.getElementById('throwStreak').textContent = TG.streak + '🔥';
-
-  // Show paper ball at start position
-  const ball = document.getElementById('paperBall');
-  ball.style.left = TG.startX + 'px';
-  ball.style.top = TG.startY + 'px';
-  ball.classList.add('visible');
-
-  TG.frameTime = performance.now();
-  renderThrow();
+function drawRoomFrame() {
+  // Draw a single frame of the room (used during ball drag)
+  const ctx = TG.ctx, W = TG.W, H = TG.H;
+  ctx.clearRect(0, 0, W, H);
+  drawRoom(ctx, W, H);
+  drawBin(ctx);
 }
 
 function updateWindHUD() {
-  const w = TG.wind, a = Math.abs(w);
+  const w = GS.wind, a = Math.abs(w);
   let arrow, str, col;
   if (a < 0.3) { arrow = '·'; str = 'Calm'; col = '#00B894'; }
   else if (a < 0.7) { arrow = w > 0 ? '→' : '←'; str = 'Light'; col = '#FDCB6E'; }
@@ -1270,41 +1586,6 @@ function updateWindHUD() {
   document.getElementById('windArrow').textContent = arrow;
   document.getElementById('windStrength').textContent = str;
   document.getElementById('windStrength').style.color = col;
-}
-
-// ─── Canvas Rendering ─────────────────────────────────────
-
-function renderThrow() {
-  if (!TG.active) return;
-  const ctx = TG.ctx, W = TG.W, H = TG.H;
-  const now = performance.now();
-  const dt = Math.min(0.04, (now - TG.frameTime) / 1000);
-  TG.frameTime = now;
-
-  ctx.clearRect(0, 0, W, H);
-  drawRoom(ctx, W, H);
-
-  // Draw bin behind ball when ball is far
-  if (TG.phase !== 'flying' || TG.flightT < 0.75) drawBin(ctx);
-
-  if (TG.phase === 'ready' || TG.phase === 'dragging') {
-    // Ball drawn via DOM element, skip canvas ball
-  } else if (TG.phase === 'flying') {
-    updateFlight(dt);
-    const s = TG.ballR * (1 - TG.flightT * 0.65);
-    drawTrail(ctx);
-    drawBall(ctx, TG.ballX, TG.ballY, Math.max(3, s), TG.flightT * 720);
-  }
-
-  // Draw bin rim on top when ball goes "behind"
-  if (TG.phase === 'flying' && TG.flightT >= 0.75) drawBin(ctx);
-
-  if (TG.phase === 'dragging') drawAim(ctx);
-
-  // Wind particles
-  drawWindParticles(ctx, dt);
-
-  if (TG.phase !== 'result') TG.animFrame = requestAnimationFrame(renderThrow);
 }
 
 function drawRoom(ctx, W, H) {
@@ -1401,7 +1682,7 @@ function drawBin(ctx) {
   ctx.beginPath(); ctx.ellipse(cx, cy + h, w / 2 + 2, 5, 0, 0, Math.PI * 2); ctx.fill();
 
   // Papers in bin
-  TG.papersInBin.forEach(p => {
+  GS.papersInBin.forEach(p => {
     ctx.fillStyle = p.c;
     ctx.beginPath(); ctx.arc(cx + p.x, cy + 18 + p.y, 4.5, 0, Math.PI * 2); ctx.fill();
   });
@@ -1452,9 +1733,11 @@ function drawBall(ctx, x, y, r, rot) {
   ctx.restore();
 }
 
+// ─── Trail rendering ──────────────────────────────────────
+
 function drawTrail(ctx) {
-  TG.trail.forEach((p, i) => {
-    const a = (i / TG.trail.length) * 0.25;
+  GS.trail.forEach((p, i) => {
+    const a = (i / GS.trail.length) * 0.25;
     ctx.fillStyle = 'rgba(240,240,230,' + a + ')';
     ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 0.4, 0, Math.PI * 2); ctx.fill();
   });
@@ -1463,7 +1746,7 @@ function drawTrail(ctx) {
 // Wind particles (ambient)
 let windParticles = [];
 function drawWindParticles(ctx, dt) {
-  const w = TG.wind;
+  const w = GS.wind;
   if (Math.abs(w) < 0.3) return;
   // Spawn
   if (Math.random() < Math.abs(w) * 0.4) {
@@ -1485,199 +1768,8 @@ function drawWindParticles(ctx, dt) {
   ctx.globalAlpha = 1;
 }
 
-function drawAim(ctx) {
-  const dy = TG.dragY - TG.dragStartY;
-  if (dy > -15) return;
-  const power = Math.min(1, Math.abs(dy) / 180);
-  const aimX = (TG.dragX - TG.dragStartX) * 0.4;
-
-  ctx.strokeStyle = 'rgba(108,92,231,' + (0.2 + power * 0.35) + ')';
-  ctx.lineWidth = 2; ctx.setLineDash([4, 6]);
-  ctx.beginPath();
-  for (let t = 0; t <= 0.6; t += 0.02) {
-    const px = TG.ballX + aimX * t * 2.5;
-    const py = TG.startY + (TG.binY - TG.startY) * t * 1.8 - power * 90 * Math.sin(Math.PI * t * 1.8);
-    if (t === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
-  }
-  ctx.stroke(); ctx.setLineDash([]);
-
-  // Power label
-  ctx.fillStyle = power > 0.7 ? '#00B894' : power > 0.35 ? '#FDCB6E' : '#E63946';
-  ctx.font = 'bold 11px Inter,sans-serif'; ctx.textAlign = 'center';
-  ctx.fillText(power > 0.7 ? '💪 Great!' : power > 0.35 ? '👍 Good' : '👆 Pull more', TG.ballX, TG.startY + 25);
-}
-
-// ─── Throw Input ──────────────────────────────────────────
-
-function onThrowDown(e) {
-  if (TG.phase !== 'ready') return;
-  const rect = TG.canvas.getBoundingClientRect();
-  const x = (e.clientX - rect.left) * (TG.W / rect.width);
-  const y = (e.clientY - rect.top) * (TG.H / rect.height);
-  if (Math.hypot(x - TG.ballX, y - TG.ballY) > TG.ballR * 4) return;
-
-  TG.canvas.setPointerCapture(e.pointerId);
-  TG.phase = 'dragging';
-  TG.dragStartX = x; TG.dragStartY = y;
-  TG.dragX = x; TG.dragY = y;
-  TG.lastDX = x; TG.lastDY = y; TG.lastDTime = performance.now();
-  // Show power meter
-  document.getElementById('powerMeter').classList.add('visible');
-  document.getElementById('powerLabel').classList.add('visible');
-}
-
-function onThrowMove(e) {
-  if (TG.phase !== 'dragging') return;
-  const rect = TG.canvas.getBoundingClientRect();
-  const x = (e.clientX - rect.left) * (TG.W / rect.width);
-  const y = (e.clientY - rect.top) * (TG.H / rect.height);
-  const now = performance.now();
-  const dt = (now - TG.lastDTime) / 1000;
-  if (dt > 0) { TG.relVx = (x - TG.lastDX) / dt; TG.relVy = (y - TG.lastDY) / dt; }
-  TG.lastDX = x; TG.lastDY = y; TG.lastDTime = now;
-  TG.dragX = x; TG.dragY = y;
-
-  // Move ball with drag (constrained to lower area)
-  TG.ballX = TG.startX + (x - TG.dragStartX) * 0.35;
-  TG.ballY = Math.min(TG.startY, TG.startY + (y - TG.dragStartY) * 0.25);
-
-  // Update paper ball DOM position
-  const ball = document.getElementById('paperBall');
-  ball.style.left = TG.ballX + 'px';
-  ball.style.top = TG.ballY + 'px';
-
-  // Update power meter
-  const dy2 = TG.dragY - TG.dragStartY;
-  const power = Math.min(1, Math.max(0, Math.abs(dy2) / 180));
-  document.getElementById('powerFill').style.height = (power * 100) + '%';
-}
-
-function onThrowUp(e) {
-  if (TG.phase !== 'dragging') return;
-  // Hide power meter
-  document.getElementById('powerMeter').classList.remove('visible');
-  document.getElementById('powerLabel').classList.remove('visible');
-  document.getElementById('powerFill').style.height = '0%';
-
-  if (TG.relVy > -150) {
-    // Not enough power — snap back
-    TG.phase = 'ready';
-    TG.ballX = TG.startX; TG.ballY = TG.startY;
-    const ball = document.getElementById('paperBall');
-    ball.style.left = TG.startX + 'px';
-    ball.style.top = TG.startY + 'px';
-    return;
-  }
-
-  // Launch!
-  TG.phase = 'flying';
-  TG.flightT = 0;
-  TG.flightSpeed = Math.min(2.2, Math.abs(TG.relVy) / 550);
-  TG.flightAimX = TG.relVx * 0.12;
-  TG.flightLaunchX = TG.ballX;
-  TG.trail = [];
-  TG.ballX = TG.flightLaunchX;
-  TG.ballY = TG.startY;
-
-  // Hide DOM ball during flight (canvas takes over)
-  document.getElementById('paperBall').classList.remove('visible');
-}
-
-function updateFlight(dt) {
-  const spd = TG.flightSpeed * 1.15;
-  TG.flightT += dt * spd;
-  const t = TG.flightT;
-  const windDrift = TG.wind * 75 * t;
-  const aimDrift = TG.flightAimX * t * 3;
-
-  TG.ballX = TG.flightLaunchX + (TG.binX - TG.flightLaunchX) * t * 0.4 + windDrift + aimDrift;
-  const arcH = 110 * TG.flightSpeed;
-  TG.ballY = TG.startY + (TG.binY + 8 - TG.startY) * t - arcH * Math.sin(Math.PI * t * 0.85);
-
-  const s = TG.ballR * (1 - t * 0.65);
-  if (TG.trail.length === 0 || Math.hypot(TG.ballX - TG.trail[TG.trail.length - 1].x, TG.ballY - TG.trail[TG.trail.length - 1].y) > 12) {
-    TG.trail.push({ x: TG.ballX, y: TG.ballY, r: s });
-    if (TG.trail.length > 14) TG.trail.shift();
-  }
-
-  // Reached bin depth?
-  if (t >= 1.0) { checkHit(); return; }
-  // Off screen?
-  if (TG.ballX < -30 || TG.ballX > TG.W + 30 || TG.ballY < -30 || t > 1.5) { showResult(false); }
-}
-
-function checkHit() {
-  const dist = Math.abs(TG.ballX - TG.binX);
-  if (dist < TG.binOpenR) {
-    showResult(true, dist < TG.binOpenR * 0.35);
-  } else {
-    showResult(false);
-  }
-}
-
-function showResult(scored, perfect) {
-  TG.phase = 'result';
-  cancelAnimationFrame(TG.animFrame);
-  const rEl = document.getElementById('throwResult');
-  const tEl = document.getElementById('throwResultText');
-  const sEl = document.getElementById('throwResultSub');
-
-  // Draw final frame
-  const ctx = TG.ctx;
-  ctx.clearRect(0, 0, TG.W, TG.H);
-  drawRoom(ctx, TG.W, TG.H);
-
-  if (scored) {
-    TG.score++; TG.streak++;
-    if (TG.streak > TG.bestStreak) TG.bestStreak = TG.streak;
-    TG.papersInBin.push({ x: (Math.random() - 0.5) * 18, y: Math.random() * 18, c: 'hsl(' + (Math.random()*50+30) + ',10%,' + (82+Math.random()*10) + '%)' });
-    if (TG.papersInBin.length > 8) TG.papersInBin.shift();
-    drawBin(ctx);
-    tEl.textContent = perfect ? '🎯 SWISH!' : '✅ IN!';
-    tEl.style.color = perfect ? '#FDCB6E' : '#00B894';
-    sEl.textContent = TG.streak > 1 ? TG.streak + ' in a row! 🔥' : 'Nice throw!';
-  } else {
-    TG.streak = 0;
-    drawBin(ctx);
-    // Draw missed ball on floor
-    drawBall(ctx, Math.max(20, Math.min(TG.W - 20, TG.ballX)), Math.min(TG.ballY + 20, TG.H * 0.42), TG.ballR * 0.35, 45);
-    tEl.textContent = '❌ MISS!';
-    tEl.style.color = '#E63946';
-    sEl.textContent = 'Still rejected though 😏';
-  }
-  rEl.classList.add('show');
-  document.getElementById('throwScore').textContent = TG.score;
-  document.getElementById('throwStreak').textContent = TG.streak + '🔥';
-
-  setTimeout(endThrow, 1600);
-}
-
-function endThrow() {
-  TG.active = false; TG.phase = 'ready';
-  cancelAnimationFrame(TG.animFrame);
-
-  // Hide canvas + HUD, show review UI
-  const cv = document.getElementById('throwCanvas');
-  cv.style.opacity = '0';
-  cv.style.pointerEvents = 'none';
-  document.getElementById('throwHud').classList.remove('visible');
-  document.getElementById('throwResult').classList.remove('show');
-  document.getElementById('paperBall').classList.remove('visible');
-
-  const rp = document.getElementById('reviewPhase');
-  rp.style.opacity = '1';
-  rp.style.pointerEvents = '';
-
-  // Update main score display
-  document.getElementById('binScore').textContent = TG.score;
-
-  tossState.cardIndex++;
-  tossState.animating = false;
-  renderCard(tossState.cardIndex);
-}
-
 // ═══════════════════════════════════════════════════════════
-//  PART 3 — Navigation
+//  NAVIGATION
 // ═══════════════════════════════════════════════════════════
 
 renderCard(0);
