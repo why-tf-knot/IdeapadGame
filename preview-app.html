@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BuildPaper — App Preview</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+  :root {
+    --bg: #0F0F1A; --bgSec: #1A1A2E; --bgTer: #25253D; --inputBg: #2A2A44;
+    --text: #FFFFFF; --textSec: #b8cad0; --textMuted: #6C6C80;
+    --accent: #6C5CE7; --accentLight: rgba(108,92,231,0.15); --accentDark: #4A3DB5;
+    --gold: #FDCB6E; --success: #00B894; --error: #FF6B6B; --warning: #FDCB6E;
+    --border: rgba(255,255,255,0.08); --borderDark: rgba(255,255,255,0.12);
+  }
+  body { font-family:'Inter',system-ui,sans-serif; background:#060810; color:var(--text); overflow-x:hidden; }
+  
+  /* ── Top Nav ── */
+  .topbar { 
+    position:sticky; top:0; z-index:100; 
+    background:rgba(6,8,16,0.92); backdrop-filter:blur(20px); 
+    border-bottom:1px solid var(--border); padding:12px 24px;
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .topbar h1 { font-size:22px; font-weight:900; letter-spacing:-0.5px; }
+  .topbar h1 span { color:var(--accent); }
+  .topbar .tabs { display:flex; gap:4px; background:var(--bgSec); padding:4px; border-radius:12px; }
+  .topbar .tab {
+    padding:8px 20px; border-radius:10px; font-size:13px; font-weight:700;
+    cursor:pointer; transition:all 0.2s; color:var(--textSec); border:none; background:transparent;
+  }
+  .topbar .tab.active { background:var(--accent); color:#fff; box-shadow:0 2px 8px rgba(108,92,231,0.4); }
+  .topbar .tab:hover:not(.active) { color:#fff; background:rgba(255,255,255,0.05); }
+  
+  /* ── Phone Frame ── */
+  .preview-area { display:flex; gap:32px; justify-content:center; padding:32px 24px 60px; flex-wrap:wrap; }
+  .phone {
+    width:375px; height:812px; background:var(--bg); border-radius:44px;
+    border:3px solid #2A2A44; box-shadow:0 0 60px rgba(108,92,231,0.12), 0 20px 60px rgba(0,0,0,0.6);
+    overflow:hidden; position:relative; flex-shrink:0;
+  }
+  .phone .notch {
+    position:absolute; top:0; left:50%; transform:translateX(-50%);
+    width:160px; height:34px; background:#000; border-radius:0 0 20px 20px; z-index:10;
+  }
+  .phone .screen { height:100%; overflow-y:auto; overflow-x:hidden; scrollbar-width:none; }
+  .phone .screen::-webkit-scrollbar { display:none; }
+  
+  /* ── Screen selector ── */
+  .screen-nav {
+    display:flex; gap:6px; padding:40px 16px 12px; overflow-x:auto; scrollbar-width:none;
+    background:var(--bg); position:sticky; top:0; z-index:5;
+  }
+  .screen-nav::-webkit-scrollbar { display:none; }
+  .screen-btn {
+    padding:7px 14px; border-radius:999px; font-size:11px; font-weight:700;
+    white-space:nowrap; cursor:pointer; transition:all 0.2s; border:1.5px solid var(--border);
+    background:transparent; color:var(--textSec);
+  }
+  .screen-btn.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .screen-view { display:none; padding:0; }
+  .screen-view.active { display:block; }
+  
+  /* ── Bottom Tab Bar ── */
+  .tab-bar {
+    position:absolute; bottom:0; left:0; right:0; height:84px;
+    background:rgba(15,15,26,0.95); backdrop-filter:blur(10px);
+    border-top:1px solid var(--border); display:flex; padding:8px 0 26px; z-index:5;
+  }
+  .tab-item {
+    flex:1; display:flex; flex-direction:column; align-items:center; gap:3px;
+    font-size:10px; font-weight:600; color:var(--textMuted); cursor:pointer; border:none; background:none;
+  }
+  .tab-item.active { color:var(--accent); }
+  .tab-item .icon { font-size:22px; }
+  
+  /* ── Shared Styles ── */
+  .card { background:var(--bgSec); border-radius:16px; border:1px solid var(--border); }
+  .pad { padding:16px; }
+  .pill { display:inline-flex; align-items:center; padding:4px 10px; border-radius:999px; font-size:11px; font-weight:700; }
+  .badge { display:inline-flex; align-items:center; gap:4px; padding:3px 8px; border-radius:8px; font-size:11px; font-weight:700; }
+  .btn-primary {
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    padding:16px 24px; border-radius:16px; font-size:16px; font-weight:800;
+    color:#fff; border:none; cursor:pointer; width:100%;
+    border-bottom:4px solid var(--accentDark); background:var(--accent);
+  }
+  .btn-primary:active { transform:translateY(2px); border-bottom-width:2px; }
+  .divider { height:1px; background:var(--border); margin:12px 0; }
+  
+  /* ── INVESTOR: Paper Toss ── */
+  .paper-toss-bg { background:#0A1628; min-height:728px; position:relative; overflow:hidden; }
+  .paper-card {
+    width:88%; margin:0 auto; background:#142038; border:2px solid #1E2D45;
+    border-radius:24px; padding:24px; box-shadow:0 8px 32px rgba(0,0,0,0.5);
+    position:relative; animation:float 3s ease-in-out infinite;
+  }
+  @keyframes float {
+    0%,100% { transform:translateY(0) rotate(-0.5deg); }
+    50% { transform:translateY(-8px) rotate(0.5deg); }
+  }
+  .paper-card .cat-badge {
+    display:inline-flex; align-items:center; gap:5px; padding:4px 10px;
+    border-radius:8px; font-size:11px; font-weight:700;
+  }
+  .paper-card h2 { font-size:22px; font-weight:800; margin:12px 0 6px; letter-spacing:-0.3px; }
+  .paper-card .summary { font-size:14px; color:#8899B0; line-height:20px; }
+  .pitch-preview {
+    background:#182844; border-radius:14px; padding:12px; margin-top:10px;
+  }
+  .pitch-preview .label { font-size:11px; font-weight:700; color:var(--gold); text-transform:uppercase; letter-spacing:0.5px; }
+  .pitch-preview .body { font-size:13px; color:#8899B0; margin-top:4px; line-height:18px; }
+  .toss-indicators {
+    display:flex; justify-content:space-between; align-items:flex-end;
+    padding:0 20px; margin-top:12px; opacity:0.5;
+  }
+  .toss-ind { display:flex; flex-direction:column; align-items:center; gap:4px; }
+  .toss-ind .circle { width:44px; height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:20px; }
+  .toss-ind .lbl { font-size:10px; font-weight:700; letter-spacing:0.5px; }
+  
+  /* ── INVESTOR: Wallet ── */
+  .hero-balance {
+    background:linear-gradient(135deg, #6C5CE7, #4A3DB5); border-radius:20px;
+    padding:28px; text-align:center; box-shadow:0 4px 16px rgba(108,92,231,0.3);
+  }
+  .hero-balance .label { font-size:13px; font-weight:600; color:rgba(255,255,255,0.8); text-transform:uppercase; letter-spacing:1px; }
+  .hero-balance .amount { font-size:48px; font-weight:900; margin:8px 0; }
+  .hero-balance .sub { font-size:13px; color:rgba(255,255,255,0.65); }
+  .token-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .token-card {
+    background:var(--bgSec); border-radius:14px; padding:14px; border:1px solid var(--border);
+    border-left:4px solid; 
+  }
+  .token-card .icon { font-size:24px; }
+  .token-card .name { font-size:12px; font-weight:700; margin-top:4px; color:var(--text); }
+  .token-card .bal { font-size:20px; font-weight:900; margin-top:2px; }
+  .token-card .prov { font-size:10px; color:var(--textMuted); }
+  
+  /* ── INVESTOR: Tier ── */
+  .tier-card {
+    background:var(--bgSec); border-radius:20px; padding:20px; margin-bottom:12px;
+    border:2px solid var(--border); position:relative; transition:all 0.2s;
+  }
+  .tier-card.selected { border-width:2.5px; }
+  .tier-card .current-badge {
+    position:absolute; top:-10px; right:16px; padding:3px 10px;
+    border-radius:8px; font-size:10px; font-weight:800; color:#fff; letter-spacing:0.8px;
+  }
+  .tier-card .check { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:900; color:#fff; }
+  .tier-breakdown {
+    background:var(--bgTer); border-radius:12px; padding:12px; margin:12px 0;
+  }
+  .tier-breakdown .row { display:flex; align-items:center; padding:5px 0; gap:8px; }
+  .tier-breakdown .row .tk-icon { width:24px; font-size:16px; }
+  .tier-breakdown .row .tk-name { flex:1; font-size:13px; color:var(--textSec); font-weight:500; }
+  .tier-breakdown .row .tk-amt { font-size:15px; font-weight:800; }
+  .tier-total { display:flex; justify-content:space-between; padding:12px; border-radius:12px; }
+  
+  /* ── FOUNDER: Wizard ── */
+  .wizard-bg { background:#F5F5F0; min-height:728px; color:#1A2332; }
+  .wizard-topbar { display:flex; justify-content:flex-end; gap:8px; padding:44px 16px 8px; }
+  .wizard-topbar .btn { width:36px; height:36px; border-radius:50%; background:#E5E8ED; border:none; font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .wizard-char { text-align:center; padding:8px 16px 16px; }
+  .wizard-char .avatar { width:100px; height:100px; border-radius:50%; background:#EEF1F6; display:flex; align-items:center; justify-content:center; font-size:48px; margin:0 auto 10px; }
+  .wizard-char .name { font-size:16px; font-weight:700; color:#1A2332; }
+  .wizard-char .quote { font-size:13px; color:#5A6577; margin-top:4px; }
+  .wizard-panel { background:#E8EDF4; margin:0 16px; border-radius:20px; padding:20px; }
+  .wizard-panel .step-ind { font-size:13px; color:#5A6577; margin-bottom:8px; }
+  .wizard-panel .step-ind b { color:#1A2332; }
+  .wizard-panel .question { font-size:20px; font-weight:800; color:#1A2332; letter-spacing:0.3px; margin-bottom:16px; line-height:1.3; }
+  .wizard-panel textarea {
+    width:100%; min-height:100px; border-radius:12px; border:1.5px solid #D5DAE2;
+    background:#fff; padding:14px; font-size:15px; font-family:inherit; resize:none; color:#1A2332;
+  }
+  .wizard-panel textarea::placeholder { color:#B0B8C4; }
+  .wizard-panel .char-count { text-align:right; font-size:12px; color:#5A6577; margin-top:4px; }
+  .wizard-helpers { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+  .wizard-helpers .helper-btn {
+    padding:8px 14px; border-radius:20px; border:1.5px solid #D5DAE2; background:#fff;
+    font-size:13px; font-weight:500; color:#1A2332; cursor:pointer;
+  }
+  .wizard-bottom {
+    display:flex; justify-content:space-between; align-items:center;
+    padding:12px 16px 28px; margin-top:16px;
+  }
+  .wizard-bottom .back { width:44px; height:44px; border-radius:50%; border:1.5px solid #D5DAE2; background:#fff; font-size:20px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .wizard-bottom .next { padding:12px 28px; border-radius:24px; background:#FDE8E9; color:#D93B41; font-size:15px; font-weight:600; border:none; cursor:pointer; }
+  .wizard-skyline { text-align:center; font-size:40px; opacity:0.2; margin-top:10px; }
+  
+  /* ── FOUNDER: My Ideas ── */
+  .idea-card-list .idea-card {
+    background:var(--bgSec); border-radius:16px; border:1px solid var(--border);
+    padding:16px; margin-bottom:10px;
+  }
+  .idea-card .hdr { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+  .idea-card .hdr h3 { font-size:17px; font-weight:700; }
+  .idea-card .sum { font-size:14px; color:var(--textSec); line-height:20px; }
+  .idea-card .ftr { display:flex; align-items:center; gap:8px; margin-top:10px; flex-wrap:wrap; }
+  
+  /* ── FOUNDER: Prana Exchange ── */
+  .prana-hero {
+    background:linear-gradient(135deg, #4A148C, #7B1FA2); border-radius:20px;
+    padding:24px; text-align:center;
+  }
+  .prana-hero .label { font-size:14px; font-weight:600; color:rgba(255,255,255,0.7); }
+  .prana-hero .amt { font-size:42px; font-weight:900; margin:6px 0; }
+  .prana-hero .amt .sym { color:var(--gold); font-size:32px; }
+  .prana-hero .sub { font-size:13px; color:rgba(255,255,255,0.5); }
+  .rates-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .rate-card {
+    background:var(--bgSec); border:2px solid var(--border); border-radius:12px;
+    padding:10px; cursor:pointer; transition:all 0.15s; text-align:center;
+  }
+  .rate-card.selected { border-color:var(--accent); background:rgba(108,92,231,0.08); }
+  .rate-card .r-icon { font-size:22px; }
+  .rate-card .r-name { font-size:12px; font-weight:700; margin-top:2px; }
+  .rate-card .r-rate { font-size:14px; font-weight:800; color:var(--gold); margin-top:2px; }
+  .rate-card .r-can { font-size:10px; color:var(--textMuted); }
+  .exchange-form { background:var(--bgSec); border-radius:16px; border:1px solid var(--border); padding:16px; }
+  .exchange-form .token-banner { background:var(--bgTer); border-radius:10px; padding:10px; display:flex; align-items:center; gap:8px; font-size:14px; font-weight:600; margin-bottom:12px; }
+  .exchange-form .input-row { display:flex; gap:8px; margin-bottom:12px; }
+  .exchange-form input {
+    flex:1; background:var(--inputBg); border:1.5px solid var(--border); border-radius:12px;
+    padding:12px; font-size:18px; font-weight:700; color:var(--text); font-family:inherit;
+  }
+  .exchange-form input::placeholder { color:var(--textMuted); }
+  .exchange-form .max-btn { padding:12px 16px; border-radius:12px; background:var(--accent); color:#fff; font-size:14px; font-weight:700; border:none; cursor:pointer; }
+  .cost-preview { background:var(--bgTer); border-radius:12px; padding:12px; margin-bottom:14px; }
+  .cost-row { display:flex; justify-content:space-between; padding:6px 0; font-size:14px; }
+  .cost-row .l { color:var(--textSec); }
+  .cost-row .v { font-weight:700; }
+  .btn-exchange {
+    width:100%; padding:16px; border-radius:14px; background:#4A148C;
+    border:none; border-bottom:4px solid #2E0854; color:#fff; font-size:16px;
+    font-weight:800; cursor:pointer;
+  }
+  
+  /* ── FOUNDER: Chat ── */
+  .chat-screen { display:flex; flex-direction:column; height:728px; background:var(--bg); }
+  .chat-header { padding:44px 16px 12px; background:var(--bgSec); border-bottom:1px solid var(--border); }
+  .chat-header h3 { font-size:18px; font-weight:700; }
+  .chat-header .idea-tag { font-size:12px; color:var(--textMuted); font-style:italic; margin-top:2px; }
+  .chat-messages { flex:1; padding:16px; overflow-y:auto; display:flex; flex-direction:column; gap:10px; }
+  .chat-msg { max-width:80%; padding:12px 16px; border-radius:16px; font-size:14px; line-height:20px; }
+  .chat-msg.sent { background:var(--accent); color:#fff; align-self:flex-end; border-bottom-right-radius:4px; }
+  .chat-msg.recv { background:var(--bgSec); color:var(--textSec); align-self:flex-start; border-bottom-left-radius:4px; }
+  .chat-msg .time { font-size:10px; opacity:0.6; margin-top:4px; }
+  .chat-input-bar {
+    display:flex; gap:8px; padding:12px 16px 32px;
+    background:var(--bgSec); border-top:1px solid var(--border);
+  }
+  .chat-input-bar input {
+    flex:1; background:var(--inputBg); border:1px solid var(--border); border-radius:20px;
+    padding:10px 16px; color:var(--text); font-size:14px; font-family:inherit;
+  }
+  .chat-input-bar .send {
+    width:40px; height:40px; border-radius:50%; background:var(--accent); border:none;
+    color:#fff; font-size:18px; cursor:pointer;
+  }
+  
+  /* ── Profile ── */
+  .profile-screen { padding:50px 16px 100px; }
+  .profile-avatar { width:80px; height:80px; border-radius:50%; background:var(--accent); display:flex; align-items:center; justify-content:center; font-size:36px; margin:0 auto 12px; }
+  .profile-name { text-align:center; font-size:22px; font-weight:800; }
+  .profile-email { text-align:center; font-size:14px; color:var(--textMuted); margin-top:2px; }
+  .profile-card { background:var(--bgSec); border-radius:14px; border:1px solid var(--border); margin-top:16px; overflow:hidden; }
+  .profile-row { display:flex; align-items:center; gap:12px; padding:14px 16px; border-bottom:1px solid var(--border); cursor:pointer; }
+  .profile-row:last-child { border-bottom:none; }
+  .profile-row .p-icon { font-size:20px; width:32px; text-align:center; }
+  .profile-row .p-label { flex:1; font-size:15px; font-weight:500; }
+  .profile-row .p-arrow { color:var(--textMuted); font-size:14px; }
+  .logout-btn { width:100%; margin-top:20px; padding:16px; border-radius:14px; background:rgba(255,107,107,0.1); border:1.5px solid rgba(255,107,107,0.3); color:var(--error); font-size:16px; font-weight:700; cursor:pointer; }
+  
+  /* ── App Label ── */
+  .phone-label { text-align:center; margin-top:16px; font-size:14px; font-weight:700; color:var(--textSec); }
+  .phone-label span { color:var(--accent); }
+  
+  /* ── Animations ── */
+  @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+  .screen-view.active > * { animation:fadeIn 0.3s ease-out; }
+  
+  /* ── Hidden helper ── */
+  .hidden { display:none !important; }
+</style>
+</head>
+<body>
+
+<!-- Top Bar -->
+<div class="topbar">
+  <h1>Build<span>Paper</span> 📄</h1>
+  <div class="tabs">
+    <button class="tab active" onclick="switchApp('investor')">🎯 Investor App</button>
+    <button class="tab" onclick="switchApp('founder')">💡 Founder App</button>
+  </div>
+</div>
+
+<!-- Preview Area -->
+<div class="preview-area" id="previewArea">
+
+<!-- ===================== INVESTOR PHONE ===================== -->
+<div id="investorPhone">
+<div class="phone">
+  <div class="notch"></div>
+  <div class="screen">
+    
+    <!-- Screen Nav -->
+    <div class="screen-nav">
+      <button class="screen-btn active" onclick="showScreen('inv','toss')">Paper Toss</button>
+      <button class="screen-btn" onclick="showScreen('inv','wallet')">Wallet</button>
+      <button class="screen-btn" onclick="showScreen('inv','tiers')">Tiers</button>
+      <button class="screen-btn" onclick="showScreen('inv','saved')">Saved</button>
+      <button class="screen-btn" onclick="showScreen('inv','profile')">Profile</button>
+    </div>
+
+    <!-- ─ Paper Toss ─ -->
+    <div class="screen-view active" id="inv-toss">
+      <div class="paper-toss-bg">
+        <div style="padding:12px 20px 0;">
+          <div style="font-size:24px;font-weight:800;">Review Ideas</div>
+          <div style="font-size:13px;color:#8899B0;">Swipe to decide</div>
+        </div>
+        <div style="padding:20px 0;">
+          <div class="paper-card">
+            <div style="display:flex;gap:8px;align-items:center;">
+              <span class="cat-badge" style="background:rgba(164,123,250,0.22);color:#A78BFA;border:1px solid rgba(164,123,250,0.55);">● SaaS</span>
+              <span class="cat-badge" style="background:rgba(253,203,110,0.18);color:#FFB547;border:1px solid rgba(253,203,110,0.4);">🚀 MVP</span>
+            </div>
+            <h2>TechFlow AI</h2>
+            <div class="summary">AI-powered workflow automation that saves developers 10+ hours per week</div>
+            <div style="height:1px;background:#1E2D45;margin:14px 0;"></div>
+            <div class="pitch-preview">
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+                <span>🎯</span><span class="label">THE PROBLEM</span>
+              </div>
+              <div class="body">Developers waste hours on repetitive workflow tasks that could easily be automated with AI</div>
+            </div>
+            <div class="pitch-preview" style="margin-top:8px;">
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+                <span>💡</span><span class="label">THE SOLUTION</span>
+              </div>
+              <div class="body">Smart automation engine that learns your workflow patterns and handles them autonomously</div>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-top:14px;font-size:12px;color:#556680;">
+              <span>Tap for full details</span>
+              <span>↓ reject · → save</span>
+            </div>
+          </div>
+        </div>
+        <div class="toss-indicators">
+          <div class="toss-ind">
+            <div class="circle" style="background:rgba(230,57,70,0.15);">🗑️</div>
+            <div class="lbl" style="color:#E63946;">REJECT</div>
+          </div>
+          <div class="toss-ind">
+            <div class="circle" style="background:rgba(108,92,231,0.15);">📥</div>
+            <div class="lbl" style="color:#6C5CE7;">SAVE</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─ Wallet ─ -->
+    <div class="screen-view" id="inv-wallet">
+      <div style="padding:12px 16px 100px;">
+        <div style="font-size:26px;font-weight:900;margin-bottom:16px;">Wallet</div>
+        <div class="hero-balance">
+          <div class="label">TOTAL TOKENS</div>
+          <div class="amount">1,250</div>
+          <div class="sub">AI tokens ready to invest</div>
+        </div>
+        <div style="margin:16px 0;">
+          <div class="card" style="border:2px solid #6C5CE7;padding:14px;display:flex;align-items:center;gap:12px;cursor:pointer;" onclick="showScreen('inv','tiers')">
+            <span style="font-size:28px;">⚡</span>
+            <div style="flex:1;">
+              <div style="font-size:16px;font-weight:800;color:#6C5CE7;">Saarthi</div>
+              <div style="font-size:13px;color:var(--textSec);">1,000 tokens / month</div>
+            </div>
+            <span style="color:var(--textMuted);font-size:18px;">›</span>
+          </div>
+        </div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:10px;">Token Balances</div>
+        <div class="token-grid">
+          <div class="token-card" style="border-left-color:#4285F4;">
+            <div class="icon">💎</div><div class="name">Gemini</div>
+            <div class="bal" style="color:#4285F4;">280</div><div class="prov">Google</div>
+          </div>
+          <div class="token-card" style="border-left-color:#D97706;">
+            <div class="icon">🧠</div><div class="name">Anthropic</div>
+            <div class="bal" style="color:#D97706;">195</div><div class="prov">Anthropic</div>
+          </div>
+          <div class="token-card" style="border-left-color:#10A37F;">
+            <div class="icon">🤖</div><div class="name">ChatGPT</div>
+            <div class="bal" style="color:#10A37F;">320</div><div class="prov">OpenAI</div>
+          </div>
+          <div class="token-card" style="border-left-color:#22D3EE;">
+            <div class="icon">🔍</div><div class="name">Perplexity</div>
+            <div class="bal" style="color:#22D3EE;">150</div><div class="prov">Perplexity</div>
+          </div>
+          <div class="token-card" style="border-left-color:#FF6F00;">
+            <div class="icon">🌀</div><div class="name">Mistral</div>
+            <div class="bal" style="color:#FF6F00;">0</div><div class="prov">Mistral AI</div>
+          </div>
+          <div class="token-card" style="border-left-color:#1E88E5;">
+            <div class="icon">🔭</div><div class="name">DeepSeek</div>
+            <div class="bal" style="color:#1E88E5;">155</div><div class="prov">DeepSeek</div>
+          </div>
+          <div class="token-card" style="border-left-color:#9C27B0;">
+            <div class="icon">⚡</div><div class="name">Grok</div>
+            <div class="bal" style="color:#9C27B0;">100</div><div class="prov">xAI</div>
+          </div>
+          <div class="token-card" style="border-left-color:#0467DF;">
+            <div class="icon">🦙</div><div class="name">Llama</div>
+            <div class="bal" style="color:#0467DF;">50</div><div class="prov">Meta</div>
+          </div>
+        </div>
+        
+        <div class="btn-primary" style="margin-top:16px;background:#6C5CE7;">
+          🎁 Claim Monthly Grant
+        </div>
+        
+        <div class="card pad" style="margin-top:16px;">
+          <div style="font-size:16px;font-weight:700;margin-bottom:8px;">💡 How Tokens Work</div>
+          <div style="font-size:13px;color:var(--textSec);line-height:20px;">
+            • Invest tokens into ideas you believe in<br>
+            • Each token type corresponds to an AI provider<br>
+            • Founders use your tokens for AI tools<br>
+          </div>
+          <div style="background:rgba(0,184,148,0.12);padding:10px;border-radius:10px;margin-top:10px;">
+            <div style="font-size:13px;font-weight:700;color:#00A381;">📊 10,000 tokens consumed = 1% equity</div>
+          </div>
+        </div>
+        
+        <div style="font-size:18px;font-weight:700;margin:16px 0 10px;">Recent Transactions</div>
+        <div class="card pad" style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
+          <div style="width:40px;height:40px;border-radius:50%;background:var(--bgTer);display:flex;align-items:center;justify-content:center;font-size:18px;">📥</div>
+          <div style="flex:1;">
+            <div style="font-size:14px;font-weight:600;">Monthly Grant</div>
+            <div style="font-size:11px;color:var(--textMuted);">Feb 1, 2026</div>
+          </div>
+          <div style="font-size:16px;font-weight:800;color:var(--success);">+1,000</div>
+        </div>
+        <div class="card pad" style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
+          <div style="width:40px;height:40px;border-radius:50%;background:var(--bgTer);display:flex;align-items:center;justify-content:center;font-size:18px;">⚡</div>
+          <div style="flex:1;">
+            <div style="font-size:14px;font-weight:600;">Invested in TechFlow AI</div>
+            <div style="font-size:11px;color:var(--textMuted);">Jan 28, 2026 · <span style="color:#10A37F;font-weight:600;">ChatGPT</span></div>
+          </div>
+          <div style="font-size:16px;font-weight:800;color:var(--error);">-200</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─ Tiers ─ -->
+    <div class="screen-view" id="inv-tiers">
+      <div style="padding:12px 16px 100px;">
+        <div style="text-align:center;margin-bottom:20px;">
+          <div style="font-size:28px;font-weight:900;">Choose Your Path</div>
+          <div style="font-size:14px;color:var(--textSec);margin-top:4px;line-height:22px;">Select a tier to determine your monthly AI token grant</div>
+        </div>
+        
+        <!-- Shishya -->
+        <div class="tier-card" style="border-color:var(--border);">
+          <div style="display:flex;align-items:center;gap:14px;margin-bottom:10px;">
+            <span style="font-size:36px;">🌱</span>
+            <div style="flex:1;">
+              <div style="font-size:22px;font-weight:900;color:#00B894;">Shishya</div>
+              <div style="font-size:13px;color:var(--textMuted);">शिष्य · Disciple</div>
+            </div>
+          </div>
+          <div style="font-size:14px;color:var(--textSec);line-height:20px;margin-bottom:12px;">Begin your investment journey. Perfect for exploration and learning.</div>
+          <div class="tier-total" style="background:rgba(0,184,148,0.15);">
+            <span style="font-size:14px;font-weight:600;">Monthly Grant</span>
+            <span style="font-size:18px;font-weight:900;color:#00B894;">400 tokens</span>
+          </div>
+        </div>
+        
+        <!-- Saarthi -->
+        <div class="tier-card selected" style="border-color:#6C5CE7;background:rgba(108,92,231,0.04);">
+          <div class="current-badge" style="background:#6C5CE7;">CURRENT</div>
+          <div style="display:flex;align-items:center;gap:14px;margin-bottom:10px;">
+            <span style="font-size:36px;">⚡</span>
+            <div style="flex:1;">
+              <div style="font-size:22px;font-weight:900;color:#6C5CE7;">Saarthi</div>
+              <div style="font-size:13px;color:var(--textMuted);">सारथी · Guide</div>
+            </div>
+            <div class="check" style="background:#6C5CE7;">✓</div>
+          </div>
+          <div style="font-size:14px;color:var(--textSec);line-height:20px;margin-bottom:12px;">Actively guide ideas to success. Balanced for strategic investors.</div>
+          <div class="tier-breakdown">
+            <div class="row"><span class="tk-icon">💎</span><span class="tk-name">Gemini</span><span class="tk-amt" style="color:#4285F4;">+250</span></div>
+            <div class="row"><span class="tk-icon">🧠</span><span class="tk-name">Anthropic</span><span class="tk-amt" style="color:#D97706;">+250</span></div>
+            <div class="row"><span class="tk-icon">🤖</span><span class="tk-name">ChatGPT</span><span class="tk-amt" style="color:#10A37F;">+250</span></div>
+            <div class="row"><span class="tk-icon">🔍</span><span class="tk-name">Perplexity</span><span class="tk-amt" style="color:#22D3EE;">+250</span></div>
+          </div>
+          <div class="tier-total" style="background:rgba(108,92,231,0.15);">
+            <span style="font-size:14px;font-weight:600;">Monthly Grant</span>
+            <span style="font-size:18px;font-weight:900;color:#6C5CE7;">1,000 tokens</span>
+          </div>
+        </div>
+        
+        <!-- Shoor -->
+        <div class="tier-card" style="border-color:var(--border);">
+          <div style="display:flex;align-items:center;gap:14px;margin-bottom:10px;">
+            <span style="font-size:36px;">🔥</span>
+            <div style="flex:1;">
+              <div style="font-size:22px;font-weight:900;color:#FDCB6E;">Shoor</div>
+              <div style="font-size:13px;color:var(--textMuted);">शूर · Warrior</div>
+            </div>
+          </div>
+          <div style="font-size:14px;color:var(--textSec);line-height:20px;margin-bottom:12px;">Dominate the investment arena. Maximum tokens, maximum influence.</div>
+          <div class="tier-total" style="background:rgba(253,203,110,0.15);">
+            <span style="font-size:14px;font-weight:600;">Monthly Grant</span>
+            <span style="font-size:18px;font-weight:900;color:#FDCB6E;">2,000 tokens</span>
+          </div>
+        </div>
+        
+        <div class="btn-primary" style="margin-top:8px;background:#6C5CE7;">Keep Current Tier</div>
+        
+        <div class="card pad" style="margin-top:16px;">
+          <div style="font-size:16px;font-weight:700;margin-bottom:8px;">📌 How Tiers Work</div>
+          <div style="font-size:13px;color:var(--textSec);line-height:20px;">
+            • Your tier determines how many AI tokens you receive each month<br>
+            • Changing tiers takes effect on your next monthly grant<br>
+            • Higher tiers let you invest in more ideas simultaneously<br>
+            • All tiers have the same 30-day grant cooldown<br>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─ Saved ─ -->
+    <div class="screen-view" id="inv-saved">
+      <div style="padding:12px 16px 100px;">
+        <div style="font-size:26px;font-weight:900;margin-bottom:4px;">Saved Ideas</div>
+        <div style="font-size:13px;color:var(--textMuted);margin-bottom:16px;">Ideas you've chosen to invest in</div>
+        
+        <div class="card pad" style="margin-bottom:10px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <div style="font-size:17px;font-weight:700;">TechFlow AI</div>
+            <div class="pill" style="background:rgba(0,184,148,0.15);color:#00B894;">ACTIVE</div>
+          </div>
+          <div style="font-size:14px;color:var(--textSec);line-height:20px;">AI-powered workflow automation that saves developers 10+ hours per week</div>
+          <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+            <span class="badge" style="background:rgba(164,123,250,0.15);color:#A78BFA;">SaaS</span>
+            <span style="font-size:12px;color:var(--textMuted);">MVP</span>
+            <span style="font-size:12px;font-weight:600;color:#00B894;margin-left:auto;">⚡ 520 invested</span>
+          </div>
+          <div class="divider"></div>
+          <div style="display:flex;gap:8px;">
+            <span style="font-size:12px;color:var(--textMuted);">Your equity:</span>
+            <span style="font-size:12px;font-weight:700;color:var(--gold);">5.2%</span>
+          </div>
+        </div>
+        
+        <div class="card pad" style="margin-bottom:10px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <div style="font-size:17px;font-weight:700;">EduMatch</div>
+            <div class="pill" style="background:rgba(0,184,148,0.15);color:#00B894;">ACTIVE</div>
+          </div>
+          <div style="font-size:14px;color:var(--textSec);line-height:20px;">Connect students with perfect tutors using AI matching</div>
+          <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+            <span class="badge" style="background:rgba(79,142,247,0.15);color:#4F8EF7;">App</span>
+            <span style="font-size:12px;color:var(--textMuted);">Prototype</span>
+            <span style="font-size:12px;font-weight:600;color:#00B894;margin-left:auto;">⚡ 200 invested</span>
+          </div>
+          <div class="divider"></div>
+          <div style="display:flex;gap:8px;">
+            <span style="font-size:12px;color:var(--textMuted);">Your equity:</span>
+            <span style="font-size:12px;font-weight:700;color:var(--gold);">2.0%</span>
+          </div>
+        </div>
+        
+        <div class="card pad">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <div style="font-size:17px;font-weight:700;">GreenGrid</div>
+            <div class="pill" style="background:rgba(253,203,110,0.15);color:#FDCB6E;">PENDING</div>
+          </div>
+          <div style="font-size:14px;color:var(--textSec);line-height:20px;">Smart energy grid optimization for residential solar panels</div>
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <span class="badge" style="background:rgba(0,210,211,0.15);color:#00D2D3;">Hardware</span>
+            <span style="font-size:12px;color:var(--textMuted);">Idea</span>
+            <span style="font-size:12px;font-weight:600;color:#00B894;margin-left:auto;">⚡ 100 invested</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─ Profile (Investor) ─ -->
+    <div class="screen-view" id="inv-profile">
+      <div class="profile-screen">
+        <div class="profile-avatar">JS</div>
+        <div class="profile-name">John Smith</div>
+        <div class="profile-email">john@example.com</div>
+        <div style="text-align:center;margin-top:6px;">
+          <span class="pill" style="background:rgba(108,92,231,0.15);color:#6C5CE7;">INVESTOR</span>
+        </div>
+        <div class="profile-card">
+          <div class="profile-row"><span class="p-icon">⚡</span><span class="p-label">Saarthi Tier</span><span class="p-arrow">›</span></div>
+          <div class="profile-row"><span class="p-icon">💰</span><span class="p-label">1,250 Total Tokens</span><span class="p-arrow">›</span></div>
+          <div class="profile-row"><span class="p-icon">📊</span><span class="p-label">3 Ideas Invested</span><span class="p-arrow">›</span></div>
+          <div class="profile-row"><span class="p-icon">🔔</span><span class="p-label">Notifications</span><span class="p-arrow">›</span></div>
+          <div class="profile-row"><span class="p-icon">🔒</span><span class="p-label">Privacy & Security</span><span class="p-arrow">›</span></div>
+          <div class="profile-row"><span class="p-icon">❓</span><span class="p-label">Help & Support</span><span class="p-arrow">›</span></div>
+        </div>
+        <button class="logout-btn">🚪 Log Out</button>
+      </div>
+    </div>
+
+    <!-- Tab Bar -->
+    <div class="tab-bar">
+      <button class="tab-item active" onclick="showScreen('inv','toss')"><span class="icon">📄</span>Review</button>
+      <button class="tab-item" onclick="showScreen('inv','saved')"><span class="icon">📥</span>Saved</button>
+      <button class="tab-item" onclick="showScreen('inv','wallet')"><span class="icon">💰</span>Wallet</button>
+      <button class="tab-item" onclick="showScreen('inv','profile')"><span class="icon">👤</span>Profile</button>
+    </div>
+
+  </div>
+</div>
+<div class="phone-label">🎯 <span>Investor App</span> · Port 8082</div>
+</div>
+
+<!-- ===================== FOUNDER PHONE ===================== -->
+<div id="founderPhone" class="hidden">
+<div class="phone">
+  <div class="notch"></div>
+  <div class="screen">
+    
+    <!-- Screen Nav -->
+    <div class="screen-nav">
+      <button class="screen-btn active" onclick="showScreen('fnd','wizard')">AI Wizard</button>
+      <button class="screen-btn" onclick="showScreen('fnd','ideas')">My Ideas</button>
+      <button class="screen-btn" onclick="showScreen('fnd','prana')">Prana ₽</button>
+      <button class="screen-btn" onclick="showScreen('fnd','chat')">Chat</button>
+      <button class="screen-btn" onclick="showScreen('fnd','profile')">Profile</button>
+    </div>
+
+    <!-- ─ Wizard ─ -->
+    <div class="screen-view active" id="fnd-wizard">
+      <div class="wizard-bg">
+        <div class="wizard-topbar">
+          <button class="btn">ⓘ</button>
+          <button class="btn">✕</button>
+        </div>
+        <div class="wizard-char">
+          <div class="avatar">🧑‍💼</div>
+          <div class="name">The Business Leader</div>
+          <div class="quote">"Tell me about your big idea — I'll help you shape it."</div>
+        </div>
+        <div class="wizard-panel">
+          <div class="step-ind">Step 1 out of 4 / <b>Your idea</b></div>
+          <div class="question">WHAT IS YOUR IDEA IN ONE SENTENCE?</div>
+          <textarea placeholder="Example: An app that helps remote workers find their ideal co-working space…">AI-powered workflow automation that saves developers 10+ hours per week by learning and replicating their patterns</textarea>
+          <div class="char-count">89 / 300</div>
+          <div class="wizard-helpers">
+            <button class="helper-btn">🧑‍💼 Ask the Business Leader</button>
+            <button class="helper-btn">✨ Rephrase my text</button>
+          </div>
+        </div>
+        <div class="wizard-skyline">🏙️</div>
+        <div class="wizard-bottom">
+          <button class="back" disabled style="opacity:0.3;">←</button>
+          <button class="next">Next →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─ My Ideas ─ -->
+    <div class="screen-view" id="fnd-ideas">
+      <div style="padding:12px 16px 100px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <div>
+            <div style="font-size:28px;font-weight:900;">My Ideas</div>
+            <div style="font-size:13px;color:var(--textMuted);">3 pitches</div>
+          </div>
+          <button style="background:var(--accent);color:#fff;border:none;padding:10px 16px;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;">+ New Idea</button>
+        </div>
+        <div class="idea-card-list" style="margin-top:14px;">
+          <div class="idea-card">
+            <div class="hdr">
+              <h3>TechFlow AI</h3>
+              <span class="pill" style="background:#00B894;color:#fff;">ACTIVE</span>
+            </div>
+            <div class="sum">AI-powered workflow automation that saves developers 10+ hours per week</div>
+            <div class="ftr">
+              <span class="badge" style="background:var(--accentLight);color:var(--accent);">SaaS</span>
+              <span style="font-size:12px;color:var(--textMuted);">MVP</span>
+              <span style="font-size:12px;font-weight:600;color:var(--success);margin-left:auto;">💰 520 tokens</span>
+            </div>
+          </div>
+          <div class="idea-card">
+            <div class="hdr">
+              <h3>EduMatch</h3>
+              <span class="pill" style="background:#00B894;color:#fff;">ACTIVE</span>
+            </div>
+            <div class="sum">Connect students with perfect tutors using AI matching algorithms</div>
+            <div class="ftr">
+              <span class="badge" style="background:rgba(79,142,247,0.15);color:#4F8EF7;">App</span>
+              <span style="font-size:12px;color:var(--textMuted);">Prototype</span>
+              <span style="font-size:12px;font-weight:600;color:var(--success);margin-left:auto;">💰 200 tokens</span>
+            </div>
+          </div>
+          <div class="idea-card">
+            <div class="hdr">
+              <h3>GreenGrid</h3>
+              <span class="pill" style="background:var(--bgTer);color:var(--textSec);">DRAFT</span>
+            </div>
+            <div class="sum">Smart energy grid optimization for residential solar panels</div>
+            <div class="ftr">
+              <span class="badge" style="background:rgba(0,210,211,0.15);color:#00D2D3;">Hardware</span>
+              <span style="font-size:12px;color:var(--textMuted);">Idea</span>
+              <span style="font-size:12px;font-weight:600;color:var(--success);margin-left:auto;">💰 0 tokens</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─ Prana Exchange ─ -->
+    <div class="screen-view" id="fnd-prana">
+      <div style="padding:12px 16px 100px;">
+        <div style="font-size:26px;font-weight:900;margin-bottom:14px;">Prana Exchange ₽</div>
+        <div class="prana-hero">
+          <div class="label">Your Prana Balance</div>
+          <div class="amt"><span class="sym">₽</span> 347</div>
+          <div class="sub">Lifetime exchanged: 153₽</div>
+        </div>
+        
+        <div style="font-size:18px;font-weight:700;margin:18px 0 10px;">Exchange Rates</div>
+        <div class="rates-grid">
+          <div class="rate-card" onclick="selectRate(this)"><div class="r-icon">💎</div><div class="r-name">Gemini</div><div class="r-rate">1.2₽</div><div class="r-can">Can buy: 289</div></div>
+          <div class="rate-card" onclick="selectRate(this)"><div class="r-icon">🧠</div><div class="r-name">Anthropic</div><div class="r-rate">1.8₽</div><div class="r-can">Can buy: 192</div></div>
+          <div class="rate-card" onclick="selectRate(this)"><div class="r-icon">🔍</div><div class="r-name">Perplexity</div><div class="r-rate">0.8₽</div><div class="r-can">Can buy: 433</div></div>
+          <div class="rate-card selected" onclick="selectRate(this)"><div class="r-icon">🤖</div><div class="r-name">ChatGPT</div><div class="r-rate">1.5₽</div><div class="r-can">Can buy: 231</div></div>
+          <div class="rate-card" onclick="selectRate(this)"><div class="r-icon">🌀</div><div class="r-name">Mistral</div><div class="r-rate">1.0₽</div><div class="r-can">Can buy: 347</div></div>
+          <div class="rate-card" onclick="selectRate(this)"><div class="r-icon">🔭</div><div class="r-name">DeepSeek</div><div class="r-rate">0.6₽</div><div class="r-can">Can buy: 578</div></div>
+          <div class="rate-card" onclick="selectRate(this)"><div class="r-icon">⚡</div><div class="r-name">Grok</div><div class="r-rate">1.3₽</div><div class="r-can">Can buy: 266</div></div>
+          <div class="rate-card" onclick="selectRate(this)"><div class="r-icon">🦙</div><div class="r-name">Llama</div><div class="r-rate">0.4₽</div><div class="r-can">Can buy: 867</div></div>
+        </div>
+        
+        <div style="font-size:18px;font-weight:700;margin:18px 0 10px;">Deposit Into</div>
+        <div style="display:flex;gap:8px;overflow-x:auto;margin-bottom:16px;">
+          <span class="pill" style="background:var(--accentLight);color:var(--accent);border:1.5px solid var(--accent);padding:8px 14px;font-size:13px;cursor:pointer;">TechFlow AI</span>
+          <span class="pill" style="background:transparent;color:var(--textSec);border:1.5px solid var(--border);padding:8px 14px;font-size:13px;cursor:pointer;">EduMatch</span>
+          <span class="pill" style="background:transparent;color:var(--textSec);border:1.5px solid var(--border);padding:8px 14px;font-size:13px;cursor:pointer;">GreenGrid</span>
+        </div>
+        
+        <div class="exchange-form">
+          <div class="token-banner"><span>🤖</span> ChatGPT — 1.5₽ per credit</div>
+          <div class="input-row">
+            <input type="number" placeholder="0" value="50">
+            <button class="max-btn">MAX</button>
+          </div>
+          <div class="cost-preview">
+            <div class="cost-row"><span class="l">Credits</span><span class="v">50 🤖</span></div>
+            <div class="cost-row"><span class="l">Prana Cost</span><span class="v" style="color:var(--gold);">75₽</span></div>
+            <div class="divider" style="margin:6px 0;"></div>
+            <div class="cost-row"><span class="l">Balance After</span><span class="v" style="color:var(--success);">272₽</span></div>
+          </div>
+          <button class="btn-exchange">Exchange 75₽ → 50 ChatGPT</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─ Chat ─ -->
+    <div class="screen-view" id="fnd-chat">
+      <div class="chat-screen">
+        <div class="chat-header">
+          <h3>💬 John Smith</h3>
+          <div class="idea-tag">Re: TechFlow AI</div>
+        </div>
+        <div class="chat-messages">
+          <div class="chat-msg recv">
+            Hi Sarah! I just invested 200 ChatGPT tokens into TechFlow. Excited about this project! 🚀
+            <div class="time">2:30 PM</div>
+          </div>
+          <div class="chat-msg sent">
+            Thank you John! That means a lot. Those tokens will help us refine the AI workflow engine.
+            <div class="time">2:32 PM</div>
+          </div>
+          <div class="chat-msg recv">
+            What's your next milestone? I'd love to see a demo.
+            <div class="time">2:33 PM</div>
+          </div>
+          <div class="chat-msg sent">
+            We're targeting an MVP demo by end of March. I'll share the link as soon as it's ready! 🎯
+            <div class="time">2:35 PM</div>
+          </div>
+          <div class="chat-msg recv">
+            Perfect. Let me know if you need more tokens for the roadmap generator.
+            <div class="time">2:36 PM</div>
+          </div>
+        </div>
+        <div style="padding:6px 16px;background:var(--bgSec);border-top:1px solid var(--border);">
+          <div style="font-size:11px;color:var(--textMuted);text-align:center;">🔒 End-to-end encrypted · AES-256-CBC</div>
+        </div>
+        <div class="chat-input-bar">
+          <input placeholder="Type a message…" value="">
+          <button class="send">↑</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─ Profile (Founder) ─ -->
+    <div class="screen-view" id="fnd-profile">
+      <div class="profile-screen">
+        <div class="profile-avatar">SC</div>
+        <div class="profile-name">Sarah Chen</div>
+        <div class="profile-email">sarah@example.com</div>
+        <div style="text-align:center;margin-top:6px;">
+          <span class="pill" style="background:rgba(0,184,148,0.15);color:#00B894;">FOUNDER</span>
+        </div>
+        <div class="profile-card">
+          <div class="profile-row"><span class="p-icon">💡</span><span class="p-label">3 Ideas Created</span><span class="p-arrow">›</span></div>
+          <div class="profile-row"><span class="p-icon">₽</span><span class="p-label">347 Prana Balance</span><span class="p-arrow">›</span></div>
+          <div class="profile-row"><span class="p-icon">🤖</span><span class="p-label">AI Tools Usage</span><span class="p-arrow">›</span></div>
+          <div class="profile-row"><span class="p-icon">🔔</span><span class="p-label">Notifications</span><span class="p-arrow">›</span></div>
+          <div class="profile-row"><span class="p-icon">🔒</span><span class="p-label">Privacy & Security</span><span class="p-arrow">›</span></div>
+          <div class="profile-row"><span class="p-icon">❓</span><span class="p-label">Help & Support</span><span class="p-arrow">›</span></div>
+        </div>
+        <button class="logout-btn">🚪 Log Out</button>
+      </div>
+    </div>
+
+    <!-- Tab Bar -->
+    <div class="tab-bar">
+      <button class="tab-item active" onclick="showScreen('fnd','wizard')"><span class="icon">✨</span>Wizard</button>
+      <button class="tab-item" onclick="showScreen('fnd','ideas')"><span class="icon">💡</span>Ideas</button>
+      <button class="tab-item" onclick="showScreen('fnd','prana')"><span class="icon">💰</span>Prana</button>
+      <button class="tab-item" onclick="showScreen('fnd','chat')"><span class="icon">💬</span>Chat</button>
+      <button class="tab-item" onclick="showScreen('fnd','profile')"><span class="icon">👤</span>Profile</button>
+    </div>
+
+  </div>
+</div>
+<div class="phone-label">💡 <span>Founder App</span> · Port 8081</div>
+</div>
+
+</div>
+
+<script>
+function switchApp(app) {
+  document.querySelectorAll('.topbar .tab').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('investorPhone').classList.toggle('hidden', app !== 'investor');
+  document.getElementById('founderPhone').classList.toggle('hidden', app !== 'founder');
+}
+
+function showScreen(prefix, name) {
+  const phone = prefix === 'inv' ? document.getElementById('investorPhone') : document.getElementById('founderPhone');
+  phone.querySelectorAll('.screen-view').forEach(v => v.classList.remove('active'));
+  phone.querySelectorAll('.screen-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(`${prefix}-${name}`).classList.add('active');
+  event.target.classList.add('active');
+  // Update tab bar
+  phone.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+}
+
+function selectRate(el) {
+  el.closest('.rates-grid').querySelectorAll('.rate-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+}
+</script>
+
+</body>
+</html>
