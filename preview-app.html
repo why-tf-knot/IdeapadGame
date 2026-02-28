@@ -173,27 +173,27 @@
   .toss-stats span { display:flex; align-items:center; gap:4px; }
   .toss-stats .count { color:#F0F4FA; }
 
-  /* ── Throw Room Game ── */
-  .throw-room {
-    position:absolute; top:0; left:0; right:0; bottom:0;
-    z-index:15; background:#0A1628; display:none; overflow:hidden;
+  /* ── Unified Gesture: Canvas + Ball + Power ── */
+  #throwCanvas {
+    position:absolute; top:0; left:0; width:100%; height:100%;
+    z-index:1; opacity:0; transition:opacity 0.15s; pointer-events:none;
   }
-  .throw-room.active { display:block; }
-  .throw-room canvas { display:block; width:100%; height:100%; }
+  #reviewPhase { position:relative; z-index:2; transition:opacity 0.2s; }
   .throw-hud {
     position:absolute; top:10px; left:0; right:0; padding:0 12px;
     display:flex; justify-content:space-between; align-items:flex-start;
-    pointer-events:none; z-index:16;
+    pointer-events:none; z-index:16; opacity:0; transition:opacity 0.2s;
   }
+  .throw-hud.visible { opacity:1; }
   .throw-hud-left { display:flex; gap:6px; }
   .throw-hud-item {
-    background:rgba(10,22,40,0.9); backdrop-filter:blur(8px);
+    background:rgba(10,22,40,0.92); backdrop-filter:blur(8px);
     padding:5px 10px; border-radius:10px; border:1px solid rgba(255,255,255,0.1);
   }
   .throw-hud-item .hlabel { font-size:9px; color:#556680; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; }
   .throw-hud-item .hvalue { font-size:18px; font-weight:900; margin-top:1px; }
   .throw-wind-box {
-    background:rgba(10,22,40,0.9); backdrop-filter:blur(8px);
+    background:rgba(10,22,40,0.92); backdrop-filter:blur(8px);
     padding:6px 12px; border-radius:12px; border:1px solid rgba(255,255,255,0.1);
     text-align:center; min-width:70px;
   }
@@ -203,24 +203,53 @@
   .throw-result-overlay {
     position:absolute; top:0; left:0; right:0; bottom:0;
     display:flex; flex-direction:column; align-items:center; justify-content:center;
-    pointer-events:none; z-index:17; opacity:0; transition:opacity 0.3s;
+    pointer-events:none; z-index:25; opacity:0; transition:opacity 0.3s;
   }
   .throw-result-overlay.show { opacity:1; }
   .throw-result-text { font-size:42px; font-weight:900; text-shadow:0 4px 24px rgba(0,0,0,0.7); }
   .throw-result-sub { font-size:14px; font-weight:600; margin-top:4px; color:#8899B0; }
-  .throw-hint {
-    position:absolute; bottom:30px; left:0; right:0; text-align:center;
-    font-size:12px; color:#556680; font-weight:600; pointer-events:none; z-index:16;
-    transition:opacity 0.3s;
+  /* Paper ball DOM element */
+  .paper-ball {
+    position:absolute; width:36px; height:36px; border-radius:50%;
+    background:radial-gradient(circle at 35% 35%, #fafaf5, #e8e7dd 50%, #d0cfc5 80%, #b8b7ad);
+    box-shadow:2px 3px 8px rgba(0,0,0,0.35), inset -1px -1px 3px rgba(0,0,0,0.1);
+    display:none; z-index:12; transform:translate(-50%,-50%);
+    pointer-events:none;
   }
-  @keyframes crumpleCard {
-    0% { border-radius:24px; opacity:1; }
-    30% { border-radius:35%; transform:translate(0,30px) rotate(90deg) scale(0.4); }
-    60% { border-radius:45%; transform:translate(0,50px) rotate(200deg) scale(0.25); }
-    100% { border-radius:50%; transform:translate(0,70px) rotate(360deg) scale(0.12); opacity:0; }
+  .paper-ball.visible { display:block; }
+  .paper-ball::after {
+    content:''; position:absolute; top:28%; left:18%; width:55%; height:44%;
+    border:1px solid rgba(140,135,125,0.2); border-radius:30%; transform:rotate(25deg);
+  }
+  /* Power meter */
+  .power-meter {
+    position:absolute; right:14px; top:35%; height:180px; width:10px;
+    background:rgba(10,22,40,0.85); border-radius:5px;
+    border:1px solid rgba(255,255,255,0.12);
+    z-index:18; opacity:0; transition:opacity 0.2s; overflow:hidden;
+  }
+  .power-meter.visible { opacity:1; }
+  .power-fill {
+    position:absolute; bottom:0; width:100%; height:0%;
+    border-radius:5px;
+    background:linear-gradient(to top, #E63946, #FDCB6E 50%, #00B894);
+    transition:height 0.06s;
+  }
+  .power-label-text {
+    position:absolute; right:30px; top:44%; font-size:9px; font-weight:800;
+    color:#556680; letter-spacing:1px; writing-mode:vertical-rl;
+    z-index:18; opacity:0; transition:opacity 0.2s;
+  }
+  .power-label-text.visible { opacity:1; }
+  /* Card crumple-in-place */
+  @keyframes crumpleInPlace {
+    0% { border-radius:24px; opacity:1; transform:scale(1) rotate(0deg); }
+    30% { border-radius:30%; opacity:0.8; transform:scale(0.55) rotate(45deg); }
+    60% { border-radius:42%; opacity:0.55; transform:scale(0.25) rotate(160deg); }
+    100% { border-radius:50%; opacity:0; transform:scale(0.08) rotate(360deg); }
   }
   .paper-card.crumpling {
-    animation:crumpleCard 0.55s ease-in forwards !important;
+    animation:crumpleInPlace 0.38s ease-in forwards !important;
     pointer-events:none;
   }
 
@@ -421,16 +450,18 @@
     <!-- ─ Paper Toss (Interactive + Throw Game) ─ -->
     <div class="screen-view active" id="inv-toss">
       <div class="paper-toss-bg" id="tossBg">
-        <!-- REVIEW PHASE -->
+        <!-- Room canvas (fades in during drag-down) -->
+        <canvas id="throwCanvas" width="375" height="728"></canvas>
+        <!-- Review UI -->
         <div id="reviewPhase">
           <div style="padding:12px 20px 0;">
             <div style="font-size:24px;font-weight:800;">Review Ideas</div>
-            <div style="font-size:13px;color:#8899B0;">Swipe ↓ reject · Swipe → save</div>
+            <div style="font-size:13px;color:#8899B0;">Tap card · drag ↓ throw · drag → save</div>
           </div>
           <div class="toss-stats" id="tossStats">
             <span>📥 Saved: <b class="count" id="saveCount">0</b></span>
             <span>🗑️ Rejected: <b class="count" id="rejectCount">0</b></span>
-            <span>🏀 Bin Score: <b class="count" id="binScore">0</b></span>
+            <span>🏀 Score: <b class="count" id="binScore">0</b></span>
           </div>
           <div class="paper-toss-area" id="tossArea">
             <div class="toss-toast reject-toast" id="rejectToast">🗑️ Rejected!</div>
@@ -439,40 +470,42 @@
           <div class="toss-indicators" id="tossIndicators" style="opacity:0.5;">
             <div class="toss-ind" id="rejectInd">
               <div class="circle" style="background:rgba(230,57,70,0.15);">🗑️</div>
-              <div class="lbl" style="color:#E63946;">REJECT ↓</div>
+              <div class="lbl" style="color:#E63946;">THROW ↓</div>
             </div>
-            <div style="font-size:11px;color:#556680;align-self:center;">drag the card</div>
+            <div style="font-size:11px;color:#556680;align-self:center;">tap & drag</div>
             <div class="toss-ind" id="saveInd">
               <div class="circle" style="background:rgba(108,92,231,0.15);">📥</div>
               <div class="lbl" style="color:#6C5CE7;">SAVE →</div>
             </div>
           </div>
         </div>
-        <!-- THROW ROOM (Paper Toss Mini-Game) -->
-        <div class="throw-room" id="throwRoom">
-          <canvas id="throwCanvas" width="375" height="728"></canvas>
-          <div class="throw-hud">
-            <div class="throw-hud-left">
-              <div class="throw-hud-item">
-                <div class="hlabel">Bins</div>
-                <div class="hvalue" id="throwScore" style="color:#00B894;">0</div>
-              </div>
-              <div class="throw-hud-item">
-                <div class="hlabel">Streak</div>
-                <div class="hvalue" id="throwStreak" style="color:#FDCB6E;">0🔥</div>
-              </div>
+        <!-- Paper ball (after crumple) -->
+        <div class="paper-ball" id="paperBall"></div>
+        <!-- Power meter -->
+        <div class="power-meter" id="powerMeter"><div class="power-fill" id="powerFill"></div></div>
+        <div class="power-label-text" id="powerLabel">POWER</div>
+        <!-- HUD -->
+        <div class="throw-hud" id="throwHud">
+          <div class="throw-hud-left">
+            <div class="throw-hud-item">
+              <div class="hlabel">Score</div>
+              <div class="hvalue" id="throwScore" style="color:#00B894;">0</div>
             </div>
-            <div class="throw-wind-box">
-              <div class="wlabel">WIND</div>
-              <div class="warrow" id="windArrow">·</div>
-              <div class="wstrength" id="windStrength" style="color:#00B894;">Calm</div>
+            <div class="throw-hud-item">
+              <div class="hlabel">Streak</div>
+              <div class="hvalue" id="throwStreak" style="color:#FDCB6E;">0🔥</div>
             </div>
           </div>
-          <div class="throw-hint" id="throwHint">☝️ Flick the paper ball upward</div>
-          <div class="throw-result-overlay" id="throwResult">
-            <div class="throw-result-text" id="throwResultText"></div>
-            <div class="throw-result-sub" id="throwResultSub"></div>
+          <div class="throw-wind-box">
+            <div class="wlabel">WIND</div>
+            <div class="warrow" id="windArrow">·</div>
+            <div class="wstrength" id="windStrength" style="color:#00B894;">Calm</div>
           </div>
+        </div>
+        <!-- Result overlay -->
+        <div class="throw-result-overlay" id="throwResult">
+          <div class="throw-result-text" id="throwResultText"></div>
+          <div class="throw-result-sub" id="throwResultSub"></div>
         </div>
       </div>
     </div>
@@ -1057,7 +1090,7 @@ function renderCard(index) {
     '<div style="height:1px;background:#1E2D45;margin:14px 0;"></div>' +
     '<div class="pitch-preview"><div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;"><span>🎯</span><span class="label">THE PROBLEM</span></div><div class="body">' + idea.problem + '</div></div>' +
     '<div class="pitch-preview" style="margin-top:8px;"><div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;"><span>💡</span><span class="label">THE SOLUTION</span></div><div class="body">' + idea.solution + '</div></div>' +
-    '<div style="display:flex;justify-content:space-between;margin-top:14px;font-size:12px;color:#556680;"><span>⬇ swipe down → throw game</span><span>swipe right → save ➡</span></div>';
+    '<div style="display:flex;justify-content:space-between;margin-top:14px;font-size:12px;color:#556680;"><span>⬇ drag down → throw</span><span>drag right → save ➡</span></div>';
   area.appendChild(card);
 
   card.addEventListener('pointerdown', onCardDown);
@@ -1205,12 +1238,23 @@ function startThrowRoom() {
   TG.flightT = 0; TG.trail = [];
   updateWindHUD();
 
-  document.getElementById('reviewPhase').style.display = 'none';
-  document.getElementById('throwRoom').classList.add('active');
-  document.getElementById('throwHint').style.opacity = '1';
+  // Hide review UI, show canvas + HUD
+  const rp = document.getElementById('reviewPhase');
+  rp.style.opacity = '0';
+  rp.style.pointerEvents = 'none';
+  const cv = document.getElementById('throwCanvas');
+  cv.style.opacity = '1';
+  cv.style.pointerEvents = 'auto';
+  document.getElementById('throwHud').classList.add('visible');
   document.getElementById('throwResult').classList.remove('show');
   document.getElementById('throwScore').textContent = TG.score;
   document.getElementById('throwStreak').textContent = TG.streak + '🔥';
+
+  // Show paper ball at start position
+  const ball = document.getElementById('paperBall');
+  ball.style.left = TG.startX + 'px';
+  ball.style.top = TG.startY + 'px';
+  ball.classList.add('visible');
 
   TG.frameTime = performance.now();
   renderThrow();
@@ -1244,7 +1288,7 @@ function renderThrow() {
   if (TG.phase !== 'flying' || TG.flightT < 0.75) drawBin(ctx);
 
   if (TG.phase === 'ready' || TG.phase === 'dragging') {
-    drawBall(ctx, TG.ballX, TG.ballY, TG.ballR, 0);
+    // Ball drawn via DOM element, skip canvas ball
   } else if (TG.phase === 'flying') {
     updateFlight(dt);
     const s = TG.ballR * (1 - TG.flightT * 0.65);
@@ -1477,7 +1521,9 @@ function onThrowDown(e) {
   TG.dragStartX = x; TG.dragStartY = y;
   TG.dragX = x; TG.dragY = y;
   TG.lastDX = x; TG.lastDY = y; TG.lastDTime = performance.now();
-  document.getElementById('throwHint').style.opacity = '0';
+  // Show power meter
+  document.getElementById('powerMeter').classList.add('visible');
+  document.getElementById('powerLabel').classList.add('visible');
 }
 
 function onThrowMove(e) {
@@ -1494,15 +1540,32 @@ function onThrowMove(e) {
   // Move ball with drag (constrained to lower area)
   TG.ballX = TG.startX + (x - TG.dragStartX) * 0.35;
   TG.ballY = Math.min(TG.startY, TG.startY + (y - TG.dragStartY) * 0.25);
+
+  // Update paper ball DOM position
+  const ball = document.getElementById('paperBall');
+  ball.style.left = TG.ballX + 'px';
+  ball.style.top = TG.ballY + 'px';
+
+  // Update power meter
+  const dy2 = TG.dragY - TG.dragStartY;
+  const power = Math.min(1, Math.max(0, Math.abs(dy2) / 180));
+  document.getElementById('powerFill').style.height = (power * 100) + '%';
 }
 
 function onThrowUp(e) {
   if (TG.phase !== 'dragging') return;
+  // Hide power meter
+  document.getElementById('powerMeter').classList.remove('visible');
+  document.getElementById('powerLabel').classList.remove('visible');
+  document.getElementById('powerFill').style.height = '0%';
+
   if (TG.relVy > -150) {
     // Not enough power — snap back
     TG.phase = 'ready';
     TG.ballX = TG.startX; TG.ballY = TG.startY;
-    document.getElementById('throwHint').style.opacity = '1';
+    const ball = document.getElementById('paperBall');
+    ball.style.left = TG.startX + 'px';
+    ball.style.top = TG.startY + 'px';
     return;
   }
 
@@ -1515,6 +1578,9 @@ function onThrowUp(e) {
   TG.trail = [];
   TG.ballX = TG.flightLaunchX;
   TG.ballY = TG.startY;
+
+  // Hide DOM ball during flight (canvas takes over)
+  document.getElementById('paperBall').classList.remove('visible');
 }
 
 function updateFlight(dt) {
@@ -1589,9 +1655,22 @@ function showResult(scored, perfect) {
 function endThrow() {
   TG.active = false; TG.phase = 'ready';
   cancelAnimationFrame(TG.animFrame);
-  document.getElementById('throwRoom').classList.remove('active');
+
+  // Hide canvas + HUD, show review UI
+  const cv = document.getElementById('throwCanvas');
+  cv.style.opacity = '0';
+  cv.style.pointerEvents = 'none';
+  document.getElementById('throwHud').classList.remove('visible');
   document.getElementById('throwResult').classList.remove('show');
-  document.getElementById('reviewPhase').style.display = '';
+  document.getElementById('paperBall').classList.remove('visible');
+
+  const rp = document.getElementById('reviewPhase');
+  rp.style.opacity = '1';
+  rp.style.pointerEvents = '';
+
+  // Update main score display
+  document.getElementById('binScore').textContent = TG.score;
+
   tossState.cardIndex++;
   tossState.animating = false;
   renderCard(tossState.cardIndex);
