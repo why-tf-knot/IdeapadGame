@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>BuildPaper — App Preview</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
@@ -454,6 +457,7 @@
       <button class="screen-btn" onclick="showScreen('inv','wallet')">Wallet</button>
       <button class="screen-btn" onclick="showScreen('inv','tiers')">Tiers</button>
       <button class="screen-btn" onclick="showScreen('inv','saved')">Saved</button>
+      <button class="screen-btn" onclick="showScreen('inv','chat')">Chat</button>
       <button class="screen-btn" onclick="showScreen('inv','profile')">Profile</button>
     </div>
 
@@ -748,6 +752,106 @@
       </div>
     </div>
 
+    <!-- ─ Chat (Investor) ─ -->
+    <div class="screen-view" id="inv-chat">
+      <div class="chat-screen">
+        <!-- Chat List View -->
+        <div id="invChatList">
+          <div style="padding:44px 16px 8px;background:var(--bgSec);border-bottom:1px solid var(--border);">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <h3 style="font-size:18px;font-weight:800;">💬 Messages</h3>
+              <span style="font-size:12px;color:var(--accent);font-weight:700;cursor:pointer;">3 Active</span>
+            </div>
+            <div style="margin-top:8px;position:relative;">
+              <input style="width:100%;padding:10px 14px 10px 36px;background:var(--inputBg);border:1px solid var(--border);border-radius:12px;color:var(--text);font-size:13px;outline:none;" placeholder="Search conversations…">
+              <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:14px;opacity:0.5;">🔍</span>
+            </div>
+          </div>
+          <div style="padding:8px 16px;">
+            <!-- Chat thread 1 -->
+            <div onclick="showInvChat('Sarah Chen','TechFlow AI')" style="display:flex;gap:12px;padding:14px 0;border-bottom:1px solid var(--border);cursor:pointer;">
+              <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#6C5CE7,#a29bfe);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex-shrink:0;">SC</div>
+              <div style="flex:1;min-width:0;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <span style="font-size:14px;font-weight:700;">Sarah Chen</span>
+                  <span style="font-size:11px;color:var(--textMuted);">2:35 PM</span>
+                </div>
+                <div style="font-size:12px;color:var(--accent);font-weight:600;margin-top:1px;">TechFlow AI</div>
+                <div style="font-size:13px;color:var(--textSec);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">We're targeting an MVP demo by end of March!</div>
+              </div>
+              <div style="width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;align-self:center;">2</div>
+            </div>
+            <!-- Chat thread 2 -->
+            <div onclick="showInvChat('Alex Rivera','EcoTrack')" style="display:flex;gap:12px;padding:14px 0;border-bottom:1px solid var(--border);cursor:pointer;">
+              <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#00B894,#55efc4);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex-shrink:0;">AR</div>
+              <div style="flex:1;min-width:0;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <span style="font-size:14px;font-weight:700;">Alex Rivera</span>
+                  <span style="font-size:11px;color:var(--textMuted);">Yesterday</span>
+                </div>
+                <div style="font-size:12px;color:#00B894;font-weight:600;margin-top:1px;">EcoTrack</div>
+                <div style="font-size:13px;color:var(--textSec);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Thanks for the token investment! Here's our roadmap…</div>
+              </div>
+            </div>
+            <!-- Chat thread 3 -->
+            <div onclick="showInvChat('Priya Patel','SolarGrid')" style="display:flex;gap:12px;padding:14px 0;border-bottom:1px solid var(--border);cursor:pointer;">
+              <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#FDCB6E,#ffeaa7);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:#333;flex-shrink:0;">PP</div>
+              <div style="flex:1;min-width:0;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <span style="font-size:14px;font-weight:700;">Priya Patel</span>
+                  <span style="font-size:11px;color:var(--textMuted);">Mon</span>
+                </div>
+                <div style="font-size:12px;color:#FDCB6E;font-weight:600;margin-top:1px;">SolarGrid</div>
+                <div style="font-size:13px;color:var(--textSec);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">We just hit 500 beta users! 🎉</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Individual Chat View (hidden by default) -->
+        <div id="invChatThread" style="display:none;">
+          <div class="chat-header" style="display:flex;align-items:center;gap:12px;">
+            <button onclick="backToInvChatList()" style="background:none;border:none;color:var(--accent);font-size:18px;cursor:pointer;padding:4px;">←</button>
+            <div>
+              <h3 id="invChatName" style="font-size:16px;font-weight:700;">Sarah Chen</h3>
+              <div class="idea-tag" id="invChatIdea">Re: TechFlow AI</div>
+            </div>
+            <div style="margin-left:auto;display:flex;gap:8px;">
+              <span style="font-size:11px;padding:4px 8px;background:rgba(0,184,148,0.15);color:#00B894;border-radius:8px;font-weight:700;">● Online</span>
+            </div>
+          </div>
+          <div class="chat-messages" id="invChatMessages">
+            <div class="chat-msg sent">
+              Hi Sarah! I just invested 200 ChatGPT tokens into TechFlow. Excited about this project! 🚀
+              <div class="time">2:30 PM</div>
+            </div>
+            <div class="chat-msg recv">
+              Thank you John! That means a lot. Those tokens will help us refine the AI workflow engine.
+              <div class="time">2:32 PM</div>
+            </div>
+            <div class="chat-msg sent">
+              What's your next milestone? I'd love to see a demo.
+              <div class="time">2:33 PM</div>
+            </div>
+            <div class="chat-msg recv">
+              We're targeting an MVP demo by end of March. I'll share the link as soon as it's ready! 🎯
+              <div class="time">2:35 PM</div>
+            </div>
+            <div class="chat-msg sent">
+              Perfect. Let me know if you need more tokens for the roadmap generator.
+              <div class="time">2:36 PM</div>
+            </div>
+          </div>
+          <div style="padding:6px 16px;background:var(--bgSec);border-top:1px solid var(--border);">
+            <div style="font-size:11px;color:var(--textMuted);text-align:center;">🔒 End-to-end encrypted · AES-256-CBC</div>
+          </div>
+          <div class="chat-input-bar">
+            <input placeholder="Type a message…" value="">
+            <button class="send">↑</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- ─ Profile (Investor) ─ -->
     <div class="screen-view" id="inv-profile">
       <div class="profile-screen">
@@ -773,6 +877,7 @@
     <div class="tab-bar">
       <button class="tab-item active" onclick="showScreen('inv','toss')"><span class="icon">📄</span>Review</button>
       <button class="tab-item" onclick="showScreen('inv','saved')"><span class="icon">📥</span>Saved</button>
+      <button class="tab-item" onclick="showScreen('inv','chat')"><span class="icon">💬</span>Chat</button>
       <button class="tab-item" onclick="showScreen('inv','wallet')"><span class="icon">💰</span>Wallet</button>
       <button class="tab-item" onclick="showScreen('inv','profile')"><span class="icon">👤</span>Profile</button>
     </div>
@@ -1793,6 +1898,73 @@ function showScreen(prefix, name) {
 function selectRate(el) {
   el.closest('.rates-grid').querySelectorAll('.rate-card').forEach(c => c.classList.remove('selected'));
   el.classList.add('selected');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  INVESTOR CHAT NAVIGATION
+// ═══════════════════════════════════════════════════════════
+
+const INV_CHAT_DATA = {
+  'Sarah Chen': {
+    idea: 'TechFlow AI',
+    messages: [
+      { sent: true, text: 'Hi Sarah! I just invested 200 ChatGPT tokens into TechFlow. Excited about this project! 🚀', time: '2:30 PM' },
+      { sent: false, text: 'Thank you John! That means a lot. Those tokens will help us refine the AI workflow engine.', time: '2:32 PM' },
+      { sent: true, text: "What's your next milestone? I'd love to see a demo.", time: '2:33 PM' },
+      { sent: false, text: "We're targeting an MVP demo by end of March. I'll share the link as soon as it's ready! 🎯", time: '2:35 PM' },
+      { sent: true, text: 'Perfect. Let me know if you need more tokens for the roadmap generator.', time: '2:36 PM' },
+    ]
+  },
+  'Alex Rivera': {
+    idea: 'EcoTrack',
+    messages: [
+      { sent: true, text: 'Hey Alex, just invested 150 tokens into EcoTrack. Love the sustainability angle! 🌱', time: 'Yesterday 4:10 PM' },
+      { sent: false, text: 'Awesome, thanks John! We just partnered with 3 local farms for pilot testing.', time: 'Yesterday 4:15 PM' },
+      { sent: false, text: "Here's our updated roadmap — we're ahead of schedule on the sensor integration.", time: 'Yesterday 4:16 PM' },
+      { sent: true, text: "That's impressive! What's the user acquisition strategy?", time: 'Yesterday 4:20 PM' },
+      { sent: false, text: 'Thanks for the token investment! Here\'s our roadmap with the B2B SaaS pivot details.', time: 'Yesterday 4:25 PM' },
+    ]
+  },
+  'Priya Patel': {
+    idea: 'SolarGrid',
+    messages: [
+      { sent: true, text: 'Hi Priya! I saw your pitch — solar grid optimization sounds really promising.', time: 'Mon 10:00 AM' },
+      { sent: false, text: 'Thanks John! We already have patents filed for our AI optimization algorithm.', time: 'Mon 10:05 AM' },
+      { sent: true, text: 'Invested 100 tokens. How can I help beyond tokens?', time: 'Mon 10:10 AM' },
+      { sent: false, text: "We'd love introductions to any hardware manufacturers you know!", time: 'Mon 10:12 AM' },
+      { sent: false, text: 'We just hit 500 beta users! 🎉', time: 'Mon 3:30 PM' },
+    ]
+  }
+};
+
+function showInvChat(name, idea) {
+  document.getElementById('invChatList').style.display = 'none';
+  const thread = document.getElementById('invChatThread');
+  thread.style.display = 'flex';
+  thread.style.flexDirection = 'column';
+  thread.style.height = '100%';
+  document.getElementById('invChatName').textContent = name;
+  document.getElementById('invChatIdea').textContent = 'Re: ' + idea;
+
+  // Load messages
+  const msgContainer = document.getElementById('invChatMessages');
+  msgContainer.innerHTML = '';
+  const data = INV_CHAT_DATA[name];
+  if (data) {
+    data.messages.forEach(m => {
+      const div = document.createElement('div');
+      div.className = 'chat-msg ' + (m.sent ? 'sent' : 'recv');
+      div.innerHTML = m.text + '<div class="time">' + m.time + '</div>';
+      msgContainer.appendChild(div);
+    });
+  }
+  // Scroll to bottom
+  setTimeout(() => { msgContainer.scrollTop = msgContainer.scrollHeight; }, 50);
+}
+
+function backToInvChatList() {
+  document.getElementById('invChatThread').style.display = 'none';
+  document.getElementById('invChatList').style.display = 'block';
 }
 </script>
 
