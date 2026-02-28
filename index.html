@@ -454,7 +454,7 @@
     <!-- Screen Nav -->
     <div class="screen-nav">
       <button class="screen-btn active" onclick="showScreen('inv','toss')">Paper Toss</button>
-      <button class="screen-btn" onclick="showScreen('inv','wallet')">Wallet</button>
+      <button class="screen-btn" onclick="showScreen('inv','wallet')">Prana ₽</button>
       <button class="screen-btn" onclick="showScreen('inv','tiers')">Tiers</button>
       <button class="screen-btn" onclick="showScreen('inv','saved')">Saved</button>
       <button class="screen-btn" onclick="showScreen('inv','chat')">Chat</button>
@@ -529,90 +529,95 @@
     <!-- ─ Wallet ─ -->
     <div class="screen-view" id="inv-wallet">
       <div style="padding:12px 16px 100px;">
-        <div style="font-size:26px;font-weight:900;margin-bottom:16px;">Wallet</div>
-        <div class="hero-balance">
-          <div class="label">TOTAL TOKENS</div>
-          <div class="amount">1,250</div>
-          <div class="sub">AI tokens ready to invest</div>
+        <div style="font-size:26px;font-weight:900;margin-bottom:14px;">Prana Exchange ₽</div>
+        <div class="prana-hero">
+          <div class="label">Your Prana Balance</div>
+          <div class="amt"><span class="sym">₽</span> 1,250</div>
+          <div class="sub">Tier: Saarthi · 1,000₽ / month</div>
         </div>
+
         <div style="margin:16px 0;">
           <div class="card" style="border:2px solid #6C5CE7;padding:14px;display:flex;align-items:center;gap:12px;cursor:pointer;" onclick="showScreen('inv','tiers')">
             <span style="font-size:28px;">⚡</span>
             <div style="flex:1;">
               <div style="font-size:16px;font-weight:800;color:#6C5CE7;">Saarthi</div>
-              <div style="font-size:13px;color:var(--textSec);">1,000 tokens / month</div>
+              <div style="font-size:13px;color:var(--textSec);">1,000₽ Prana / month</div>
             </div>
             <span style="color:var(--textMuted);font-size:18px;">›</span>
           </div>
         </div>
-        <div style="font-size:18px;font-weight:700;margin-bottom:10px;">Token Balances</div>
-        <div class="token-grid">
-          <div class="token-card" style="border-left-color:#4285F4;">
-            <div class="icon">💎</div><div class="name">Gemini</div>
-            <div class="bal" style="color:#4285F4;">280</div><div class="prov">Google</div>
-          </div>
-          <div class="token-card" style="border-left-color:#D97706;">
-            <div class="icon">🧠</div><div class="name">Anthropic</div>
-            <div class="bal" style="color:#D97706;">195</div><div class="prov">Anthropic</div>
-          </div>
-          <div class="token-card" style="border-left-color:#10A37F;">
-            <div class="icon">🤖</div><div class="name">ChatGPT</div>
-            <div class="bal" style="color:#10A37F;">320</div><div class="prov">OpenAI</div>
-          </div>
-          <div class="token-card" style="border-left-color:#22D3EE;">
-            <div class="icon">🔍</div><div class="name">Perplexity</div>
-            <div class="bal" style="color:#22D3EE;">150</div><div class="prov">Perplexity</div>
-          </div>
-          <div class="token-card" style="border-left-color:#FF6F00;">
-            <div class="icon">🌀</div><div class="name">Mistral</div>
-            <div class="bal" style="color:#FF6F00;">0</div><div class="prov">Mistral AI</div>
-          </div>
-          <div class="token-card" style="border-left-color:#1E88E5;">
-            <div class="icon">🔭</div><div class="name">DeepSeek</div>
-            <div class="bal" style="color:#1E88E5;">155</div><div class="prov">DeepSeek</div>
-          </div>
-          <div class="token-card" style="border-left-color:#9C27B0;">
-            <div class="icon">⚡</div><div class="name">Grok</div>
-            <div class="bal" style="color:#9C27B0;">100</div><div class="prov">xAI</div>
-          </div>
-          <div class="token-card" style="border-left-color:#0467DF;">
-            <div class="icon">🦙</div><div class="name">Llama</div>
-            <div class="bal" style="color:#0467DF;">50</div><div class="prov">Meta</div>
-          </div>
+
+        <div style="font-size:18px;font-weight:700;margin:18px 0 10px;">Exchange Rates</div>
+        <div class="rates-grid">
+          <div class="rate-card" onclick="selectInvRate(this,'Gemini','💎','1.2')"><div class="r-icon">💎</div><div class="r-name">Gemini</div><div class="r-rate">1.2₽</div><div class="r-can">Can buy: 1,041</div></div>
+          <div class="rate-card" onclick="selectInvRate(this,'Anthropic','🧠','1.8')"><div class="r-icon">🧠</div><div class="r-name">Anthropic</div><div class="r-rate">1.8₽</div><div class="r-can">Can buy: 694</div></div>
+          <div class="rate-card" onclick="selectInvRate(this,'Perplexity','🔍','0.8')"><div class="r-icon">🔍</div><div class="r-name">Perplexity</div><div class="r-rate">0.8₽</div><div class="r-can">Can buy: 1,562</div></div>
+          <div class="rate-card selected" onclick="selectInvRate(this,'ChatGPT','🤖','1.5')"><div class="r-icon">🤖</div><div class="r-name">ChatGPT</div><div class="r-rate">1.5₽</div><div class="r-can">Can buy: 833</div></div>
+          <div class="rate-card" onclick="selectInvRate(this,'Mistral','🌀','1.0')"><div class="r-icon">🌀</div><div class="r-name">Mistral</div><div class="r-rate">1.0₽</div><div class="r-can">Can buy: 1,250</div></div>
+          <div class="rate-card" onclick="selectInvRate(this,'DeepSeek','🔭','0.6')"><div class="r-icon">🔭</div><div class="r-name">DeepSeek</div><div class="r-rate">0.6₽</div><div class="r-can">Can buy: 2,083</div></div>
+          <div class="rate-card" onclick="selectInvRate(this,'Grok','⚡','1.3')"><div class="r-icon">⚡</div><div class="r-name">Grok</div><div class="r-rate">1.3₽</div><div class="r-can">Can buy: 961</div></div>
+          <div class="rate-card" onclick="selectInvRate(this,'Llama','🦙','0.4')"><div class="r-icon">🦙</div><div class="r-name">Llama</div><div class="r-rate">0.4₽</div><div class="r-can">Can buy: 3,125</div></div>
         </div>
-        
-        <div class="btn-primary" style="margin-top:16px;background:#6C5CE7;">
-          🎁 Claim Monthly Grant
+
+        <div style="font-size:18px;font-weight:700;margin:18px 0 10px;">Invest Into Idea</div>
+        <div style="display:flex;gap:8px;overflow-x:auto;margin-bottom:16px;">
+          <span class="pill" style="background:var(--accentLight);color:var(--accent);border:1.5px solid var(--accent);padding:8px 14px;font-size:13px;cursor:pointer;">TechFlow AI</span>
+          <span class="pill" style="background:transparent;color:var(--textSec);border:1.5px solid var(--border);padding:8px 14px;font-size:13px;cursor:pointer;">EduMatch</span>
+          <span class="pill" style="background:transparent;color:var(--textSec);border:1.5px solid var(--border);padding:8px 14px;font-size:13px;cursor:pointer;">GreenGrid</span>
         </div>
-        
+
+        <div class="exchange-form">
+          <div class="token-banner"><span>🤖</span> ChatGPT — 1.5₽ per credit</div>
+          <div class="input-row">
+            <input type="number" placeholder="0" value="100">
+            <button class="max-btn">MAX</button>
+          </div>
+          <div class="cost-preview">
+            <div class="cost-row"><span class="l">Credits to invest</span><span class="v">100 🤖</span></div>
+            <div class="cost-row"><span class="l">Prana Cost</span><span class="v" style="color:var(--gold);">150₽</span></div>
+            <div class="divider" style="margin:6px 0;"></div>
+            <div class="cost-row"><span class="l">Balance After</span><span class="v" style="color:var(--success);">1,100₽</span></div>
+          </div>
+          <button class="btn-exchange">Exchange 150₽ → 100 ChatGPT → TechFlow AI</button>
+        </div>
+
         <div class="card pad" style="margin-top:16px;">
-          <div style="font-size:16px;font-weight:700;margin-bottom:8px;">💡 How Tokens Work</div>
+          <div style="font-size:16px;font-weight:700;margin-bottom:8px;">💡 How Prana Works</div>
           <div style="font-size:13px;color:var(--textSec);line-height:20px;">
-            • Invest tokens into ideas you believe in<br>
-            • Each token type corresponds to an AI provider<br>
-            • Founders use your tokens for AI tools<br>
+            • You earn <b style="color:var(--gold);">Prana ₽</b> each month based on your tier<br>
+            • Exchange Prana for AI credits at live rates<br>
+            • Invest AI credits into ideas you believe in<br>
+            • Founders use your invested credits for AI tools<br>
           </div>
           <div style="background:rgba(0,184,148,0.12);padding:10px;border-radius:10px;margin-top:10px;">
-            <div style="font-size:13px;font-weight:700;color:#00A381;">📊 10,000 tokens consumed = 1% equity</div>
+            <div style="font-size:13px;font-weight:700;color:#00A381;">📊 10,000 credits consumed = 1% equity</div>
           </div>
         </div>
-        
+
         <div style="font-size:18px;font-weight:700;margin:16px 0 10px;">Recent Transactions</div>
         <div class="card pad" style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
           <div style="width:40px;height:40px;border-radius:50%;background:var(--bgTer);display:flex;align-items:center;justify-content:center;font-size:18px;">📥</div>
           <div style="flex:1;">
-            <div style="font-size:14px;font-weight:600;">Monthly Grant</div>
+            <div style="font-size:14px;font-weight:600;">Monthly Prana Grant</div>
             <div style="font-size:11px;color:var(--textMuted);">Feb 1, 2026</div>
           </div>
-          <div style="font-size:16px;font-weight:800;color:var(--success);">+1,000</div>
+          <div style="font-size:16px;font-weight:800;color:var(--success);">+1,000₽</div>
         </div>
         <div class="card pad" style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
-          <div style="width:40px;height:40px;border-radius:50%;background:var(--bgTer);display:flex;align-items:center;justify-content:center;font-size:18px;">⚡</div>
+          <div style="width:40px;height:40px;border-radius:50%;background:var(--bgTer);display:flex;align-items:center;justify-content:center;font-size:18px;">🔄</div>
           <div style="flex:1;">
-            <div style="font-size:14px;font-weight:600;">Invested in TechFlow AI</div>
-            <div style="font-size:11px;color:var(--textMuted);">Jan 28, 2026 · <span style="color:#10A37F;font-weight:600;">ChatGPT</span></div>
+            <div style="font-size:14px;font-weight:600;">Exchanged 300₽ → 200 ChatGPT</div>
+            <div style="font-size:11px;color:var(--textMuted);">Jan 28, 2026 · TechFlow AI</div>
           </div>
-          <div style="font-size:16px;font-weight:800;color:var(--error);">-200</div>
+          <div style="font-size:16px;font-weight:800;color:var(--error);">-300₽</div>
+        </div>
+        <div class="card pad" style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
+          <div style="width:40px;height:40px;border-radius:50%;background:var(--bgTer);display:flex;align-items:center;justify-content:center;font-size:18px;">🔄</div>
+          <div style="flex:1;">
+            <div style="font-size:14px;font-weight:600;">Exchanged 240₽ → 200 Gemini</div>
+            <div style="font-size:11px;color:var(--textMuted);">Jan 25, 2026 · EduMatch</div>
+          </div>
+          <div style="font-size:16px;font-weight:800;color:var(--error);">-240₽</div>
         </div>
       </div>
     </div>
@@ -622,7 +627,7 @@
       <div style="padding:12px 16px 100px;">
         <div style="text-align:center;margin-bottom:20px;">
           <div style="font-size:28px;font-weight:900;">Choose Your Path</div>
-          <div style="font-size:14px;color:var(--textSec);margin-top:4px;line-height:22px;">Select a tier to determine your monthly AI token grant</div>
+          <div style="font-size:14px;color:var(--textSec);margin-top:4px;line-height:22px;">Select a tier to determine your monthly Prana grant</div>
         </div>
         
         <!-- Shishya -->
@@ -637,7 +642,7 @@
           <div style="font-size:14px;color:var(--textSec);line-height:20px;margin-bottom:12px;">Begin your investment journey. Perfect for exploration and learning.</div>
           <div class="tier-total" style="background:rgba(0,184,148,0.15);">
             <span style="font-size:14px;font-weight:600;">Monthly Grant</span>
-            <span style="font-size:18px;font-weight:900;color:#00B894;">400 tokens</span>
+            <span style="font-size:18px;font-weight:900;color:#00B894;">400₽ Prana</span>
           </div>
         </div>
         
@@ -653,15 +658,18 @@
             <div class="check" style="background:#6C5CE7;">✓</div>
           </div>
           <div style="font-size:14px;color:var(--textSec);line-height:20px;margin-bottom:12px;">Actively guide ideas to success. Balanced for strategic investors.</div>
-          <div class="tier-breakdown">
-            <div class="row"><span class="tk-icon">💎</span><span class="tk-name">Gemini</span><span class="tk-amt" style="color:#4285F4;">+250</span></div>
-            <div class="row"><span class="tk-icon">🧠</span><span class="tk-name">Anthropic</span><span class="tk-amt" style="color:#D97706;">+250</span></div>
-            <div class="row"><span class="tk-icon">🤖</span><span class="tk-name">ChatGPT</span><span class="tk-amt" style="color:#10A37F;">+250</span></div>
-            <div class="row"><span class="tk-icon">🔍</span><span class="tk-name">Perplexity</span><span class="tk-amt" style="color:#22D3EE;">+250</span></div>
+          <div style="background:var(--bgTer);border-radius:12px;padding:12px;margin-bottom:10px;">
+            <div style="font-size:11px;font-weight:700;color:var(--textMuted);margin-bottom:6px;letter-spacing:0.5px;">EXAMPLE EXCHANGE POWER</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;">
+              <span style="font-size:11px;padding:4px 8px;border-radius:6px;background:rgba(66,133,244,0.12);color:#4285F4;font-weight:600;">💎 833 Gemini</span>
+              <span style="font-size:11px;padding:4px 8px;border-radius:6px;background:rgba(217,119,6,0.12);color:#D97706;font-weight:600;">🧠 555 Anthropic</span>
+              <span style="font-size:11px;padding:4px 8px;border-radius:6px;background:rgba(16,163,127,0.12);color:#10A37F;font-weight:600;">🤖 666 ChatGPT</span>
+              <span style="font-size:11px;padding:4px 8px;border-radius:6px;background:rgba(34,211,238,0.12);color:#22D3EE;font-weight:600;">🔍 1,250 Perplexity</span>
+            </div>
           </div>
           <div class="tier-total" style="background:rgba(108,92,231,0.15);">
             <span style="font-size:14px;font-weight:600;">Monthly Grant</span>
-            <span style="font-size:18px;font-weight:900;color:#6C5CE7;">1,000 tokens</span>
+            <span style="font-size:18px;font-weight:900;color:#6C5CE7;">1,000₽ Prana</span>
           </div>
         </div>
         
@@ -674,10 +682,10 @@
               <div style="font-size:13px;color:var(--textMuted);">शूर · Warrior</div>
             </div>
           </div>
-          <div style="font-size:14px;color:var(--textSec);line-height:20px;margin-bottom:12px;">Dominate the investment arena. Maximum tokens, maximum influence.</div>
+          <div style="font-size:14px;color:var(--textSec);line-height:20px;margin-bottom:12px;">Dominate the investment arena. Maximum Prana, maximum influence.</div>
           <div class="tier-total" style="background:rgba(253,203,110,0.15);">
             <span style="font-size:14px;font-weight:600;">Monthly Grant</span>
-            <span style="font-size:18px;font-weight:900;color:#FDCB6E;">2,000 tokens</span>
+            <span style="font-size:18px;font-weight:900;color:#FDCB6E;">2,000₽ Prana</span>
           </div>
         </div>
         
@@ -686,9 +694,9 @@
         <div class="card pad" style="margin-top:16px;">
           <div style="font-size:16px;font-weight:700;margin-bottom:8px;">📌 How Tiers Work</div>
           <div style="font-size:13px;color:var(--textSec);line-height:20px;">
-            • Your tier determines how many AI tokens you receive each month<br>
-            • Changing tiers takes effect on your next monthly grant<br>
-            • Higher tiers let you invest in more ideas simultaneously<br>
+            • Your tier determines how much <b style="color:var(--gold);">Prana ₽</b> you receive each month<br>
+            • Exchange Prana for any AI credits at live rates<br>
+            • Higher tiers = more Prana = more investing power<br>
             • All tiers have the same 30-day grant cooldown<br>
           </div>
         </div>
@@ -863,7 +871,7 @@
         </div>
         <div class="profile-card">
           <div class="profile-row"><span class="p-icon">⚡</span><span class="p-label">Saarthi Tier</span><span class="p-arrow">›</span></div>
-          <div class="profile-row"><span class="p-icon">💰</span><span class="p-label">1,250 Total Tokens</span><span class="p-arrow">›</span></div>
+          <div class="profile-row"><span class="p-icon">₽</span><span class="p-label">1,250 Prana Balance</span><span class="p-arrow">›</span></div>
           <div class="profile-row"><span class="p-icon">📊</span><span class="p-label">3 Ideas Invested</span><span class="p-arrow">›</span></div>
           <div class="profile-row"><span class="p-icon">🔔</span><span class="p-label">Notifications</span><span class="p-arrow">›</span></div>
           <div class="profile-row"><span class="p-icon">🔒</span><span class="p-label">Privacy & Security</span><span class="p-arrow">›</span></div>
@@ -878,7 +886,7 @@
       <button class="tab-item active" onclick="showScreen('inv','toss')"><span class="icon">📄</span>Review</button>
       <button class="tab-item" onclick="showScreen('inv','saved')"><span class="icon">📥</span>Saved</button>
       <button class="tab-item" onclick="showScreen('inv','chat')"><span class="icon">💬</span>Chat</button>
-      <button class="tab-item" onclick="showScreen('inv','wallet')"><span class="icon">💰</span>Wallet</button>
+      <button class="tab-item" onclick="showScreen('inv','wallet')"><span class="icon">₽</span>Prana</button>
       <button class="tab-item" onclick="showScreen('inv','profile')"><span class="icon">👤</span>Profile</button>
     </div>
 
@@ -1899,6 +1907,26 @@ function showScreen(prefix, name) {
 function selectRate(el) {
   el.closest('.rates-grid').querySelectorAll('.rate-card').forEach(c => c.classList.remove('selected'));
   el.classList.add('selected');
+}
+
+function selectInvRate(el, name, icon, rate) {
+  el.closest('.rates-grid').querySelectorAll('.rate-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  // Update the exchange form below
+  const form = document.querySelector('#inv-wallet .exchange-form');
+  if (!form) return;
+  const rateNum = parseFloat(rate);
+  form.querySelector('.token-banner').innerHTML = '<span>' + icon + '</span> ' + name + ' — ' + rate + '₽ per credit';
+  const inp = form.querySelector('input[type=number]');
+  const qty = parseInt(inp.value) || 0;
+  const cost = Math.round(qty * rateNum);
+  const balance = 1250; // demo balance
+  form.querySelector('.cost-preview').innerHTML =
+    '<div class="cost-row"><span class="l">Credits to invest</span><span class="v">' + qty + ' ' + icon + '</span></div>' +
+    '<div class="cost-row"><span class="l">Prana Cost</span><span class="v" style="color:var(--gold);">' + cost + '₽</span></div>' +
+    '<div class="divider" style="margin:6px 0;"></div>' +
+    '<div class="cost-row"><span class="l">Balance After</span><span class="v" style="color:var(--success);">' + (balance - cost) + '₽</span></div>';
+  form.querySelector('.btn-exchange').textContent = 'Exchange ' + cost + '₽ → ' + qty + ' ' + name + ' → TechFlow AI';
 }
 
 // ═══════════════════════════════════════════════════════════
