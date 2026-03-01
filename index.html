@@ -7,9 +7,11 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>BuildPaper — App Preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
   :root {
     --bg: #0F0F1A; --bgSec: #1A1A2E; --bgTer: #25253D; --inputBg: #2A2A44;
     --text: #FFFFFF; --textSec: #b8cad0; --textMuted: #6C6C80;
@@ -437,8 +439,8 @@
 <div class="topbar">
   <h1>Build<span>Paper</span> 📄</h1>
   <div class="tabs">
-    <button class="tab active" onclick="switchApp('investor')">🎯 Investor App</button>
-    <button class="tab" onclick="switchApp('founder')">💡 Founder App</button>
+    <button class="tab" onclick="switchApp('investor')">🎯 Investor App</button>
+    <button class="tab active" onclick="switchApp('founder')">💡 Founder App</button>
   </div>
 </div>
 
@@ -446,7 +448,7 @@
 <div class="preview-area" id="previewArea">
 
 <!-- ===================== INVESTOR PHONE ===================== -->
-<div id="investorPhone">
+<div id="investorPhone" class="hidden">
 <div class="phone">
   <div class="notch"></div>
   <div class="screen">
@@ -896,22 +898,94 @@
 </div>
 
 <!-- ===================== FOUNDER PHONE ===================== -->
-<div id="founderPhone" class="hidden">
+<div id="founderPhone">
 <div class="phone">
   <div class="notch"></div>
   <div class="screen">
     
     <!-- Screen Nav -->
     <div class="screen-nav">
-      <button class="screen-btn active" onclick="showScreen('fnd','wizard')">AI Wizard</button>
+      <button class="screen-btn active" onclick="showScreen('fnd','agents')">Agents</button>
+      <button class="screen-btn" onclick="showScreen('fnd','wizard')">AI Wizard</button>
       <button class="screen-btn" onclick="showScreen('fnd','ideas')">My Ideas</button>
       <button class="screen-btn" onclick="showScreen('fnd','prana')">Prana ₽</button>
       <button class="screen-btn" onclick="showScreen('fnd','chat')">Chat</button>
       <button class="screen-btn" onclick="showScreen('fnd','profile')">Profile</button>
     </div>
 
+    <!-- ─ Agents Grid ─ -->
+    <div class="screen-view active" id="fnd-agents">
+      <div style="padding:24px 16px 40px;background:#f5f7fa;min-height:100%;">
+        <div style="font-size:26px;font-weight:900;margin-bottom:8px;color:#1A2332;">Founder Support Agents</div>
+        <div style="font-size:15px;color:#4F8EF7;font-weight:500;margin-bottom:24px;">Chat with specialized AI agents to iterate on your idea.</div>
+        <div style="display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;">
+          <!-- Business Leader -->
+          <div onclick="openAgentChat('business')" style="flex:1 1 45%;background:#fff;border-radius:16px;padding:18px 14px 16px 14px;border:2px solid rgba(217,59,65,0.25);min-width:140px;max-width:48%;box-shadow:0 2px 12px rgba(217,59,65,0.1);cursor:pointer;transition:transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 16px rgba(217,59,65,0.15)';" onmouseout="this.style.transform='';this.style.boxShadow='0 2px 12px rgba(217,59,65,0.1)';">
+            <div style="width:44px;height:44px;background:rgba(217,59,65,0.12);border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;"><span style="font-size:24px;">💼</span></div>
+            <div style="font-size:16px;font-weight:700;color:#D93B41;margin-bottom:4px;">Business Leader</div>
+            <div style="font-size:12px;color:#666;margin-bottom:14px;line-height:1.4;">Strategy, business models, market positioning & growth</div>
+            <div style="background:#D93B41;color:#fff;padding:10px 14px;border-radius:10px;font-weight:600;font-size:13px;text-align:center;">Start Chat →</div>
+          </div>
+          <!-- Scientist -->
+          <div onclick="openAgentChat('science')" style="flex:1 1 45%;background:#fff;border-radius:16px;padding:18px 14px 16px 14px;border:2px solid rgba(123,97,255,0.25);min-width:140px;max-width:48%;box-shadow:0 2px 12px rgba(123,97,255,0.1);cursor:pointer;transition:transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 16px rgba(123,97,255,0.15)';" onmouseout="this.style.transform='';this.style.boxShadow='0 2px 12px rgba(123,97,255,0.1)';">
+            <div style="width:44px;height:44px;background:rgba(123,97,255,0.12);border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;"><span style="font-size:24px;">🔬</span></div>
+            <div style="font-size:16px;font-weight:700;color:#7B61FF;margin-bottom:4px;">Scientist</div>
+            <div style="font-size:12px;color:#666;margin-bottom:14px;line-height:1.4;">Technical feasibility, research validation & scientific rigor</div>
+            <div style="background:#7B61FF;color:#fff;padding:10px 14px;border-radius:10px;font-weight:600;font-size:13px;text-align:center;">Start Chat →</div>
+          </div>
+          <!-- Marketer -->
+          <div onclick="openAgentChat('marketing')" style="flex:1 1 45%;background:#fff;border-radius:16px;padding:18px 14px 16px 14px;border:2px solid rgba(0,191,174,0.25);min-width:140px;max-width:48%;box-shadow:0 2px 12px rgba(0,191,174,0.1);cursor:pointer;transition:transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 16px rgba(0,191,174,0.15)';" onmouseout="this.style.transform='';this.style.boxShadow='0 2px 12px rgba(0,191,174,0.1)';">
+            <div style="width:44px;height:44px;background:rgba(0,191,174,0.12);border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;"><span style="font-size:24px;">📢</span></div>
+            <div style="font-size:16px;font-weight:700;color:#00BFAE;margin-bottom:4px;">Marketer</div>
+            <div style="font-size:12px;color:#666;margin-bottom:14px;line-height:1.4;">Go-to-market strategy, positioning & customer acquisition</div>
+            <div style="background:#00BFAE;color:#fff;padding:10px 14px;border-radius:10px;font-weight:600;font-size:13px;text-align:center;">Start Chat →</div>
+          </div>
+          <!-- Developer -->
+          <div onclick="openAgentChat('developer')" style="flex:1 1 45%;background:#fff;border-radius:16px;padding:18px 14px 16px 14px;border:2px solid rgba(245,158,11,0.25);min-width:140px;max-width:48%;box-shadow:0 2px 12px rgba(245,158,11,0.1);cursor:pointer;transition:transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 16px rgba(245,158,11,0.15)';" onmouseout="this.style.transform='';this.style.boxShadow='0 2px 12px rgba(245,158,11,0.1)';">
+            <div style="width:44px;height:44px;background:rgba(245,158,11,0.12);border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;"><span style="font-size:24px;">💻</span></div>
+            <div style="font-size:16px;font-weight:700;color:#F59E0B;margin-bottom:4px;">Software Developer</div>
+            <div style="font-size:12px;color:#666;margin-bottom:14px;line-height:1.4;">Tech stack, architecture & MVP development</div>
+            <div style="background:#F59E0B;color:#fff;padding:10px 14px;border-radius:10px;font-weight:600;font-size:13px;text-align:center;">Start Chat →</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─ Agent Chat View ─ -->
+    <div class="screen-view" id="fnd-agent-chat" style="display:none;">
+      <div style="display:flex;flex-direction:column;height:100%;background:#f8f9fb;">
+        <!-- Agent Chat Header -->
+        <div id="agentChatHeader" style="padding:12px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #e0e0e0;">
+          <button onclick="closeAgentChat()" style="width:36px;height:36px;border-radius:50%;border:1px solid #ddd;background:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;">←</button>
+          <div id="agentChatIcon" style="width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;"></div>
+          <div style="flex:1;">
+            <div id="agentChatName" style="font-size:16px;font-weight:700;"></div>
+            <div style="font-size:12px;color:#666;">AI Agent</div>
+          </div>
+        </div>
+        <!-- Idea Selector -->
+        <div style="padding:10px 16px;background:#fff;border-bottom:1px solid #e0e0e0;">
+          <div style="font-size:11px;color:#888;margin-bottom:4px;">WORKING ON</div>
+          <select id="agentIdeaSelect" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid #ddd;font-size:14px;font-weight:600;background:#f5f7fa;color:#1A2332;">
+            <option value="techflow">TechFlow AI - Workflow Automation</option>
+            <option value="edumatch">EduMatch - AI Tutoring Platform</option>
+            <option value="greengrid">GreenGrid - Smart Energy Grid</option>
+          </select>
+        </div>
+        <!-- Messages -->
+        <div id="agentChatMessages" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;">
+          <!-- Messages will be inserted here -->
+        </div>
+        <!-- Input -->
+        <div style="padding:12px 16px;background:#fff;border-top:1px solid #e0e0e0;display:flex;gap:10px;">
+          <input id="agentChatInput" type="text" placeholder="Ask the agent..." style="flex:1;padding:12px 16px;border-radius:20px;border:1px solid #ddd;font-size:14px;outline:none;" onkeypress="if(event.key==='Enter')sendAgentMessage()">
+          <button onclick="sendAgentMessage()" id="agentSendBtn" style="padding:12px 20px;border-radius:20px;border:none;font-weight:600;font-size:14px;cursor:pointer;color:#fff;">Send</button>
+        </div>
+      </div>
+    </div>
+
     <!-- ─ Wizard ─ -->
-    <div class="screen-view active" id="fnd-wizard">
+    <div class="screen-view" id="fnd-wizard">
       <div class="wizard-bg">
         <div class="wizard-topbar">
           <button class="btn">ⓘ</button>
@@ -1099,7 +1173,7 @@
 
     <!-- Tab Bar -->
     <div class="tab-bar">
-      <button class="tab-item active" onclick="showScreen('fnd','wizard')"><span class="icon">✨</span>Wizard</button>
+      <button class="tab-item active" onclick="showScreen('fnd','agents')"><span class="icon">🤖</span>Agents</button>
       <button class="tab-item" onclick="showScreen('fnd','ideas')"><span class="icon">💡</span>Ideas</button>
       <button class="tab-item" onclick="showScreen('fnd','prana')"><span class="icon">💰</span>Prana</button>
       <button class="tab-item" onclick="showScreen('fnd','chat')"><span class="icon">💬</span>Chat</button>
@@ -1114,6 +1188,13 @@
 </div>
 
 <script>
+// Show Founder App by default on load
+window.addEventListener('DOMContentLoaded', function() {
+  document.querySelector('.tab.active').classList.remove('active');
+  document.querySelectorAll('.tab')[1].classList.add('active');
+  document.getElementById('investorPhone').classList.add('hidden');
+  document.getElementById('founderPhone').classList.remove('hidden');
+});
 // ═══════════════════════════════════════════════════════════
 //  BuildPaper — Unified Paper Toss Game Engine
 //  Tap card → crumple → drag ball (↓ throw / → save)
@@ -2050,6 +2131,174 @@ function showInvChat(name, idea) {
 function backToInvChatList() {
   document.getElementById('invChatThread').style.display = 'none';
   document.getElementById('invChatList').style.display = 'block';
+}
+
+// ═══════════════════════════════════════════════════════════
+//  FOUNDER AGENT CHAT SYSTEM
+// ═══════════════════════════════════════════════════════════
+
+const AGENT_CONFIG = {
+  business: {
+    name: 'Business Leader',
+    emoji: '💼',
+    color: '#D93B41',
+    bgColor: 'rgba(217,59,65,0.12)',
+    welcome: "Hello! I'm your Business Leader agent. I specialize in strategic advice on business models, market positioning, and growth strategies.\n\nWhat aspect of your business would you like to explore?"
+  },
+  science: {
+    name: 'Scientist',
+    emoji: '🔬',
+    color: '#7B61FF',
+    bgColor: 'rgba(123,97,255,0.12)',
+    welcome: "Hello! I'm your Scientist agent. I focus on technical feasibility, research validation, and scientific rigor.\n\nWhat technical or scientific aspects would you like me to analyze?"
+  },
+  marketing: {
+    name: 'Marketer',
+    emoji: '📢',
+    color: '#00BFAE',
+    bgColor: 'rgba(0,191,174,0.12)',
+    welcome: "Hello! I'm your Marketer agent. I help with go-to-market strategy, positioning, and customer acquisition.\n\nHow can I help you reach your first customers?"
+  },
+  developer: {
+    name: 'Software Developer',
+    emoji: '💻',
+    color: '#F59E0B',
+    bgColor: 'rgba(245,158,11,0.12)',
+    welcome: "Hello! I'm your Software Developer agent. I provide guidance on tech stacks, architecture, and MVP development.\n\nWhat technical decisions can I help you with?"
+  }
+};
+
+let currentAgent = null;
+let agentMessages = [];
+
+// Demo responses for each agent type
+const AGENT_RESPONSES = {
+  business: [
+    "Based on your idea, I see three key revenue opportunities:\n\n**1. Subscription Model** - Recurring revenue with tiered pricing\n**2. Usage-Based Pricing** - Pay-per-use for power users\n**3. Enterprise Licensing** - White-label for larger clients\n\nWhich model resonates most with your target customer?",
+    "Great question! Here are your immediate next steps:\n\n✅ **Week 1**: Interview 10 potential customers\n✅ **Week 2**: Validate pricing with 3 pricing tests\n✅ **Week 3**: Define your MVP feature set\n\nWant me to help you craft the customer interview questions?",
+    "For market positioning, I'd recommend focusing on:\n\n**Your Unfair Advantage**: What can you do that competitors can't easily replicate?\n\n**Target Segment**: Start narrow, expand later. Who feels the pain most acutely?\n\n**Key Differentiator**: One thing you do 10x better than alternatives.\n\nLet's work through these together."
+  ],
+  science: [
+    "From a technical feasibility standpoint:\n\n**✓ Proven Technology**: The core tech is mature and well-documented\n**⚠️ Integration Risk**: Connecting multiple systems may require custom work\n**? Unknown**: Performance at scale needs validation\n\nI'd recommend a small proof-of-concept to test the critical assumptions. Shall I outline what that would look like?",
+    "To validate your technical hypothesis, consider:\n\n**1. Literature Review** - What existing research supports this approach?\n**2. Small-Scale Experiment** - Can you test with 10-50 users?\n**3. Performance Benchmarks** - What metrics define success?\n\nWhat evidence would convince you (and investors) this works?",
+    "The scientific foundation looks promising. Key questions to answer:\n\n🔬 What's your accuracy/error rate target?\n📊 How will you measure improvement over baseline?\n🧪 What edge cases might break the system?\n\nAddressing these will strengthen your technical credibility."
+  ],
+  marketing: [
+    "For your first 100 customers, I recommend:\n\n**Channel 1: Direct Outreach** (High-touch, High-conversion)\n- LinkedIn messages to your target persona\n- Cold email with social proof\n\n**Channel 2: Community** (Trust-building)\n- Reddit, Discord, Slack groups where your users hang out\n- Provide value before pitching\n\n**Channel 3: Content** (Long-term)\n- SEO-optimized blog posts\n- Educational content that builds trust\n\nWhich feels most aligned with your strengths?",
+    "Let's craft your messaging:\n\n**Before**: [Problem your user faces]\n**After**: [Outcome after using your solution]\n**Bridge**: [How your product gets them there]\n\nFor example:\n*\"Stop wasting 10+ hours per week on repetitive tasks. TechFlow learns your patterns and automates them - saving you time to focus on what matters.\"*\n\nWant me to help refine your specific value prop?",
+    "Quick wins for early traction:\n\n1. **Launch on Product Hunt** - Free exposure to early adopters\n2. **Referral Program** - Incentivize sharing with credits/features\n3. **Case Study** - Document one happy customer's transformation\n\nWhich would you like to tackle first?"
+  ],
+  developer: [
+    "For your MVP, I recommend this tech stack:\n\n**Frontend**: React Native (iOS + Android from one codebase)\n**Backend**: Node.js + Express (Fast to iterate)\n**Database**: PostgreSQL (Reliable, scalable)\n**Auth**: Auth0 or Firebase Auth (Don't build auth yourself)\n**Hosting**: Vercel + AWS (Start cheap, scale easily)\n\nThis stack lets you ship in 4-6 weeks with a small team. What's your technical background?",
+    "Let's prioritize your MVP features:\n\n**Must-Have (Week 1-2)**\n- Core value prop feature\n- User authentication\n- Basic dashboard\n\n**Should-Have (Week 3-4)**\n- Notifications\n- Settings/preferences\n- Basic analytics\n\n**Nice-to-Have (Post-MVP)**\n- Social features\n- Advanced customization\n- Integrations\n\nWhat's the ONE feature users can't live without?",
+    "Common pitfalls to avoid:\n\n❌ **Over-engineering**: Don't build for 1M users when you have 0\n❌ **Feature creep**: Each feature delays launch by days/weeks\n❌ **Premature optimization**: Make it work, then make it fast\n❌ **Building before validating**: Talk to users first!\n\n**My Rule**: If you're not embarrassed by v1, you launched too late.\n\nWhat's blocking you from shipping this week?"
+  ]
+};
+
+let agentResponseIndex = { business: 0, science: 0, marketing: 0, developer: 0 };
+
+function openAgentChat(agentType) {
+  currentAgent = agentType;
+  const config = AGENT_CONFIG[agentType];
+  
+  // Update header
+  document.getElementById('agentChatHeader').style.background = config.bgColor;
+  document.getElementById('agentChatIcon').style.background = config.bgColor;
+  document.getElementById('agentChatIcon').innerHTML = config.emoji;
+  document.getElementById('agentChatName').textContent = config.name;
+  document.getElementById('agentChatName').style.color = config.color;
+  document.getElementById('agentSendBtn').style.background = config.color;
+  
+  // Reset messages with welcome
+  agentMessages = [{
+    role: 'agent',
+    text: config.welcome,
+    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  }];
+  
+  renderAgentMessages();
+  
+  // Show chat view
+  document.getElementById('fnd-agents').style.display = 'none';
+  document.getElementById('fnd-agent-chat').style.display = 'block';
+  document.getElementById('agentChatInput').focus();
+}
+
+function closeAgentChat() {
+  document.getElementById('fnd-agent-chat').style.display = 'none';
+  document.getElementById('fnd-agents').style.display = 'block';
+  currentAgent = null;
+}
+
+function renderAgentMessages() {
+  const container = document.getElementById('agentChatMessages');
+  const config = AGENT_CONFIG[currentAgent];
+  
+  container.innerHTML = agentMessages.map(m => {
+    if (m.role === 'agent') {
+      return `
+        <div style="max-width:85%;align-self:flex-start;background:#fff;border-radius:16px;border-bottom-left-radius:4px;padding:12px 14px;box-shadow:0 1px 4px rgba(0,0,0,0.06);">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+            <span style="background:${config.bgColor};padding:4px 6px;border-radius:6px;font-size:14px;">${config.emoji}</span>
+            <span style="font-size:13px;font-weight:700;color:${config.color};">${config.name}</span>
+          </div>
+          <div style="font-size:14px;color:#333;line-height:1.5;white-space:pre-line;">${formatAgentMessage(m.text)}</div>
+          <div style="font-size:11px;color:#999;margin-top:6px;text-align:right;">${m.time}</div>
+        </div>
+      `;
+    } else {
+      return `
+        <div style="max-width:80%;align-self:flex-end;background:${config.color}18;border-radius:16px;border-bottom-right-radius:4px;padding:12px 14px;">
+          <div style="font-size:14px;color:#1A2332;line-height:1.5;">${m.text}</div>
+          <div style="font-size:11px;color:#666;margin-top:6px;text-align:right;">${m.time}</div>
+        </div>
+      `;
+    }
+  }).join('');
+  
+  // Scroll to bottom
+  setTimeout(() => { container.scrollTop = container.scrollHeight; }, 50);
+}
+
+function formatAgentMessage(text) {
+  // Simple markdown-like formatting
+  return text
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/`(.+?)`/g, '<code style="background:#f0f0f0;padding:2px 4px;border-radius:3px;">$1</code>');
+}
+
+function sendAgentMessage() {
+  const input = document.getElementById('agentChatInput');
+  const text = input.value.trim();
+  if (!text || !currentAgent) return;
+  
+  // Add user message
+  agentMessages.push({
+    role: 'user',
+    text: text,
+    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  });
+  
+  input.value = '';
+  renderAgentMessages();
+  
+  // Simulate agent thinking
+  setTimeout(() => {
+    // Get next response for this agent
+    const responses = AGENT_RESPONSES[currentAgent];
+    const idx = agentResponseIndex[currentAgent];
+    const response = responses[idx % responses.length];
+    agentResponseIndex[currentAgent]++;
+    
+    agentMessages.push({
+      role: 'agent',
+      text: response,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    });
+    
+    renderAgentMessages();
+  }, 800 + Math.random() * 700);
 }
 </script>
 
