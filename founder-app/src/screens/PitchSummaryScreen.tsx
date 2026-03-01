@@ -40,10 +40,14 @@ interface PitchCard {
 }
 
 const PITCH_CARDS: PitchCard[] = [
-  { key: 'pitchIdea', label: 'The Idea', icon: '💡' },
-  { key: 'pitchTarget', label: 'The Target', icon: '🎯' },
-  { key: 'pitchSolves', label: 'What it Solves', icon: '🔧' },
-  { key: 'pitchHow', label: 'How it Works', icon: '⚙️' },
+  { key: 'pitchIdea', label: 'The Idea', icon: '💡', agent: { name: 'Business Leader', emoji: '🧑‍💼', color: '#FDE8E9' } },
+  { key: 'pitchTarget', label: 'The Target', icon: '🎯', agent: { name: 'Visionary', emoji: '🔮', color: '#E8F4F8' } },
+  { key: 'pitchSolves', label: 'What it Solves', icon: '🔧', agent: { name: 'Problem Finder', emoji: '🕵️‍♂️', color: '#FFF7E0' } },
+  { key: 'pitchHow', label: 'How it Works', icon: '⚙️', agent: { name: 'Tech Ace', emoji: '💻', color: '#E8EDF4' } },
+  { key: 'pitchDesign', label: 'Design & Brand', icon: '🎨', agent: { name: 'Designer', emoji: '🎨', color: '#F3E8F4' } },
+  { key: 'pitchGoToMarket', label: 'Go-to-Market', icon: '📣', agent: { name: 'Marketer', emoji: '📣', color: '#E8F8F4' } },
+  { key: 'pitchBusinessModel', label: 'Business Model', icon: '💰', agent: { name: 'Financier', emoji: '💰', color: '#F4F8E8' } },
+  { key: 'pitchRoadmap', label: 'Roadmap', icon: '🗺️', agent: { name: 'Planner', emoji: '🗺️', color: '#F8F4E8' } },
 ];
 
 const PitchSummaryScreen: React.FC<PitchSummaryScreenProps> = ({
@@ -261,7 +265,7 @@ const PitchSummaryScreen: React.FC<PitchSummaryScreenProps> = ({
 
         {/* ─── Pitch Cards ───────────────── */}
         {PITCH_CARDS.map((card) => (
-          <View key={card.key} style={styles.pitchCard}>
+          <View key={card.key} style={[styles.pitchCard, { borderLeftWidth: 6, borderLeftColor: card.agent?.color || COLORS.accent }]}> 
             <View style={styles.cardHeader}>
               <View style={styles.cardTitleRow}>
                 <Text style={styles.cardIcon}>{card.icon}</Text>
@@ -273,9 +277,34 @@ const PitchSummaryScreen: React.FC<PitchSummaryScreenProps> = ({
                 <Text style={styles.editBtnText}>✏️ Edit</Text>
               </TouchableOpacity>
             </View>
+            {/* Agent cue */}
+            {card.agent && (
+              <View style={[styles.agentCue, { backgroundColor: card.agent.color }]}> 
+                <Text style={styles.agentEmoji}>{card.agent.emoji}</Text>
+                <Text style={styles.agentName}>{card.agent.name}</Text>
+              </View>
+            )}
             <Text style={styles.cardContent}>{pitchData[card.key]}</Text>
           </View>
         ))}
+  agentCue: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderRadius: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    marginBottom: 6,
+    alignSelf: 'flex-start',
+  },
+  agentEmoji: {
+    fontSize: 18,
+  },
+  agentName: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
+  },
 
         {/* Bottom spacer */}
         <View style={{ height: 120 }} />

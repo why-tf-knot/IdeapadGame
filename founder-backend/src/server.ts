@@ -8,6 +8,7 @@ import rateLimit from 'express-rate-limit';
 import authRoutes from './routes/auth';
 import ideaRoutes from './routes/ideas';
 import creditsRoutes from './routes/credits';
+import agentsRoutes from './routes/agents';
 
 dotenv.config();
 
@@ -34,6 +35,7 @@ app.use('/api', generalLimiter);
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/ideas', ideaRoutes);
 app.use('/api/credits', creditsRoutes);
+app.use('/api/agents', agentsRoutes);
 
 // Health
 app.get('/health', (_req, res) => {

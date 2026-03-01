@@ -10,6 +10,29 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { ideasAPI, creditsAPI } from '../services/api';
+import AgentSuggestion, { AgentRole } from '../components/AgentSuggestion';
+// Specialized agent roles for founder support
+const FOUNDER_AGENTS: { role: AgentRole; prompt: string }[] = [
+  { role: 'business', prompt: 'Give business advice for this idea.' },
+  { role: 'science', prompt: 'Give scientific/technical feedback for this idea.' },
+  { role: 'marketing', prompt: 'Give marketing and go-to-market advice for this idea.' },
+  { role: 'developer', prompt: 'Give software development and implementation advice for this idea.' },
+];
+  // Ask a specific agent for advice
+  const askAgent = async (agent: AgentRole): Promise<string> => {
+    if (!idea) return '';
+    // Map agent to a backend service string if needed, or use prompt
+    let service = '';
+    switch (agent) {
+      case 'business': service = 'AGENT_BUSINESS'; break;
+      case 'science': service = 'AGENT_SCIENCE'; break;
+      case 'marketing': service = 'AGENT_MARKETING'; break;
+      case 'developer': service = 'AGENT_DEVELOPER'; break;
+      default: service = 'AGENT_BUSINESS';
+    }
+    const res = await ideasAPI.generateAgentSuggestion(service, idea);
+    return res.text || '';
+  };
 import { Idea, TokenType, TOKEN_TYPES, TOKEN_META, TokenBalances } from '../types';
 import { handleApiError } from '../utils/errorHandler';
 import { COLORS, RADIUS, SHADOWS, SPACING } from '../theme';
@@ -261,13 +284,22 @@ const IdeaDetailScreen: React.FC<IdeaDetailScreenProps> = ({ route, navigation }
           <Text style={styles.summaryText}>{idea.oneLineSummary}</Text>
         </View>
 
+        {/* Founder Support Agents */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Founder Support Agents</Text>
+          <Text style={styles.sectionSubtitle}>
+            Get advice from four specialized agents to help you go deeper into your idea.
+          </Text>
+          {FOUNDER_AGENTS.map(({ role }) => (
+            <AgentSuggestion key={role} agent={role} onAsk={askAgent} />
+          ))}
+        </View>
         {/* AI Tools */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>AI-Powered Tools</Text>
           <Text style={styles.sectionSubtitle}>
             Spend {TOKEN_META[selectedToken].label} tokens to enhance your pitch
           </Text>
-
           {AI_TOOLS.map((tool) => (
             <TouchableOpacity
               key={tool.id}
@@ -280,12 +312,10 @@ const IdeaDetailScreen: React.FC<IdeaDetailScreenProps> = ({ route, navigation }
               <View style={styles.toolIcon}>
                 <Text style={styles.toolIconText}>{tool.icon}</Text>
               </View>
-
               <View style={styles.toolInfo}>
                 <Text style={styles.toolName}>{tool.name}</Text>
                 <Text style={styles.toolDescription}>{tool.description}</Text>
               </View>
-
               <View style={styles.toolAction}>
                 {processingTool === tool.id ? (
                   <ActivityIndicator size="small" color={TOKEN_META[selectedToken].color} />

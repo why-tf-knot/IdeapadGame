@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Platform,
+  ImageBackground,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -614,7 +615,13 @@ const PaperTossScreen: React.FC = () => {
         <Animated.View
           style={[styles.card, cardAnimatedStyle]}
         >
-          <View style={styles.cardTouchable}>
+          <ImageBackground
+            source={require('../assets/notebook-paper-bg.svg')}
+            resizeMode="stretch"
+            style={styles.cardBg}
+            imageStyle={{ borderRadius: 24 }}
+          >
+            <View style={styles.cardTouchable}>
             {/* Top row: category + stage */}
             <View style={styles.cardTopRow}>
               <View style={[styles.categoryBadge, { backgroundColor: categoryColor + '22', borderColor: categoryColor + '55' }]}>
@@ -669,8 +676,17 @@ const PaperTossScreen: React.FC = () => {
                 <Text style={styles.swipeHintText}>→ save</Text>
               </View>
             </View>
-          </View>
+            </View>
+          </ImageBackground>
         </Animated.View>
+        cardBg: {
+          flex: 1,
+          width: '100%',
+          height: '100%',
+          borderRadius: 24,
+          overflow: 'hidden',
+          justifyContent: 'flex-start',
+        },
       </GestureDetector>
 
       {/* ═══════════════════════════════════════════════ */}

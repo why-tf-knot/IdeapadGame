@@ -13,6 +13,7 @@ import ErrorBoundary from './src/components/ErrorBoundary';
 import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
 import MyIdeasScreen from './src/screens/MyIdeasScreen';
+import HomeScreen from './src/screens/HomeScreen';
 import CreateIdeaScreen from './src/screens/CreateIdeaScreen';
 import IdeaDetailScreen from './src/screens/IdeaDetailScreen';
 import IdeaWizardScreen from './src/screens/IdeaWizardScreen';
@@ -22,6 +23,7 @@ import ThreadsListScreen from './src/screens/ThreadsListScreen';
 import ChatScreen from './src/screens/ChatScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import PranaExchangeScreen from './src/screens/PranaExchangeScreen';
+import AgentChatScreen from './src/screens/AgentChatScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -41,6 +43,21 @@ function FounderTabs({ onLogout }: { onLogout: () => void }) {
         headerShown: false,
       }}
     >
+
+      <Tab.Screen
+        name="Home"
+        options={{
+          tabBarLabel: 'Agents',
+          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>🤖</Text>,
+        }}
+      >
+        {(props: any) => (
+          <ErrorBoundary screenName="Home">
+            <HomeScreen {...props} />
+          </ErrorBoundary>
+        )}
+      </Tab.Screen>
+
       <Tab.Screen
         name="MyIdeas"
         options={{
@@ -146,6 +163,12 @@ function MainStack({ onLogout }: { onLogout: () => void }) {
         options={{ title: 'Chat' }}
       >
         {(props: any) => <ChatScreen {...props} />}
+      </Stack.Screen>
+      <Stack.Screen
+        name="AgentChat"
+        options={{ title: 'Agent Chat' }}
+      >
+        {(props: any) => <AgentChatScreen {...props} />}
       </Stack.Screen>
     </Stack.Navigator>
   );

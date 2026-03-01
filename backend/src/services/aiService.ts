@@ -37,85 +37,86 @@ function sanitizeInput(text: string, maxLength: number = 5000): string {
     .trim();
 }
 
-// Service definitions with prompts
+// Service definitions with agent-specific prompts
 const AI_SERVICES: Record<string, { name: string; promptTemplate: (idea: any) => string }> = {
-  LLM_SUMMARY_IMPROVE: {
-    name: 'Summary Improvement',
+  AGENT_BUSINESS: {
+    name: 'Business Leader Advice',
     promptTemplate: (idea) => `
-You are an expert pitch consultant. Improve the following one-line pitch summary to be more compelling and concise (max 140 characters):
+You are a world-class business leader and startup mentor. Give actionable business advice for this idea:
 
-Current summary: "${sanitizeInput(idea.oneLineSummary, 200)}"
-
+Title: ${sanitizeInput(idea.title, 200)}
+One-line summary: ${sanitizeInput(idea.oneLineSummary, 200)}
 Problem: ${sanitizeInput(idea.problem, 1000)}
 Solution: ${sanitizeInput(idea.solution, 1000)}
 Target user: ${sanitizeInput(idea.targetUser, 200)}
+Business model: ${sanitizeInput(idea.monetization, 1000)}
+Stage: ${sanitizeInput(idea.stage, 50)}
 
-Provide an improved one-line summary that is:
-- Concise (max 140 characters)
-- Compelling and memorable
-- Clearly communicates the value proposition
-- Includes the target audience
+Give:
+- 2-3 key business risks or opportunities
+- 2-3 concrete next steps for the founder
+- 1 strategic question the founder should consider
 
-Return only the improved summary, nothing else.
+Be concise, practical, and founder-focused.
     `.trim(),
   },
-
-  LLM_PITCH_DRAFT: {
-    name: 'Pitch Deck Structure',
+  AGENT_SCIENCE: {
+    name: 'Scientist/Technical Feedback',
     promptTemplate: (idea) => `
-You are a pitch deck expert. Create a 6-slide pitch deck structure for this idea:
+You are a top scientist or technical expert. Analyze this idea and provide scientific/technical feedback:
 
 Title: ${sanitizeInput(idea.title, 200)}
-Category: ${sanitizeInput(idea.category, 100)}
-Stage: ${sanitizeInput(idea.stage, 50)}
-Target User: ${sanitizeInput(idea.targetUser, 200)}
+One-line summary: ${sanitizeInput(idea.oneLineSummary, 200)}
 Problem: ${sanitizeInput(idea.problem, 1000)}
 Solution: ${sanitizeInput(idea.solution, 1000)}
-Differentiation: ${sanitizeInput(idea.differentiation, 1000)}
-Monetization: ${sanitizeInput(idea.monetization, 1000)}
-Roadmap: ${sanitizeInput(idea.roadmap, 1000)}
+Target user: ${sanitizeInput(idea.targetUser, 200)}
+Stage: ${sanitizeInput(idea.stage, 50)}
 
-Create a well-structured 6-slide pitch deck outline with:
-- Slide 1: Problem Statement (hook the audience)
-- Slide 2: Solution Overview (your core offering)
-- Slide 3: Market & Target Audience (who and how big)
-- Slide 4: Competitive Advantage (why you'll win)
-- Slide 5: Business Model (how you'll make money)
-- Slide 6: Roadmap & Ask (next steps and funding needs)
+Give:
+- 2-3 technical challenges or unknowns
+- 2-3 suggestions to improve technical feasibility
+- 1 question to test the scientific soundness
 
-For each slide, provide:
-1. A catchy title
-2. 2-3 bullet points of key content
-3. A suggested visual/graphic type
-
-Format as:
-Slide X: [Title]
-• [Bullet point]
-• [Bullet point]
-Visual: [description]
+Be clear, constructive, and evidence-based.
     `.trim(),
   },
-
-  LLM_ROADMAP_GENERATE: {
-    name: 'Roadmap Generation',
+  AGENT_MARKETING: {
+    name: 'Marketing/Go-to-Market Advice',
     promptTemplate: (idea) => `
-You are a product strategy consultant. Create a detailed 3-6 month development roadmap for this product:
+You are a world-class marketer. Give go-to-market and marketing advice for this idea:
 
 Title: ${sanitizeInput(idea.title, 200)}
-Category: ${sanitizeInput(idea.category, 100)}
-Current Stage: ${sanitizeInput(idea.stage, 50)}
+One-line summary: ${sanitizeInput(idea.oneLineSummary, 200)}
+Target user: ${sanitizeInput(idea.targetUser, 200)}
+Problem: ${sanitizeInput(idea.problem, 1000)}
 Solution: ${sanitizeInput(idea.solution, 1000)}
-Current Roadmap Input: ${sanitizeInput(idea.roadmap, 1000)}
+Stage: ${sanitizeInput(idea.stage, 50)}
 
-Generate a month-by-month roadmap with:
-- Specific milestones and deliverables
-- Resource requirements (team, tools)
-- Key metrics to track
-- Risk mitigation strategies
-- User validation checkpoints
+Give:
+- 2-3 marketing channels or tactics to try
+- 2-3 ways to validate demand quickly
+- 1 question to clarify the go-to-market plan
 
-Format as a clear timeline with Month 1, Month 2, Month 3, etc.
-Be specific, actionable, and realistic based on the stage.
+Be creative, actionable, and focused on early traction.
+    `.trim(),
+  },
+  AGENT_DEVELOPER: {
+    name: 'Software Developer Advice',
+    promptTemplate: (idea) => `
+You are a senior software developer. Give practical implementation advice for this idea:
+
+Title: ${sanitizeInput(idea.title, 200)}
+One-line summary: ${sanitizeInput(idea.oneLineSummary, 200)}
+Solution: ${sanitizeInput(idea.solution, 1000)}
+Stage: ${sanitizeInput(idea.stage, 50)}
+Roadmap: ${sanitizeInput(idea.roadmap, 1000)}
+
+Give:
+- 2-3 technical stack or architecture suggestions
+- 2-3 first steps for building an MVP
+- 1 warning about common pitfalls
+
+Be specific, realistic, and founder-friendly.
     `.trim(),
   },
 };
@@ -138,32 +139,128 @@ const PROVIDERS: Record<TokenType, { name: string; envKey: string; model: string
  * @param tokenType - Which provider's tokens to consume
  * @returns AI-generated text response (falls back gracefully on error)
  */
+
+import { getUserProviderApiKey } from './userAIKeyService';
+import axios from 'axios';
+import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
+
 export async function runAiTool(
   service: string,
   idea: any,
-  tokenType: TokenType = 'CHATGPT'
+  tokenType: TokenType = 'CHATGPT',
+  userId?: string
 ): Promise<AIServiceResult> {
   const serviceConfig = AI_SERVICES[service];
-  
   if (!serviceConfig) {
     throw new Error(`Unknown AI service: ${service}`);
   }
-
   const provider = PROVIDERS[tokenType];
-
   try {
     const prompt = serviceConfig.promptTemplate(idea);
 
-    // Attempt real provider call when API key is present
-    if (process.env[provider.envKey]) {
-      // Future: route to the real provider SDK here.
-      // For now we fall through to placeholders.
-      // return await callProvider(tokenType, prompt);
+    // Prefer user's linked API key if available
+    let apiKey: string | null = null;
+    if (userId) {
+      apiKey = await getUserProviderApiKey(userId, tokenType);
     }
+    if (!apiKey && process.env[provider.envKey]) {
+      apiKey = process.env[provider.envKey] as string;
+    }
+
+
+    if (apiKey) {
+      return await callProvider(tokenType, prompt, apiKey);
+    }
+// Call the real provider API based on tokenType
+async function callProvider(tokenType: TokenType, prompt: string, apiKey: string): Promise<AIServiceResult> {
+  switch (tokenType) {
+    case 'CHATGPT':
+      return await callOpenAI(prompt, apiKey);
+    case 'ANTHROPIC':
+      return await callAnthropic(prompt, apiKey);
+    case 'GEMINI':
+      return await callGemini(prompt, apiKey);
+    case 'PERPLEXITY':
+      return await callPerplexity(prompt, apiKey);
+    default:
+      throw new Error('Unknown provider');
+  }
+}
+
+async function callOpenAI(prompt: string, apiKey: string): Promise<AIServiceResult> {
+  const openai = new OpenAI({ apiKey });
+  const completion = await openai.chat.completions.create({
+    model: 'gpt-4',
+    messages: [
+      { role: 'system', content: 'You are a helpful assistant for startup founders improving their pitches.' },
+      { role: 'user', content: prompt },
+    ],
+    temperature: 0.7,
+    max_tokens: 1000,
+  });
+  return {
+    text: completion.choices[0].message.content || '',
+    tokensUsed: completion.usage?.total_tokens || 0,
+    provider: 'OpenAI ChatGPT',
+  };
+}
+
+async function callAnthropic(prompt: string, apiKey: string): Promise<AIServiceResult> {
+  const anthropic = new Anthropic({ apiKey });
+  const completion = await anthropic.messages.create({
+    model: 'claude-3-sonnet-20240229',
+    max_tokens: 1000,
+    temperature: 0.7,
+    messages: [
+      { role: 'user', content: prompt },
+    ],
+  });
+  return {
+    text: completion.content[0]?.text || '',
+    tokensUsed: completion.usage?.input_tokens + completion.usage?.output_tokens,
+    provider: 'Anthropic Claude',
+  };
+}
+
+async function callGemini(prompt: string, apiKey: string): Promise<AIServiceResult> {
+  const url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
+  const response = await axios.post(url, {
+    contents: [{ parts: [{ text: prompt }] }],
+  }, {
+    headers: { 'Authorization': `Bearer ${apiKey}` },
+  });
+  const text = response.data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  return {
+    text,
+    tokensUsed: undefined,
+    provider: 'Google Gemini',
+  };
+}
+
+async function callPerplexity(prompt: string, apiKey: string): Promise<AIServiceResult> {
+  const url = 'https://api.perplexity.ai/chat/completions';
+  const response = await axios.post(url, {
+    model: 'sonar-medium-online',
+    messages: [
+      { role: 'system', content: 'You are a helpful assistant for startup founders improving their pitches.' },
+      { role: 'user', content: prompt },
+    ],
+    max_tokens: 1000,
+    temperature: 0.7,
+  }, {
+    headers: { 'Authorization': `Bearer ${apiKey}` },
+  });
+  const text = response.data.choices?.[0]?.message?.content || '';
+  return {
+    text,
+    tokensUsed: response.data.usage?.total_tokens,
+    provider: 'Perplexity AI',
+  };
+}
 
     // Placeholder responses for MVP
     const placeholderResponses = getPlaceholderResponse(service, idea, tokenType);
-    
     return {
       text: placeholderResponses,
       tokensUsed: 0,
@@ -171,7 +268,6 @@ export async function runAiTool(
     };
   } catch (error) {
     console.error(`[AI Service] Error running ${service} via ${provider.name}:`, error);
-    
     return {
       text: `${provider.name} service temporarily unavailable for "${serviceConfig.name}". Please try again in a few moments. Your ${tokenType} tokens have not been charged.`,
       tokensUsed: 0,

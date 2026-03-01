@@ -1,3 +1,13 @@
+// Helper: Map token type to the balance field on IdeaAiBalance
+function ideaTokenField(tokenType: TokenType): string {
+  const map: Record<TokenType, string> = {
+    GEMINI: 'geminiBalance',
+    ANTHROPIC: 'anthropicBalance',
+    PERPLEXITY: 'perplexityBalance',
+    CHATGPT: 'chatgptBalance',
+  };
+  return map[tokenType];
+}
 import express, { Response } from 'express';
 import { Types } from 'mongoose';
 import { AiCreditWallet, TOKEN_TYPES, TokenType, tokenBalanceField } from '../models/AiCreditWallet';
@@ -12,16 +22,91 @@ import analyticsService from '../services/analyticsService';
 
 const router = express.Router();
 
-/** Map token type to the balance field on IdeaAiBalance */
-function ideaTokenField(tokenType: TokenType): string {
-  const map: Record<TokenType, string> = {
-    GEMINI: 'geminiBalance',
-    ANTHROPIC: 'anthropicBalance',
-    PERPLEXITY: 'perplexityBalance',
-    CHATGPT: 'chatgptBalance',
-  };
-  return map[tokenType];
-}
+// Exchange Prana for AI tokens (Investors only)
+router.post(
+  '/exchange',
+  authMiddleware,
+  roleMiddleware(['INVESTOR']),
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const { amount, tokenType, exchangeRate } = req.body;
+
+      // Validate input
+      if (!amount || amount <= 0 || !Number.isInteger(amount)) {
+        return res.status(400).json({ error: 'Valid integer Prana amount required' });
+      }
+      if (!tokenType || !TOKEN_TYPES.includes(tokenType)) {
+        return res.status(400).json({ error: `Invalid tokenType. Must be one of: ${TOKEN_TYPES.join(', ')}` });
+      }
+      if (!exchangeRate || typeof exchangeRate !== 'number' || exchangeRate <= 0) {
+        return res.status(400).json({ error: 'Valid exchangeRate required' });
+      }
+
+      // Find wallet
+      const wallet = await AiCreditWallet.findOne({ userId: req.userId });
+      if (!wallet) {
+        return res.status(404).json({ error: 'Wallet not found' });
+      }
+
+      // Prana is stored in totalBalance (legacy field)
+      if ((wallet.totalBalance || 0) < amount) {
+        return res.status(400).json({ error: 'Insufficient Prana balance' });
+      }
+
+      // Calculate tokens to credit
+      const tokensToCredit = Math.floor(amount * exchangeRate);
+      if (tokensToCredit <= 0) {
+        return res.status(400).json({ error: 'Exchange would result in zero tokens' });
+      }
+
+      // Atomic update
+      const session = await (wallet as any).constructor.startSession();
+      session.startTransaction();
+      try {
+        // Deduct Prana
+        wallet.totalBalance -= amount;
+      const router = express.Router(); // Keep this declaration
+        const balField = tokenBalanceField(tokenType as TokenType);
+        (wallet as any)[balField] = ((wallet as any)[balField] || 0) + tokensToCredit;
+        await wallet.save({ session });
+
+        // Log transaction
+        const tx = new AiCreditTransaction({
+          fromUserId: req.userId,
+          toUserId: req.userId,
+          type: 'EXCHANGE_PRANA',
+          tokenType,
+          amount: tokensToCredit,
+          memo: `Exchanged ${amount} Prana for ${tokensToCredit} ${tokenType} tokens at rate ${exchangeRate}`,
+        });
+        await tx.save({ session });
+
+        await session.commitTransaction();
+        session.endSession();
+      } catch (err) {
+        await session.abortTransaction();
+        session.endSession();
+        throw err;
+      }
+
+      res.json({
+        message: `Exchanged ${amount} Prana for ${tokensToCredit} ${tokenType} tokens`,
+        newBalances: {
+          prana: wallet.totalBalance,
+          gemini: wallet.geminiBalance,
+          anthropic: wallet.anthropicBalance,
+          perplexity: wallet.perplexityBalance,
+          chatgpt: wallet.chatgptBalance,
+        },
+        tokensCredited: tokensToCredit,
+      });
+    } catch (error) {
+      console.error('Prana exchange error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+);
+
 
 // Get wallet info for current user
 router.get(

@@ -9,6 +9,9 @@ import creditsRoutes from './routes/credits';
 import chatRoutes from './routes/chat';
 import equityRoutes from './routes/equity';
 import batchRoutes from './routes/batch';
+import aiAccountsRoutes from './routes/aiAccounts';
+import aiTokenTransferRoutes from './routes/aiTokenTransfer';
+import imageGenRoutes from './routes/imageGen';
 
 dotenv.config();
 
@@ -28,6 +31,9 @@ app.use('/api/credits', creditsRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/equity', equityRoutes);
 app.use('/api/batch', batchRoutes);
+app.use('/api/ai-accounts', aiAccountsRoutes);
+app.use('/api/ai-token-transfer', aiTokenTransferRoutes);
+app.use('/api/image-gen', imageGenRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

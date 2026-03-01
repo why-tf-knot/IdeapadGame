@@ -1,4 +1,8 @@
 import React, { useState, useRef, useCallback } from 'react';
+import { Modal, Pressable } from 'react-native';
+  const [showAgentModal, setShowAgentModal] = useState(false);
+import { Alert, ActivityIndicator, Animated, Dimensions, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ideasAPI } from '../services/api';
 import {
   View,
   Text,
@@ -17,6 +21,16 @@ import {
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // ─── Red Bull Basement–inspired light theme ─────────────
+const AGENT_COLORS = [
+  '#D93B41', // Business Leader - red
+  '#7B61FF', // Visionary - purple
+  '#FFB300', // Problem Finder - gold
+  '#00BFAE', // Tech Ace - teal
+  '#FF6F61', // Designer - coral
+  '#1E88E5', // Marketer - blue
+  '#43A047', // Financier - green
+  '#8D6E63', // Planner - brown
+];
 const COLORS = {
   bg: '#F5F5F0',          // warm off-white
   formBg: '#E8EDF4',      // light blue-grey form panel
@@ -67,25 +81,69 @@ const WIZARD_STEPS: WizardStep[] = [
   },
   {
     stepNumber: 3,
-    sectionTitle: 'Your markets',
-    question: 'WHAT CHALLENGES WILL BE SOLVED WITH YOUR IDEA?',
-    aiCharacterEmoji: '🔬',
-    aiCharacterName: 'The Scientist',
-    aiCharacterQuote: "Everyone needs science, I'm here to help\nyou identify the best markets for your idea.",
-    askButtonLabel: 'Ask the Scientist',
-    placeholder: 'Describe the challenges you will solve...',
+    sectionTitle: 'The problem',
+    question: 'WHAT PROBLEM ARE YOU SOLVING?',
+    aiCharacterEmoji: '🕵️‍♂️',
+    aiCharacterName: 'The Problem Finder',
+    aiCharacterQuote: "I help you dig deep to define the real pain point.",
+    askButtonLabel: 'Ask the Problem Finder',
+    placeholder: 'Describe the core problem...',
     maxLength: 400,
   },
   {
     stepNumber: 4,
     sectionTitle: 'Your solution',
-    question: 'HOW WILL YOU BRING YOUR IDEA TO LIFE?',
+    question: 'HOW WILL YOU SOLVE THIS PROBLEM?',
     aiCharacterEmoji: '💻',
     aiCharacterName: 'The Tech Ace',
     aiCharacterQuote: "As a techie, I can help you develop\na solution for your idea.",
     askButtonLabel: 'Ask the Tech Ace',
-    placeholder: 'Describe how you will build this...',
+    placeholder: 'Describe your solution...',
     maxLength: 400,
+  },
+  {
+    stepNumber: 5,
+    sectionTitle: 'Design & Brand',
+    question: 'WHAT WILL MAKE YOUR IDEA STAND OUT VISUALLY?',
+    aiCharacterEmoji: '🎨',
+    aiCharacterName: 'The Designer',
+    aiCharacterQuote: "I help you craft a memorable look and feel.",
+    askButtonLabel: 'Ask the Designer',
+    placeholder: 'Describe your brand/design vision...',
+    maxLength: 300,
+  },
+  {
+    stepNumber: 6,
+    sectionTitle: 'Go-to-Market',
+    question: 'HOW WILL YOU REACH YOUR AUDIENCE?',
+    aiCharacterEmoji: '📣',
+    aiCharacterName: 'The Marketer',
+    aiCharacterQuote: "Let me help you plan your launch and growth.",
+    askButtonLabel: 'Ask the Marketer',
+    placeholder: 'Describe your launch/marketing plan...',
+    maxLength: 300,
+  },
+  {
+    stepNumber: 7,
+    sectionTitle: 'Business Model',
+    question: 'HOW WILL YOU MAKE MONEY?',
+    aiCharacterEmoji: '💰',
+    aiCharacterName: 'The Financier',
+    aiCharacterQuote: "I help you think through revenue and pricing.",
+    askButtonLabel: 'Ask the Financier',
+    placeholder: 'Describe your business model...',
+    maxLength: 300,
+  },
+  {
+    stepNumber: 8,
+    sectionTitle: 'Roadmap',
+    question: 'WHAT ARE YOUR NEXT STEPS?',
+    aiCharacterEmoji: '🗺️',
+    aiCharacterName: 'The Planner',
+    aiCharacterQuote: "I help you map out your journey ahead.",
+    askButtonLabel: 'Ask the Planner',
+    placeholder: 'Describe your roadmap...',
+    maxLength: 300,
   },
 ];
 
@@ -95,7 +153,7 @@ interface IdeaWizardScreenProps {
 
 const IdeaWizardScreen: React.FC<IdeaWizardScreenProps> = ({ navigation }) => {
   const [currentStep, setCurrentStep] = useState(0);
-  const [answers, setAnswers] = useState(['', '', '', '']);
+  const [answers, setAnswers] = useState(Array(WIZARD_STEPS.length).fill(''));
   const [isRephrasing, setIsRephrasing] = useState(false);
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const slideAnim = useRef(new Animated.Value(0)).current;
@@ -144,13 +202,9 @@ const IdeaWizardScreen: React.FC<IdeaWizardScreenProps> = ({ navigation }) => {
     if (!currentAnswer.trim()) return;
 
     if (isLastStep) {
+      // Pass all answers as an array for now; backend/types will need to support this
       navigation.replace('PitchGenerating', {
-        wizardAnswers: {
-          step1: answers[0],
-          step2: answers[1],
-          step3: answers[2],
-          step4: answers[3],
-        },
+        wizardAnswers: answers,
       });
       return;
     }
@@ -176,22 +230,89 @@ const IdeaWizardScreen: React.FC<IdeaWizardScreenProps> = ({ navigation }) => {
     setAnswers(newAnswers);
   };
 
-  const handleAskCharacter = () => {
-    Alert.alert(
-      step.aiCharacterName,
-      `Need help? ${step.aiCharacterName} suggests: Think about what makes your answer unique and specific. Avoid generic statements.`,
-    );
+
+  // Map each step to a backend AI service and prompt
+  const AGENT_SERVICE_MAP = [
+    { service: 'LLM_SUMMARY_IMPROVE', field: 'oneLineSummary' }, // Business Leader
+    { service: 'LLM_PITCH_DRAFT', field: 'targetUser' },         // Visionary
+    { service: 'LLM_PITCH_DRAFT', field: 'problem' },            // Problem Finder
+    { service: 'LLM_PITCH_DRAFT', field: 'solution' },           // Tech Ace
+    { service: 'LLM_PITCH_DRAFT', field: 'design' },             // Designer
+    { service: 'LLM_PITCH_DRAFT', field: 'goToMarket' },         // Marketer
+    { service: 'LLM_PITCH_DRAFT', field: 'businessModel' },      // Financier
+    { service: 'LLM_ROADMAP_GENERATE', field: 'roadmap' },       // Planner
+  ];
+
+  const [isAgentLoading, setIsAgentLoading] = useState(false);
+
+  const handleAskCharacter = async () => {
+    setIsAgentLoading(true);
+    try {
+      // Compose a partial idea object for context
+      const ideaObj: any = {
+        oneLineSummary: answers[0],
+        targetUser: answers[1],
+        problem: answers[2],
+        solution: answers[3],
+        design: answers[4],
+        goToMarket: answers[5],
+        businessModel: answers[6],
+        roadmap: answers[7],
+        title: answers[0],
+        category: 'Other',
+        stage: 'Idea',
+        differentiation: '',
+        monetization: '',
+      };
+      const { service } = AGENT_SERVICE_MAP[currentStep];
+      // Use the backend's AI tool endpoint (reuse generatePitch for now)
+      // We'll call the backend with just this step's context
+      const aiResponse = await ideasAPI.generateAgentSuggestion(service, ideaObj);
+      if (aiResponse && aiResponse.text) {
+        updateAnswer(aiResponse.text);
+      } else {
+        Alert.alert(step.aiCharacterName, 'No suggestion available.');
+      }
+    } catch (err) {
+      Alert.alert(step.aiCharacterName, 'Failed to get suggestion.');
+    } finally {
+      setIsAgentLoading(false);
+    }
   };
 
   const handleRephrase = async () => {
     if (!currentAnswer.trim()) return;
     setIsRephrasing(true);
-    // Simulate AI rephrase (placeholder — will use real AI endpoint)
-    await new Promise<void>((resolve) => setTimeout(resolve, 1200));
-    // Simple placeholder rephrase
-    const rephrased = currentAnswer.charAt(0).toUpperCase() + currentAnswer.slice(1).trim();
-    updateAnswer(rephrased);
-    setIsRephrasing(false);
+    try {
+      // Compose a partial idea object for context
+      const ideaObj: any = {
+        oneLineSummary: answers[0],
+        targetUser: answers[1],
+        problem: answers[2],
+        solution: answers[3],
+        design: answers[4],
+        goToMarket: answers[5],
+        businessModel: answers[6],
+        roadmap: answers[7],
+        title: answers[0],
+        category: 'Other',
+        stage: 'Idea',
+        differentiation: '',
+        monetization: '',
+      };
+      const { service } = AGENT_SERVICE_MAP[currentStep];
+      // Use the backend's AI tool endpoint for rephrasing
+      const aiResponse = await ideasAPI.generateAgentSuggestion(service, ideaObj, currentAnswer);
+      if (aiResponse && aiResponse.text) {
+        updateAnswer(aiResponse.text);
+      } else {
+        Alert.alert('Rephrase', 'No rephrased suggestion available.');
+      }
+    } catch (err) {
+      Alert.alert('Rephrase', 'Failed to rephrase.');
+    } finally {
+      setIsRephrasing(false);
+    }
   };
 
   return (
@@ -219,20 +340,91 @@ const IdeaWizardScreen: React.FC<IdeaWizardScreenProps> = ({ navigation }) => {
             styles.animatedWrap,
             { opacity: fadeAnim, transform: [{ translateX: slideAnim }] },
           ]}>
-          {/* AI Character section */}
+
+          {/* AI Character section - enhanced visuals */}
           <View style={styles.characterSection}>
-            <View style={styles.characterAvatar}>
-              <Text style={styles.characterEmoji}>{step.aiCharacterEmoji}</Text>
-            </View>
-            <Text style={styles.characterName}>{step.aiCharacterName}</Text>
+            <Pressable onPress={() => setShowAgentModal(true)}>
+              <View style={[styles.characterAvatar, { borderColor: AGENT_COLORS[currentStep], borderWidth: 4, shadowColor: AGENT_COLORS[currentStep], shadowOpacity: 0.18, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 4 }]}> 
+                <Text style={styles.characterEmoji}>{step.aiCharacterEmoji}</Text>
+              </View>
+            </Pressable>
+            <Pressable onPress={() => setShowAgentModal(true)}>
+              <Text style={[styles.characterName, { color: AGENT_COLORS[currentStep], fontSize: 20, marginBottom: 2 }]}>{step.aiCharacterName}</Text>
+              <Text style={[styles.characterRole, { color: AGENT_COLORS[currentStep] }]}>AI Agent</Text>
+            </Pressable>
             <Text style={styles.characterQuote}>{step.aiCharacterQuote}</Text>
           </View>
 
+          {/* Agent Persona Modal */}
+          <Modal
+            visible={showAgentModal}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setShowAgentModal(false)}
+          >
+            <Pressable style={styles.modalOverlay} onPress={() => setShowAgentModal(false)}>
+              <View style={[styles.agentModal, { borderColor: AGENT_COLORS[currentStep] }]}> 
+                <Text style={[styles.characterEmoji, { fontSize: 60, marginBottom: 8 }]}>{step.aiCharacterEmoji}</Text>
+                <Text style={[styles.characterName, { color: AGENT_COLORS[currentStep], fontSize: 22, marginBottom: 2 }]}>{step.aiCharacterName}</Text>
+                <Text style={[styles.characterRole, { color: AGENT_COLORS[currentStep], marginBottom: 8 }]}>AI Agent</Text>
+                <Text style={styles.agentModalQuote}>{step.aiCharacterQuote}</Text>
+                <Text style={styles.agentModalTip}>Tap the agent for help or rephrasing at this step.</Text>
+                <TouchableOpacity style={[styles.agentModalCloseBtn, { borderColor: AGENT_COLORS[currentStep] }]} onPress={() => setShowAgentModal(false)}>
+                  <Text style={[styles.agentModalCloseText, { color: AGENT_COLORS[currentStep] }]}>Close</Text>
+                </TouchableOpacity>
+              </View>
+            </Pressable>
+          </Modal>
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.18)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  agentModal: {
+    width: 320,
+    backgroundColor: COLORS.white,
+    borderRadius: 20,
+    borderWidth: 3,
+    alignItems: 'center',
+    padding: 28,
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 8,
+  },
+  agentModalQuote: {
+    fontSize: 15,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    marginBottom: 12,
+    lineHeight: 22,
+  },
+  agentModalTip: {
+    fontSize: 13,
+    color: COLORS.text,
+    textAlign: 'center',
+    marginBottom: 18,
+    fontStyle: 'italic',
+  },
+  agentModalCloseBtn: {
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingVertical: 6,
+    paddingHorizontal: 18,
+    marginTop: 4,
+  },
+  agentModalCloseText: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+
           {/* Form panel */}
-          <View style={styles.formPanel}>
+          <View style={[styles.formPanel, { borderLeftWidth: 8, borderLeftColor: AGENT_COLORS[currentStep], backgroundColor: '#F8FAFF' }]}> 
             {/* Step indicator */}
-            <Text style={styles.stepIndicator}>
-              Step {step.stepNumber} out of 4{'  '}/ {'  '}
+            <Text style={[styles.stepIndicator, { color: AGENT_COLORS[currentStep] }]}> 
+              Step {step.stepNumber} of 8{'  '}/ {'  '}
               <Text style={styles.stepIndicatorBold}>{step.sectionTitle}</Text>
             </Text>
 
@@ -258,8 +450,12 @@ const IdeaWizardScreen: React.FC<IdeaWizardScreenProps> = ({ navigation }) => {
 
             {/* AI helper buttons */}
             <View style={styles.helperRow}>
-              <TouchableOpacity style={styles.helperBtn} onPress={handleAskCharacter}>
-                <Text style={styles.helperBtnText}>{step.askButtonLabel}</Text>
+              <TouchableOpacity style={styles.helperBtn} onPress={handleAskCharacter} disabled={isAgentLoading}>
+                {isAgentLoading ? (
+                  <ActivityIndicator size="small" color={COLORS.textSecondary} />
+                ) : (
+                  <Text style={styles.helperBtnText}>{step.askButtonLabel}</Text>
+                )}
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.helperBtn}
@@ -349,14 +545,28 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   characterAvatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 110,
+    height: 110,
+    borderRadius: 55,
     backgroundColor: COLORS.charBg,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 10,
+    borderWidth: 0,
+    borderColor: COLORS.border,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
+    characterRole: {
+      fontSize: 13,
+      fontWeight: '600',
+      marginBottom: 4,
+      letterSpacing: 1.2,
+      textTransform: 'uppercase',
+    },
   characterEmoji: {
     fontSize: 48,
   },

@@ -116,6 +116,11 @@ const PitchGeneratingScreen: React.FC<PitchGeneratingScreenProps> = ({
           pitchTarget: response.idea.pitchTarget,
           pitchSolves: response.idea.pitchSolves,
           pitchHow: response.idea.pitchHow,
+          pitchDesign: response.idea.pitchDesign,
+          pitchGoToMarket: response.idea.pitchGoToMarket,
+          pitchBusinessModel: response.idea.pitchBusinessModel,
+          pitchRoadmap: response.idea.pitchRoadmap,
+          pitchImageUrl: response.idea.pitchImageUrl,
         },
       });
     } catch (error: any) {

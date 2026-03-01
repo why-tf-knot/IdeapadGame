@@ -1,3 +1,33 @@
+
+// Agent-specific AI suggestion/rephrase endpoint
+import aiService from '../services/aiService';
+router.post('/agent-suggest', authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    const { service, ideaObj, userInput } = req.body;
+    if (!service || !ideaObj) {
+      return res.status(400).json({ error: 'Service and ideaObj are required' });
+    }
+    // If userInput is provided, use it as the main prompt (for rephrase)
+    let promptIdea = { ...ideaObj };
+    if (userInput) {
+      // For rephrasing, override the relevant field with userInput
+      // (Assume the field matches the service mapping in frontend)
+      // This is a simplification; in production, map service to field
+      promptIdea.oneLineSummary = userInput;
+      promptIdea.targetUser = userInput;
+      promptIdea.problem = userInput;
+      promptIdea.solution = userInput;
+      promptIdea.design = userInput;
+      promptIdea.goToMarket = userInput;
+      promptIdea.businessModel = userInput;
+      promptIdea.roadmap = userInput;
+    }
+    const aiResult = await aiService.runAiTool(service, promptIdea, 'CHATGPT', req.userId);
+    res.json({ text: aiResult.text });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to get agent suggestion' });
+  }
+});
 import express, { Response } from 'express';
 import { Types } from 'mongoose';
 import { Idea } from '../models/Idea';
@@ -9,52 +39,99 @@ const router = express.Router();
 // ==========================================
 // WIZARD FLOW: Generate Pitch from 4 steps
 // ==========================================
+// --- Enhanced: Use real AI provider for all 8 steps and generate image ---
+import aiService from '../services/aiService';
+import axios from 'axios';
+
 router.post(
   '/generate-pitch',
   authMiddleware,
   roleMiddleware(['FOUNDER']),
   async (req: AuthRequest, res: Response) => {
     try {
-      const { wizardAnswers } = req.body;
-
-      if (!wizardAnswers?.step1 || !wizardAnswers?.step2 || 
-          !wizardAnswers?.step3 || !wizardAnswers?.step4) {
-        return res.status(400).json({ error: 'All 4 wizard steps are required' });
+      const { wizardAnswers, provider = 'CHATGPT' } = req.body;
+      if (!Array.isArray(wizardAnswers) || wizardAnswers.length < 8) {
+        return res.status(400).json({ error: 'All 8 wizard steps are required' });
       }
 
-      // Generate AI pitch from wizard answers
-      // TODO: Replace with real AI generation (OpenAI/Anthropic)
-      const generatedTitle = generatePitchTitle(wizardAnswers.step1);
-      const pitchIdea = expandIdeaDescription(wizardAnswers.step1);
-      const pitchTarget = expandTargetDescription(wizardAnswers.step2);
-      const pitchSolves = expandChallengesDescription(wizardAnswers.step3);
-      const pitchHow = expandSolutionDescription(wizardAnswers.step4);
+      // Compose idea object from wizard answers
+      const [step1, step2, step3, step4, step5, step6, step7, step8] = wizardAnswers;
+      const ideaObj = {
+        title: step1,
+        oneLineSummary: step1,
+        targetUser: step2,
+        problem: step3,
+        solution: step4,
+        design: step5,
+        goToMarket: step6,
+        businessModel: step7,
+        roadmap: step8,
+        category: 'Other',
+        stage: 'Idea',
+        differentiation: '',
+        monetization: '',
+      };
+
+      // Call AI for each section
+      const [pitchIdea, pitchTarget, pitchSolves, pitchHow, pitchDesign, pitchGoToMarket, pitchBusinessModel, pitchRoadmap] = await Promise.all([
+        aiService.runAiTool('LLM_SUMMARY_IMPROVE', ideaObj, provider, req.userId).then(r => r.text),
+        aiService.runAiTool('LLM_PITCH_DRAFT', ideaObj, provider, req.userId).then(r => r.text),
+        aiService.runAiTool('LLM_PITCH_DRAFT', { ...ideaObj, problem: step3 }, provider, req.userId).then(r => r.text),
+        aiService.runAiTool('LLM_PITCH_DRAFT', { ...ideaObj, solution: step4 }, provider, req.userId).then(r => r.text),
+        aiService.runAiTool('LLM_PITCH_DRAFT', { ...ideaObj, design: step5 }, provider, req.userId).then(r => r.text),
+        aiService.runAiTool('LLM_PITCH_DRAFT', { ...ideaObj, goToMarket: step6 }, provider, req.userId).then(r => r.text),
+        aiService.runAiTool('LLM_PITCH_DRAFT', { ...ideaObj, businessModel: step7 }, provider, req.userId).then(r => r.text),
+        aiService.runAiTool('LLM_ROADMAP_GENERATE', ideaObj, provider, req.userId).then(r => r.text),
+      ]);
+
+      // Generate image using the new endpoint
+      let pitchImageUrl = '';
+      try {
+        const imageRes = await axios.post(
+          `${process.env.IMAGE_GEN_URL || 'http://localhost:3000/api/image-gen/generate'}`,
+          { prompt: `${step1} ${step5} ${step6}`, provider },
+          { headers: { 'Authorization': req.headers['authorization'] || '' } }
+        );
+        pitchImageUrl = imageRes.data.imageUrl;
+      } catch (err) {
+        pitchImageUrl = '';
+      }
 
       // Create the idea in DRAFT status
       const idea = new Idea({
         founderId: req.userId,
-        title: generatedTitle,
-        oneLineSummary: wizardAnswers.step1.substring(0, 250),
+        title: step1,
+        oneLineSummary: step1.substring(0, 250),
         category: 'Other',
         stage: 'Idea',
-        targetUser: wizardAnswers.step2,
-        problem: wizardAnswers.step3,
-        solution: wizardAnswers.step4,
-        differentiation: '',
-        monetization: '',
-        roadmap: '',
+        targetUser: step2,
+        problem: step3,
+        solution: step4,
+        design: step5,
+        goToMarket: step6,
+        businessModel: step7,
+        roadmap: step8,
         status: 'DRAFT',
         // Wizard answers
-        wizardStep1: wizardAnswers.step1,
-        wizardStep2: wizardAnswers.step2,
-        wizardStep3: wizardAnswers.step3,
-        wizardStep4: wizardAnswers.step4,
+        wizardStep1: step1,
+        wizardStep2: step2,
+        wizardStep3: step3,
+        wizardStep4: step4,
+        wizardStep5: step5,
+        wizardStep6: step6,
+        wizardStep7: step7,
+        wizardStep8: step8,
         // AI-generated pitch
-        pitchTitle: generatedTitle,
+        pitchTitle: step1,
         pitchIdea,
         pitchTarget,
         pitchSolves,
         pitchHow,
+        pitchDesign,
+        pitchGoToMarket,
+        pitchBusinessModel,
+        pitchRoadmap,
+        pitchImageUrl,
         pitchStatus: 'GENERATED',
       });
 

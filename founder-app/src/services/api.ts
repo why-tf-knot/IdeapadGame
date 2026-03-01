@@ -186,4 +186,38 @@ export const transferAPI = {
   },
 };
 
+// ─── Agent Chat API (specialized AI agents for founders) ───
+
+export type AgentType = 'business' | 'science' | 'marketing' | 'developer';
+
+interface AgentChatRequest {
+  agentType: AgentType;
+  ideaId: string;
+  message: string;
+  conversationHistory?: { role: string; content: string }[];
+}
+
+interface AgentChatResponse {
+  text: string;
+  tokensUsed?: number;
+}
+
+export const agentAPI = {
+  /** Send a message to a specialized agent and get a response */
+  chat: async (request: AgentChatRequest): Promise<AgentChatResponse> => {
+    const response = await api.post('/agents/chat', request);
+    return response.data;
+  },
+
+  /** Get a one-off suggestion from an agent (no conversation context) */
+  getSuggestion: async (
+    agentType: AgentType, 
+    ideaId: string, 
+    prompt?: string
+  ): Promise<AgentChatResponse> => {
+    const response = await api.post('/agents/suggest', { agentType, ideaId, prompt });
+    return response.data;
+  },
+};
+
 export default api;

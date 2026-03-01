@@ -94,19 +94,21 @@ export interface Idea {
   updatedAt: string;
 }
 
-export interface WizardAnswers {
-  step1: string;
-  step2: string;
-  step3: string;
-  step4: string;
-}
+// Now supports an array of answers for flexible wizard length
+export type WizardAnswers = string[];
 
+// Expanded for richer visual Idea Paper
 export interface GeneratedPitch {
   pitchTitle: string;
   pitchIdea: string;
   pitchTarget: string;
   pitchSolves: string;
   pitchHow: string;
+  pitchDesign?: string;
+  pitchGoToMarket?: string;
+  pitchBusinessModel?: string;
+  pitchRoadmap?: string;
+  pitchImageUrl?: string;
 }
 
 export interface AuthResponse {

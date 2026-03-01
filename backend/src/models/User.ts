@@ -7,6 +7,7 @@ export interface IUser extends Document {
   email: string;
   passwordHash: string;
   role: UserRole;
+  aiAccounts?: mongoose.Types.ObjectId[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -17,6 +18,7 @@ const UserSchema = new Schema<IUser>(
     email: { type: String, required: true, unique: true, lowercase: true },
     passwordHash: { type: String, required: true },
     role: { type: String, enum: ['FOUNDER', 'INVESTOR'], required: true },
+    aiAccounts: [{ type: Schema.Types.ObjectId, ref: 'UserAIAccount' }],
   },
   { timestamps: true }
 );
