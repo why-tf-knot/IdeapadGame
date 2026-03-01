@@ -101,8 +101,31 @@
     touch-action:none; user-select:none; -webkit-user-select:none;
   }
   .paper-card {
-    width:88%; background:#142038; border:2px solid #1E2D45;
-    border-radius:24px; padding:24px; box-shadow:0 8px 32px rgba(0,0,0,0.5);
+    width:88%; 
+    background:
+      /* Hole punches on left */
+      radial-gradient(circle at 18px 80px, #0A1628 8px, transparent 8px),
+      radial-gradient(circle at 18px 200px, #0A1628 8px, transparent 8px),
+      radial-gradient(circle at 18px 320px, #0A1628 8px, transparent 8px),
+      /* Red margin line */
+      linear-gradient(to right, transparent 38px, #E8B4B8 38px, #E8B4B8 40px, transparent 40px),
+      /* Ruled horizontal lines */
+      repeating-linear-gradient(
+        to bottom,
+        transparent,
+        transparent 27px,
+        #B8D4E8 27px,
+        #B8D4E8 28px
+      ),
+      /* Paper base */
+      linear-gradient(to bottom, #FFFEF9, #F8F6F1);
+    border:none;
+    border-radius:4px;
+    padding:24px 24px 24px 48px;
+    box-shadow:
+      2px 3px 12px rgba(0,0,0,0.15),
+      0 0 0 1px rgba(0,0,0,0.05),
+      inset 0 0 40px rgba(255,255,255,0.5);
     position:absolute; cursor:grab; touch-action:none; will-change:transform, opacity;
     transition:none;
   }
@@ -133,13 +156,14 @@
     display:inline-flex; align-items:center; gap:5px; padding:4px 10px;
     border-radius:8px; font-size:11px; font-weight:700;
   }
-  .paper-card h2 { font-size:22px; font-weight:800; margin:12px 0 6px; letter-spacing:-0.3px; }
-  .paper-card .summary { font-size:14px; color:#8899B0; line-height:20px; }
+  .paper-card h2 { font-size:22px; font-weight:800; margin:12px 0 6px; letter-spacing:-0.3px; color:#1A2942; }
+  .paper-card .summary { font-size:14px; color:#4A5568; line-height:20px; }
   .pitch-preview {
-    background:#182844; border-radius:14px; padding:12px; margin-top:10px;
+    background:rgba(255,248,220,0.7); border-radius:8px; padding:12px; margin-top:10px;
+    border-left:3px solid #D4A373;
   }
-  .pitch-preview .label { font-size:11px; font-weight:700; color:var(--gold); text-transform:uppercase; letter-spacing:0.5px; }
-  .pitch-preview .body { font-size:13px; color:#8899B0; margin-top:4px; line-height:18px; }
+  .pitch-preview .label { font-size:11px; font-weight:700; color:#8B4513; text-transform:uppercase; letter-spacing:0.5px; }
+  .pitch-preview .body { font-size:13px; color:#4A5568; margin-top:4px; line-height:18px; }
   .toss-indicators {
     display:flex; justify-content:space-between; align-items:flex-end;
     padding:0 20px; margin-top:0; transition:opacity 0.2s;
@@ -1460,13 +1484,13 @@ function renderCard(index) {
     '<div class="toss-overlay-badge save" id="saveBadge">INVEST</div>' +
     '<div style="display:flex;gap:8px;align-items:center;">' +
       '<span class="cat-badge" style="background:' + idea.catBg + ';color:' + idea.catColor + ';border:1px solid ' + idea.catBorder + ';">● ' + idea.category + '</span>' +
-      '<span class="cat-badge" style="background:rgba(253,203,110,0.18);color:' + idea.stageColor + ';border:1px solid rgba(253,203,110,0.4);">🚀 ' + idea.stage + '</span></div>' +
+      '<span class="cat-badge" style="background:rgba(253,203,110,0.25);color:#8B4513;border:1px solid rgba(253,203,110,0.5);">🚀 ' + idea.stage + '</span></div>' +
     '<h2>' + idea.name + '</h2>' +
     '<div class="summary">' + idea.summary + '</div>' +
-    '<div style="height:1px;background:#1E2D45;margin:14px 0;"></div>' +
+    '<div style="height:1px;background:#D4C4A8;margin:14px 0;"></div>' +
     '<div class="pitch-preview"><div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;"><span>🎯</span><span class="label">THE PROBLEM</span></div><div class="body">' + idea.problem + '</div></div>' +
     '<div class="pitch-preview" style="margin-top:8px;"><div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;"><span>💡</span><span class="label">THE SOLUTION</span></div><div class="body">' + idea.solution + '</div></div>' +
-    '<div style="display:flex;justify-content:center;margin-top:14px;font-size:12px;color:#556680;">👆 Swipe → to save · Swipe ↓ to crumple & throw</div>';
+    '<div style="display:flex;justify-content:center;margin-top:14px;font-size:12px;color:#7A8599;">👆 Swipe → to save · Swipe ↓ to crumple & throw</div>';
   area.appendChild(card);
 
   // Direct card drag — swipe right = save, swipe down = crumple into ball & throw
