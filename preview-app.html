@@ -950,79 +950,116 @@
       </div>
     </div>
     
-    <!-- ─ Pitch Deck Builder (Editable) ─ -->
+    <!-- ─ Pitch Deck Builder - Red Bull Basement Style Questionnaire ─ -->
     <div class="screen-view" id="fnd-pitch-builder">
-      <div style="display:flex;flex-direction:column;height:100%;background:#f5f7fa;">
-        <!-- Header -->
-        <div style="padding:16px 16px 12px;background:#fff;border-bottom:1px solid #e0e0e0;">
-          <div style="display:flex;align-items:center;justify-content:space-between;">
-            <div>
-              <div style="font-size:22px;font-weight:900;color:#1A2332;">🎤 Pitch Deck Builder</div>
-              <div style="font-size:13px;color:#666;">Red Bull Basement Style</div>
-            </div>
-            <button onclick="previewPitchDeck()" style="padding:10px 16px;border-radius:10px;border:none;background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);color:#fff;font-weight:700;font-size:13px;cursor:pointer;">👁️ Preview</button>
+      <div style="display:flex;flex-direction:column;height:100%;background:linear-gradient(180deg, #0d1b2a 0%, #1b263b 50%, #415a77 100%);">
+        
+        <!-- Header with Progress -->
+        <div style="padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.1);">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <div style="color:#e0e1dd;font-size:13px;font-weight:600;">BUILD YOUR PITCH</div>
+            <div style="color:#778da9;font-size:12px;" id="wizardStepIndicator">Step 1 of 6</div>
+          </div>
+          <!-- Progress Bar -->
+          <div style="height:4px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden;">
+            <div id="wizardProgressBar" style="height:100%;width:16.66%;background:linear-gradient(90deg, #e94560, #ff6b6b);transition:width 0.3s ease;"></div>
           </div>
         </div>
         
-        <!-- Editable Form -->
-        <div style="flex:1;overflow-y:auto;padding:16px;">
-          <!-- Project Title -->
-          <div style="margin-bottom:20px;">
-            <label style="font-size:12px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px;">Project Title</label>
-            <input type="text" id="pitchTitle" value="TechFlow AI" style="width:100%;padding:14px 16px;border-radius:12px;border:2px solid #e0e0e0;font-size:18px;font-weight:700;color:#1A2332;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='#667eea'" onblur="this.style.borderColor='#e0e0e0'">
-          </div>
+        <!-- Question Container -->
+        <div style="flex:1;overflow-y:auto;padding:24px 20px;">
           
-          <!-- The Idea -->
-          <div style="background:#fff;border-radius:16px;padding:16px;margin-bottom:16px;border-left:4px solid #e94560;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-              <div style="display:flex;align-items:center;gap:8px;">
-                <span style="font-size:20px;">💡</span>
-                <span style="font-size:14px;font-weight:700;color:#e94560;text-transform:uppercase;">The Idea</span>
-              </div>
-              <button onclick="getAgentHelp('idea','business')" style="padding:6px 12px;border-radius:8px;border:1px solid #D93B41;background:rgba(217,59,65,0.1);color:#D93B41;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;">💼 Ask Business</button>
+          <!-- Step 1: Project Name -->
+          <div class="wizard-step active" id="wizardStep1">
+            <div style="text-align:center;margin-bottom:24px;">
+              <div style="font-size:48px;margin-bottom:12px;">🚀</div>
+              <div style="color:#e94560;font-size:12px;font-weight:700;letter-spacing:2px;margin-bottom:8px;">QUESTION 1</div>
+              <div style="color:#e0e1dd;font-size:22px;font-weight:800;line-height:1.3;">What's the name of your startup?</div>
             </div>
-            <textarea id="pitchIdea" placeholder="Describe your core idea in 1-2 sentences..." style="width:100%;min-height:80px;padding:12px;border-radius:10px;border:1px solid #e0e0e0;font-size:14px;line-height:1.5;resize:vertical;outline:none;box-sizing:border-box;font-family:inherit;" onfocus="this.style.borderColor='#e94560'" onblur="this.style.borderColor='#e0e0e0'">An AI-powered workflow automation platform that learns from developer patterns and automatically replicates repetitive tasks, saving 10+ hours per week.</textarea>
-          </div>
-          
-          <!-- The Target -->
-          <div style="background:#fff;border-radius:16px;padding:16px;margin-bottom:16px;border-left:4px solid #00d9ff;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
-            <div style="display:flex;align-items:center;justify-content:between;margin-bottom:10px;">
-              <div style="display:flex;align-items:center;gap:8px;flex:1;">
-                <span style="font-size:20px;">🎯</span>
-                <span style="font-size:14px;font-weight:700;color:#00d9ff;text-transform:uppercase;">The Target</span>
-              </div>
-              <button onclick="getAgentHelp('target','marketing')" style="padding:6px 12px;border-radius:8px;border:1px solid #00BFAE;background:rgba(0,191,174,0.1);color:#00BFAE;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;">📢 Ask Marketer</button>
+            <input type="text" id="wizardName" placeholder="e.g., TechFlow AI, EduMatch, GreenGrid..." style="width:100%;padding:18px 20px;border-radius:14px;border:2px solid rgba(233,69,96,0.3);background:rgba(255,255,255,0.05);font-size:18px;font-weight:600;color:#e0e1dd;outline:none;box-sizing:border-box;text-align:center;" onfocus="this.style.borderColor='#e94560'" onblur="this.style.borderColor='rgba(233,69,96,0.3)'">
+            <div style="margin-top:16px;display:flex;justify-content:center;">
+              <button onclick="suggestName()" style="padding:10px 20px;border-radius:10px;border:1px solid rgba(217,59,65,0.5);background:rgba(217,59,65,0.15);color:#ff6b6b;font-size:13px;font-weight:600;cursor:pointer;">💼 Suggest a name</button>
             </div>
-            <textarea id="pitchTarget" placeholder="Who is your target audience?" style="width:100%;min-height:80px;padding:12px;border-radius:10px;border:1px solid #e0e0e0;font-size:14px;line-height:1.5;resize:vertical;outline:none;box-sizing:border-box;font-family:inherit;" onfocus="this.style.borderColor='#00d9ff'" onblur="this.style.borderColor='#e0e0e0'">Software developers and engineering teams at startups and mid-size tech companies who spend too much time on repetitive coding tasks.</textarea>
           </div>
           
-          <!-- What It Solves -->
-          <div style="background:#fff;border-radius:16px;padding:16px;margin-bottom:16px;border-left:4px solid #00ff88;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
-            <div style="display:flex;align-items:center;justify-content:between;margin-bottom:10px;">
-              <div style="display:flex;align-items:center;gap:8px;flex:1;">
-                <span style="font-size:20px;">🔧</span>
-                <span style="font-size:14px;font-weight:700;color:#00cc6a;text-transform:uppercase;">What It Solves</span>
-              </div>
-              <button onclick="getAgentHelp('problem','science')" style="padding:6px 12px;border-radius:8px;border:1px solid #7B61FF;background:rgba(123,97,255,0.1);color:#7B61FF;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;">🔬 Ask Scientist</button>
+          <!-- Step 2: The Idea -->
+          <div class="wizard-step" id="wizardStep2" style="display:none;">
+            <div style="text-align:center;margin-bottom:24px;">
+              <div style="font-size:48px;margin-bottom:12px;">💡</div>
+              <div style="color:#e94560;font-size:12px;font-weight:700;letter-spacing:2px;margin-bottom:8px;">QUESTION 2 — THE IDEA</div>
+              <div style="color:#e0e1dd;font-size:22px;font-weight:800;line-height:1.3;">Describe your idea in one sentence</div>
             </div>
-            <textarea id="pitchProblem" placeholder="What problem does it solve?" style="width:100%;min-height:80px;padding:12px;border-radius:10px;border:1px solid #e0e0e0;font-size:14px;line-height:1.5;resize:vertical;outline:none;box-sizing:border-box;font-family:inherit;" onfocus="this.style.borderColor='#00ff88'" onblur="this.style.borderColor='#e0e0e0'">Developers waste 40% of their time on repetitive tasks like code formatting, boilerplate generation, and routine debugging. This kills productivity and leads to burnout.</textarea>
-          </div>
-          
-          <!-- How It Works -->
-          <div style="background:#fff;border-radius:16px;padding:16px;margin-bottom:20px;border-left:4px solid #ffd93d;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
-            <div style="display:flex;align-items:center;justify-content:between;margin-bottom:10px;">
-              <div style="display:flex;align-items:center;gap:8px;flex:1;">
-                <span style="font-size:20px;">⚙️</span>
-                <span style="font-size:14px;font-weight:700;color:#e6a800;text-transform:uppercase;">How It Works</span>
-              </div>
-              <button onclick="getAgentHelp('solution','developer')" style="padding:6px 12px;border-radius:8px;border:1px solid #F59E0B;background:rgba(245,158,11,0.1);color:#F59E0B;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;">💻 Ask Developer</button>
+            <textarea id="wizardIdea" placeholder="What does your product/service do? Keep it simple and compelling..." style="width:100%;min-height:120px;padding:16px 18px;border-radius:14px;border:2px solid rgba(233,69,96,0.3);background:rgba(255,255,255,0.05);font-size:16px;color:#e0e1dd;outline:none;box-sizing:border-box;font-family:inherit;resize:none;line-height:1.6;" onfocus="this.style.borderColor='#e94560'" onblur="this.style.borderColor='rgba(233,69,96,0.3)'"></textarea>
+            <div style="margin-top:16px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+              <button onclick="askWizardAgent('idea','business')" style="padding:10px 16px;border-radius:10px;border:1px solid rgba(217,59,65,0.5);background:rgba(217,59,65,0.15);color:#ff6b6b;font-size:12px;font-weight:600;cursor:pointer;">💼 Ask Business</button>
+              <button onclick="rephraseWizardField('idea')" style="padding:10px 16px;border-radius:10px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.05);color:#e0e1dd;font-size:12px;font-weight:600;cursor:pointer;">✨ Rephrase</button>
             </div>
-            <textarea id="pitchSolution" placeholder="How does your solution work? Include business model." style="width:100%;min-height:100px;padding:12px;border-radius:10px;border:1px solid #e0e0e0;font-size:14px;line-height:1.5;resize:vertical;outline:none;box-sizing:border-box;font-family:inherit;" onfocus="this.style.borderColor='#ffd93d'" onblur="this.style.borderColor='#e0e0e0'">1) TechFlow observes your coding patterns using our VS Code extension. 2) Our AI identifies repetitive workflows. 3) With one click, automate any repeated task. 4) Revenue: $29/mo per developer, $199/mo for teams.</textarea>
           </div>
           
-          <!-- Generate Button -->
-          <button onclick="previewPitchDeck()" style="width:100%;padding:16px;border-radius:14px;border:none;background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);color:#fff;font-weight:700;font-size:16px;cursor:pointer;box-shadow:0 4px 15px rgba(102,126,234,0.4);">🚀 Preview Pitch Deck</button>
+          <!-- Step 3: The Target -->
+          <div class="wizard-step" id="wizardStep3" style="display:none;">
+            <div style="text-align:center;margin-bottom:24px;">
+              <div style="font-size:48px;margin-bottom:12px;">🎯</div>
+              <div style="color:#00d9ff;font-size:12px;font-weight:700;letter-spacing:2px;margin-bottom:8px;">QUESTION 3 — THE TARGET</div>
+              <div style="color:#e0e1dd;font-size:22px;font-weight:800;line-height:1.3;">Who is your target audience?</div>
+            </div>
+            <textarea id="wizardTarget" placeholder="Be specific: demographics, behaviors, pain points..." style="width:100%;min-height:120px;padding:16px 18px;border-radius:14px;border:2px solid rgba(0,217,255,0.3);background:rgba(255,255,255,0.05);font-size:16px;color:#e0e1dd;outline:none;box-sizing:border-box;font-family:inherit;resize:none;line-height:1.6;" onfocus="this.style.borderColor='#00d9ff'" onblur="this.style.borderColor='rgba(0,217,255,0.3)'"></textarea>
+            <div style="margin-top:16px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+              <button onclick="askWizardAgent('target','marketing')" style="padding:10px 16px;border-radius:10px;border:1px solid rgba(0,191,174,0.5);background:rgba(0,191,174,0.15);color:#00BFAE;font-size:12px;font-weight:600;cursor:pointer;">📢 Ask Marketer</button>
+              <button onclick="rephraseWizardField('target')" style="padding:10px 16px;border-radius:10px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.05);color:#e0e1dd;font-size:12px;font-weight:600;cursor:pointer;">✨ Rephrase</button>
+            </div>
+          </div>
+          
+          <!-- Step 4: The Problem -->
+          <div class="wizard-step" id="wizardStep4" style="display:none;">
+            <div style="text-align:center;margin-bottom:24px;">
+              <div style="font-size:48px;margin-bottom:12px;">🔧</div>
+              <div style="color:#00ff88;font-size:12px;font-weight:700;letter-spacing:2px;margin-bottom:8px;">QUESTION 4 — WHAT IT SOLVES</div>
+              <div style="color:#e0e1dd;font-size:22px;font-weight:800;line-height:1.3;">What problem does it solve?</div>
+            </div>
+            <textarea id="wizardProblem" placeholder="Describe the pain point. Use numbers and data if you have them..." style="width:100%;min-height:120px;padding:16px 18px;border-radius:14px;border:2px solid rgba(0,255,136,0.3);background:rgba(255,255,255,0.05);font-size:16px;color:#e0e1dd;outline:none;box-sizing:border-box;font-family:inherit;resize:none;line-height:1.6;" onfocus="this.style.borderColor='#00ff88'" onblur="this.style.borderColor='rgba(0,255,136,0.3)'"></textarea>
+            <div style="margin-top:16px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+              <button onclick="askWizardAgent('problem','science')" style="padding:10px 16px;border-radius:10px;border:1px solid rgba(123,97,255,0.5);background:rgba(123,97,255,0.15);color:#7B61FF;font-size:12px;font-weight:600;cursor:pointer;">🔬 Ask Scientist</button>
+              <button onclick="rephraseWizardField('problem')" style="padding:10px 16px;border-radius:10px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.05);color:#e0e1dd;font-size:12px;font-weight:600;cursor:pointer;">✨ Rephrase</button>
+            </div>
+          </div>
+          
+          <!-- Step 5: How It Works -->
+          <div class="wizard-step" id="wizardStep5" style="display:none;">
+            <div style="text-align:center;margin-bottom:24px;">
+              <div style="font-size:48px;margin-bottom:12px;">⚙️</div>
+              <div style="color:#ffd93d;font-size:12px;font-weight:700;letter-spacing:2px;margin-bottom:8px;">QUESTION 5 — HOW IT WORKS</div>
+              <div style="color:#e0e1dd;font-size:22px;font-weight:800;line-height:1.3;">How does your solution work?</div>
+            </div>
+            <textarea id="wizardSolution" placeholder="Explain your approach in simple steps. What makes it unique?" style="width:100%;min-height:120px;padding:16px 18px;border-radius:14px;border:2px solid rgba(255,217,61,0.3);background:rgba(255,255,255,0.05);font-size:16px;color:#e0e1dd;outline:none;box-sizing:border-box;font-family:inherit;resize:none;line-height:1.6;" onfocus="this.style.borderColor='#ffd93d'" onblur="this.style.borderColor='rgba(255,217,61,0.3)'"></textarea>
+            <div style="margin-top:16px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+              <button onclick="askWizardAgent('solution','developer')" style="padding:10px 16px;border-radius:10px;border:1px solid rgba(245,158,11,0.5);background:rgba(245,158,11,0.15);color:#F59E0B;font-size:12px;font-weight:600;cursor:pointer;">💻 Ask Developer</button>
+              <button onclick="rephraseWizardField('solution')" style="padding:10px 16px;border-radius:10px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.05);color:#e0e1dd;font-size:12px;font-weight:600;cursor:pointer;">✨ Rephrase</button>
+            </div>
+          </div>
+          
+          <!-- Step 6: Business Model -->
+          <div class="wizard-step" id="wizardStep6" style="display:none;">
+            <div style="text-align:center;margin-bottom:24px;">
+              <div style="font-size:48px;margin-bottom:12px;">💰</div>
+              <div style="color:#ff6b9d;font-size:12px;font-weight:700;letter-spacing:2px;margin-bottom:8px;">QUESTION 6 — THE BUSINESS</div>
+              <div style="color:#e0e1dd;font-size:22px;font-weight:800;line-height:1.3;">How will you make money?</div>
+            </div>
+            <textarea id="wizardBusiness" placeholder="Pricing, revenue streams, business model..." style="width:100%;min-height:120px;padding:16px 18px;border-radius:14px;border:2px solid rgba(255,107,157,0.3);background:rgba(255,255,255,0.05);font-size:16px;color:#e0e1dd;outline:none;box-sizing:border-box;font-family:inherit;resize:none;line-height:1.6;" onfocus="this.style.borderColor='#ff6b9d'" onblur="this.style.borderColor='rgba(255,107,157,0.3)'"></textarea>
+            <div style="margin-top:16px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+              <button onclick="askWizardAgent('business','business')" style="padding:10px 16px;border-radius:10px;border:1px solid rgba(217,59,65,0.5);background:rgba(217,59,65,0.15);color:#ff6b6b;font-size:12px;font-weight:600;cursor:pointer;">💼 Ask Business</button>
+              <button onclick="rephraseWizardField('business')" style="padding:10px 16px;border-radius:10px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.05);color:#e0e1dd;font-size:12px;font-weight:600;cursor:pointer;">✨ Rephrase</button>
+            </div>
+          </div>
+          
         </div>
+        
+        <!-- Navigation Footer -->
+        <div style="padding:16px 20px;background:rgba(0,0,0,0.2);border-top:1px solid rgba(255,255,255,0.1);display:flex;gap:12px;">
+          <button onclick="wizardBack()" id="wizardBackBtn" style="flex:1;padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,0.2);background:transparent;color:#778da9;font-weight:700;font-size:15px;cursor:pointer;opacity:0.5;" disabled>← Back</button>
+          <button onclick="wizardNext()" id="wizardNextBtn" style="flex:2;padding:16px;border-radius:12px;border:none;background:linear-gradient(135deg, #e94560 0%, #ff6b6b 100%);color:#fff;font-weight:700;font-size:15px;cursor:pointer;box-shadow:0 4px 15px rgba(233,69,96,0.4);">Next →</button>
+        </div>
+        
       </div>
     </div>
     
@@ -2368,81 +2405,179 @@ function sendAgentMessage() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PITCH DECK BUILDER (Red Bull Basement Style - Editable)
+// PITCH DECK WIZARD (Red Bull Basement Style - 6 Question Questionnaire)
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Agent suggestions for each pitch deck section
-const AGENT_SUGGESTIONS = {
+let currentWizardStep = 1;
+const totalWizardSteps = 6;
+
+// Agent suggestions for each section
+const WIZARD_SUGGESTIONS = {
   idea: {
     business: [
-      "Consider leading with the unique value: 'The only AI that learns YOUR specific coding patterns to automate YOUR repetitive tasks - not generic templates.'",
-      "Strengthen with metrics: 'AI-powered automation that has saved beta users an average of 12.5 hours per week, with ROI positive in the first month.'",
-    ],
-    marketing: [
-      "Make it more compelling: 'Stop coding the same thing twice. TechFlow AI watches, learns, and automates your repetitive tasks in one click.'",
+      "An AI-powered workflow automation platform that learns YOUR coding patterns and automates repetitive tasks - saving 10+ hours per week.",
+      "The first intelligent code assistant that watches how you work, identifies patterns, and creates one-click automations.",
     ],
   },
   target: {
     marketing: [
-      "Be more specific: 'Senior developers (5+ years) at Series A-C startups who manage 3+ repositories and spend over 15 hours/week on code reviews and boilerplate.'",
-      "Add psychographics: 'Productivity-obsessed developers who use tools like Raycast, Alfred, and already automate parts of their workflow - but want more.'",
-    ],
-    business: [
-      "Consider segmentation: 'Primary: Individual developers ($29/mo). Secondary: Engineering teams 5-50 people ($199/mo). Enterprise: 50+ with custom pricing.'",
+      "Software developers at Series A-C startups (5+ years experience) who spend over 15 hours/week on repetitive coding tasks.",
+      "Engineering teams of 5-50 developers at fast-growing tech companies who value productivity tools.",
     ],
   },
   problem: {
     science: [
-      "Add data: 'Studies show developers spend 42% of their time on non-coding tasks (GitClear 2024). Of that, 60% is repetitive and automatable.'",
-      "Quantify the pain: 'At $150k avg salary, each developer wastes $31,500/year on automatable tasks. For a 10-person team, that's $315k annually.'",
-    ],
-    business: [
-      "Frame as opportunity cost: 'Every hour on repetitive tasks is an hour not spent on features that drive revenue and user growth.'",
+      "Developers waste 42% of their time on non-coding tasks (GitClear 2024). At $150k avg salary, that's $31,500/year per developer.",
+      "Engineering teams lose 40% productivity to repetitive tasks: code formatting, boilerplate generation, routine debugging. This causes burnout.",
     ],
   },
   solution: {
     developer: [
-      "Technical clarity: '1) VS Code extension uses local ML model (no code leaves your machine). 2) Pattern detection after ~50 repetitions. 3) One-click macro generation. 4) Sync across team via encrypted cloud.'",
-      "Add architecture: 'Built on Transformer-based sequence prediction, similar to GitHub Copilot but for workflows, not code completion. Works offline.'",
+      "1) VS Code extension observes patterns 2) AI identifies repetitive workflows 3) One-click macro generation 4) Team sync via encrypted cloud.",
+      "Local ML model learns your patterns (no code leaves your machine). After ~50 repetitions, suggests automation. Works offline.",
     ],
+  },
+  business: {
     business: [
-      "Strengthen business model: 'Freemium: 5 automations free. Pro: Unlimited at $29/mo. Team: Shared library + analytics at $199/mo. Enterprise: SSO, audit logs, custom.'",
+      "Freemium: 5 automations free. Pro: $29/mo unlimited. Team: $199/mo with shared library + analytics. Enterprise: Custom pricing with SSO.",
+      "SaaS subscription: $29/mo per developer. Team plans at $199/mo for up to 10 seats. Enterprise custom pricing. Target: $5M ARR by Year 2.",
     ],
   },
 };
 
-function getAgentHelp(section, agentType) {
-  const suggestions = AGENT_SUGGESTIONS[section]?.[agentType] || [];
+const REPHRASE_OPTIONS = {
+  idea: [
+    "Stop coding the same thing twice. TechFlow watches, learns, and automates your repetitive tasks with one click.",
+    "The AI assistant that turns your coding habits into time-saving automations.",
+  ],
+  target: [
+    "Productivity-obsessed developers who already use automation tools but want more - without the setup headache.",
+    "Tech leads and senior developers drowning in repetitive code who need to focus on what matters.",
+  ],
+  problem: [
+    "Every hour spent on copy-paste coding is an hour not spent building features. Your team is burning money on automatable work.",
+    "Developer burnout from repetitive tasks costs companies $50k+ per churned engineer. The problem is preventable.",
+  ],
+  solution: [
+    "Install our VS Code extension. Code normally. After seeing patterns, we suggest automations. Accept with one key. Done.",
+    "Think GitHub Copilot, but for workflows instead of code. It learns HOW you work, not just WHAT you type.",
+  ],
+  business: [
+    "Land-and-expand: Free tier hooks individuals, they champion team adoption. 85% of teams convert within 60 days.",
+    "B2B SaaS with viral loop: each developer saves time, tells teammates. CAC: $50. LTV: $1,200. Payback: 2 months.",
+  ],
+};
+
+function updateWizardUI() {
+  // Update step indicator
+  document.getElementById('wizardStepIndicator').textContent = `Step ${currentWizardStep} of ${totalWizardSteps}`;
+  
+  // Update progress bar
+  const progress = (currentWizardStep / totalWizardSteps) * 100;
+  document.getElementById('wizardProgressBar').style.width = `${progress}%`;
+  
+  // Show/hide steps
+  for (let i = 1; i <= totalWizardSteps; i++) {
+    const step = document.getElementById(`wizardStep${i}`);
+    if (step) {
+      step.style.display = i === currentWizardStep ? 'block' : 'none';
+    }
+  }
+  
+  // Update back button
+  const backBtn = document.getElementById('wizardBackBtn');
+  backBtn.disabled = currentWizardStep === 1;
+  backBtn.style.opacity = currentWizardStep === 1 ? '0.5' : '1';
+  
+  // Update next button
+  const nextBtn = document.getElementById('wizardNextBtn');
+  if (currentWizardStep === totalWizardSteps) {
+    nextBtn.innerHTML = '🚀 Generate Pitch Deck';
+    nextBtn.style.background = 'linear-gradient(135deg, #00cc6a 0%, #00ff88 100%)';
+  } else {
+    nextBtn.innerHTML = 'Next →';
+    nextBtn.style.background = 'linear-gradient(135deg, #e94560 0%, #ff6b6b 100%)';
+  }
+}
+
+function wizardNext() {
+  if (currentWizardStep < totalWizardSteps) {
+    currentWizardStep++;
+    updateWizardUI();
+  } else {
+    // Generate pitch deck
+    generateWizardPitchDeck();
+  }
+}
+
+function wizardBack() {
+  if (currentWizardStep > 1) {
+    currentWizardStep--;
+    updateWizardUI();
+  }
+}
+
+function suggestName() {
+  const names = ['TechFlow AI', 'CodePilot', 'DevMagic', 'FlowForge', 'AutoCoder', 'TaskZap'];
+  const name = names[Math.floor(Math.random() * names.length)];
+  document.getElementById('wizardName').value = name;
+  document.getElementById('wizardName').style.borderColor = '#00ff88';
+  setTimeout(() => { document.getElementById('wizardName').style.borderColor = 'rgba(233,69,96,0.3)'; }, 1500);
+}
+
+function askWizardAgent(field, agentType) {
+  const suggestions = WIZARD_SUGGESTIONS[field]?.[agentType] || [];
   if (suggestions.length === 0) {
-    alert(`The ${agentType} agent is thinking... (In the full app, this would call the AI API)`);
+    alert(`💭 Thinking... (In the full app, this would call the AI API)`);
     return;
   }
   
   const suggestion = suggestions[Math.floor(Math.random() * suggestions.length)];
-  
-  // Map section to textarea ID
   const fieldMap = {
-    idea: 'pitchIdea',
-    target: 'pitchTarget',
-    problem: 'pitchProblem',
-    solution: 'pitchSolution',
+    idea: 'wizardIdea',
+    target: 'wizardTarget',
+    problem: 'wizardProblem',
+    solution: 'wizardSolution',
+    business: 'wizardBusiness',
   };
   
-  const field = document.getElementById(fieldMap[section]);
-  if (field && confirm(`💡 Agent Suggestion:\n\n"${suggestion}"\n\nApply this suggestion?`)) {
-    field.value = suggestion;
-    field.style.borderColor = '#00cc6a';
-    setTimeout(() => { field.style.borderColor = '#e0e0e0'; }, 1500);
+  const fieldEl = document.getElementById(fieldMap[field]);
+  if (fieldEl && confirm(`💼 Agent Suggestion:\n\n"${suggestion}"\n\nUse this?`)) {
+    fieldEl.value = suggestion;
+    fieldEl.style.borderColor = '#00ff88';
+    setTimeout(() => { fieldEl.style.borderColor = fieldEl.dataset.originalBorder || 'rgba(255,255,255,0.2)'; }, 1500);
   }
 }
 
-function previewPitchDeck() {
+function rephraseWizardField(field) {
+  const options = REPHRASE_OPTIONS[field] || [];
+  if (options.length === 0) return;
+  
+  const fieldMap = {
+    idea: 'wizardIdea',
+    target: 'wizardTarget',
+    problem: 'wizardProblem',
+    solution: 'wizardSolution',
+    business: 'wizardBusiness',
+  };
+  
+  const fieldEl = document.getElementById(fieldMap[field]);
+  if (fieldEl) {
+    const newText = options[Math.floor(Math.random() * options.length)];
+    fieldEl.value = newText;
+    fieldEl.style.borderColor = '#ffd93d';
+    setTimeout(() => { fieldEl.style.borderColor = 'rgba(255,255,255,0.2)'; }, 1500);
+  }
+}
+
+function generateWizardPitchDeck() {
   const idea = {
-    title: document.getElementById('pitchTitle').value || 'My Startup',
-    theIdea: document.getElementById('pitchIdea').value || 'An innovative solution...',
-    theTarget: document.getElementById('pitchTarget').value || 'Our target audience...',
-    whatItSolves: document.getElementById('pitchProblem').value || 'The problem we solve...',
-    howItWorks: document.getElementById('pitchSolution').value || 'How our solution works...',
+    title: document.getElementById('wizardName').value || 'My Startup',
+    theIdea: document.getElementById('wizardIdea').value || 'An innovative solution...',
+    theTarget: document.getElementById('wizardTarget').value || 'Our target audience...',
+    whatItSolves: document.getElementById('wizardProblem').value || 'The problem we solve...',
+    howItWorks: document.getElementById('wizardSolution').value || 'How it works...',
+    business: document.getElementById('wizardBusiness').value || 'Our business model...',
   };
   
   renderPitchDeck(idea);
@@ -2458,51 +2593,60 @@ function renderPitchDeck(idea) {
   container.innerHTML = `
     <!-- Title Card -->
     <div style="background:linear-gradient(135deg, #e94560 0%, #ff6b6b 100%);border-radius:20px;padding:32px 24px;text-align:center;margin-bottom:20px;box-shadow:0 8px 32px rgba(233,69,96,0.3);">
-      <div style="font-size:42px;margin-bottom:12px;">🚀</div>
-      <div style="font-size:28px;font-weight:900;color:#fff;text-transform:uppercase;letter-spacing:1px;">${idea.title}</div>
-      <div style="font-size:14px;color:rgba(255,255,255,0.8);margin-top:8px;">Pitch Deck • ${new Date().getFullYear()}</div>
+      <div style="font-size:48px;margin-bottom:12px;">🚀</div>
+      <div style="font-size:26px;font-weight:900;color:#fff;text-transform:uppercase;letter-spacing:2px;">${idea.title}</div>
+      <div style="font-size:13px;color:rgba(255,255,255,0.8);margin-top:8px;">Pitch Deck • ${new Date().getFullYear()}</div>
     </div>
     
     <!-- The Idea -->
-    <div style="background:#0f3460;border-radius:16px;padding:20px;margin-bottom:16px;border-left:4px solid #e94560;">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
-        <span style="font-size:24px;">💡</span>
-        <span style="font-size:18px;font-weight:700;color:#e94560;text-transform:uppercase;letter-spacing:1px;">The Idea</span>
+    <div style="background:#0f3460;border-radius:16px;padding:20px;margin-bottom:14px;border-left:4px solid #e94560;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+        <span style="font-size:22px;">💡</span>
+        <span style="font-size:14px;font-weight:700;color:#e94560;text-transform:uppercase;letter-spacing:1px;">The Idea</span>
       </div>
-      <div style="font-size:16px;color:#fff;line-height:1.6;">${idea.theIdea}</div>
+      <div style="font-size:15px;color:#e0e1dd;line-height:1.6;">${idea.theIdea}</div>
     </div>
     
     <!-- The Target -->
-    <div style="background:#0f3460;border-radius:16px;padding:20px;margin-bottom:16px;border-left:4px solid #00d9ff;">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
-        <span style="font-size:24px;">🎯</span>
-        <span style="font-size:18px;font-weight:700;color:#00d9ff;text-transform:uppercase;letter-spacing:1px;">The Target</span>
+    <div style="background:#0f3460;border-radius:16px;padding:20px;margin-bottom:14px;border-left:4px solid #00d9ff;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+        <span style="font-size:22px;">🎯</span>
+        <span style="font-size:14px;font-weight:700;color:#00d9ff;text-transform:uppercase;letter-spacing:1px;">The Target</span>
       </div>
-      <div style="font-size:16px;color:#fff;line-height:1.6;">${idea.theTarget}</div>
+      <div style="font-size:15px;color:#e0e1dd;line-height:1.6;">${idea.theTarget}</div>
     </div>
     
     <!-- What It Solves -->
-    <div style="background:#0f3460;border-radius:16px;padding:20px;margin-bottom:16px;border-left:4px solid #00ff88;">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
-        <span style="font-size:24px;">🔧</span>
-        <span style="font-size:18px;font-weight:700;color:#00ff88;text-transform:uppercase;letter-spacing:1px;">What It Solves</span>
+    <div style="background:#0f3460;border-radius:16px;padding:20px;margin-bottom:14px;border-left:4px solid #00ff88;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+        <span style="font-size:22px;">🔧</span>
+        <span style="font-size:14px;font-weight:700;color:#00ff88;text-transform:uppercase;letter-spacing:1px;">What It Solves</span>
       </div>
-      <div style="font-size:16px;color:#fff;line-height:1.6;">${idea.whatItSolves}</div>
+      <div style="font-size:15px;color:#e0e1dd;line-height:1.6;">${idea.whatItSolves}</div>
     </div>
     
     <!-- How It Works -->
-    <div style="background:#0f3460;border-radius:16px;padding:20px;margin-bottom:20px;border-left:4px solid #ffd93d;">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
-        <span style="font-size:24px;">⚙️</span>
-        <span style="font-size:18px;font-weight:700;color:#ffd93d;text-transform:uppercase;letter-spacing:1px;">How It Works</span>
+    <div style="background:#0f3460;border-radius:16px;padding:20px;margin-bottom:14px;border-left:4px solid #ffd93d;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+        <span style="font-size:22px;">⚙️</span>
+        <span style="font-size:14px;font-weight:700;color:#ffd93d;text-transform:uppercase;letter-spacing:1px;">How It Works</span>
       </div>
-      <div style="font-size:16px;color:#fff;line-height:1.6;">${idea.howItWorks}</div>
+      <div style="font-size:15px;color:#e0e1dd;line-height:1.6;">${idea.howItWorks}</div>
+    </div>
+    
+    <!-- Business Model -->
+    <div style="background:#0f3460;border-radius:16px;padding:20px;margin-bottom:20px;border-left:4px solid #ff6b9d;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+        <span style="font-size:22px;">💰</span>
+        <span style="font-size:14px;font-weight:700;color:#ff6b9d;text-transform:uppercase;letter-spacing:1px;">The Business</span>
+      </div>
+      <div style="font-size:15px;color:#e0e1dd;line-height:1.6;">${idea.business || 'Contact us for pricing details.'}</div>
     </div>
     
     <!-- Footer Badge -->
-    <div style="text-align:center;padding:20px 0;">
-      <div style="display:inline-block;background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);padding:12px 24px;border-radius:30px;">
-        <span style="font-size:14px;font-weight:700;color:#fff;">✨ Built with IdeaPad AI</span>
+    <div style="text-align:center;padding:16px 0;">
+      <div style="display:inline-block;background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);padding:10px 20px;border-radius:30px;">
+        <span style="font-size:12px;font-weight:700;color:#fff;">✨ Built with IdeaPad AI</span>
       </div>
     </div>
   `;
@@ -2519,7 +2663,13 @@ function editPitchDeck() {
 }
 
 function downloadPitchDeck() {
-  alert('In the full app, this would download your pitch deck as a PDF or shareable image. For now, you can take a screenshot!');
+  alert('📥 In the full app, this would download your pitch deck as a PDF or shareable image. For now, take a screenshot!');
+}
+
+// Reset wizard when switching to it
+function resetWizard() {
+  currentWizardStep = 1;
+  updateWizardUI();
 }
 </script>
 
