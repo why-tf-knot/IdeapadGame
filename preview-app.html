@@ -906,9 +906,9 @@
     <!-- Screen Nav -->
     <div class="screen-nav">
       <button class="screen-btn active" onclick="showScreen('fnd','agents')">Agents</button>
+      <button class="screen-btn" onclick="showScreen('fnd','pitch-builder')">Pitch Deck</button>
       <button class="screen-btn" onclick="showScreen('fnd','ideas')">My Ideas</button>
       <button class="screen-btn" onclick="showScreen('fnd','prana')">Prana ₽</button>
-      <button class="screen-btn" onclick="showScreen('fnd','chat')">Chat</button>
       <button class="screen-btn" onclick="showScreen('fnd','profile')">Profile</button>
     </div>
 
@@ -947,39 +947,96 @@
             <div style="background:#F59E0B;color:#fff;padding:10px 14px;border-radius:10px;font-weight:600;font-size:13px;text-align:center;">Start Chat →</div>
           </div>
         </div>
-        
-        <!-- Pitch Deck Generator Section -->
-        <div style="margin-top:32px;background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);border-radius:20px;padding:24px 20px;color:#fff;">
-          <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-            <span style="font-size:32px;">🎤</span>
+      </div>
+    </div>
+    
+    <!-- ─ Pitch Deck Builder (Editable) ─ -->
+    <div class="screen-view" id="fnd-pitch-builder">
+      <div style="display:flex;flex-direction:column;height:100%;background:#f5f7fa;">
+        <!-- Header -->
+        <div style="padding:16px 16px 12px;background:#fff;border-bottom:1px solid #e0e0e0;">
+          <div style="display:flex;align-items:center;justify-content:space-between;">
             <div>
-              <div style="font-size:20px;font-weight:800;">Generate Pitch Deck</div>
-              <div style="font-size:13px;opacity:0.9;">Red Bull Basement Style</div>
+              <div style="font-size:22px;font-weight:900;color:#1A2332;">🎤 Pitch Deck Builder</div>
+              <div style="font-size:13px;color:#666;">Red Bull Basement Style</div>
             </div>
+            <button onclick="previewPitchDeck()" style="padding:10px 16px;border-radius:10px;border:none;background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);color:#fff;font-weight:700;font-size:13px;cursor:pointer;">👁️ Preview</button>
           </div>
-          <div style="font-size:14px;line-height:1.5;margin-bottom:16px;opacity:0.95;">Create a compelling one-page pitch deck with The Idea, The Target, What it Solves, and How it Works.</div>
-          <div style="margin-bottom:16px;">
-            <select id="pitchDeckIdeaSelect" style="width:100%;padding:12px 14px;border-radius:12px;border:none;font-size:14px;font-weight:600;background:rgba(255,255,255,0.95);color:#1A2332;">
-              <option value="techflow">TechFlow AI - Workflow Automation</option>
-              <option value="edumatch">EduMatch - AI Tutoring Platform</option>
-              <option value="greengrid">GreenGrid - Smart Energy Grid</option>
-            </select>
+        </div>
+        
+        <!-- Editable Form -->
+        <div style="flex:1;overflow-y:auto;padding:16px;">
+          <!-- Project Title -->
+          <div style="margin-bottom:20px;">
+            <label style="font-size:12px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px;">Project Title</label>
+            <input type="text" id="pitchTitle" value="TechFlow AI" style="width:100%;padding:14px 16px;border-radius:12px;border:2px solid #e0e0e0;font-size:18px;font-weight:700;color:#1A2332;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='#667eea'" onblur="this.style.borderColor='#e0e0e0'">
           </div>
-          <button onclick="generatePitchDeck()" id="generatePitchBtn" style="width:100%;padding:14px;border-radius:12px;border:none;background:#fff;color:#764ba2;font-weight:700;font-size:15px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">🚀 Generate My Pitch Deck</button>
+          
+          <!-- The Idea -->
+          <div style="background:#fff;border-radius:16px;padding:16px;margin-bottom:16px;border-left:4px solid #e94560;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:20px;">💡</span>
+                <span style="font-size:14px;font-weight:700;color:#e94560;text-transform:uppercase;">The Idea</span>
+              </div>
+              <button onclick="getAgentHelp('idea','business')" style="padding:6px 12px;border-radius:8px;border:1px solid #D93B41;background:rgba(217,59,65,0.1);color:#D93B41;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;">💼 Ask Business</button>
+            </div>
+            <textarea id="pitchIdea" placeholder="Describe your core idea in 1-2 sentences..." style="width:100%;min-height:80px;padding:12px;border-radius:10px;border:1px solid #e0e0e0;font-size:14px;line-height:1.5;resize:vertical;outline:none;box-sizing:border-box;font-family:inherit;" onfocus="this.style.borderColor='#e94560'" onblur="this.style.borderColor='#e0e0e0'">An AI-powered workflow automation platform that learns from developer patterns and automatically replicates repetitive tasks, saving 10+ hours per week.</textarea>
+          </div>
+          
+          <!-- The Target -->
+          <div style="background:#fff;border-radius:16px;padding:16px;margin-bottom:16px;border-left:4px solid #00d9ff;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+            <div style="display:flex;align-items:center;justify-content:between;margin-bottom:10px;">
+              <div style="display:flex;align-items:center;gap:8px;flex:1;">
+                <span style="font-size:20px;">🎯</span>
+                <span style="font-size:14px;font-weight:700;color:#00d9ff;text-transform:uppercase;">The Target</span>
+              </div>
+              <button onclick="getAgentHelp('target','marketing')" style="padding:6px 12px;border-radius:8px;border:1px solid #00BFAE;background:rgba(0,191,174,0.1);color:#00BFAE;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;">📢 Ask Marketer</button>
+            </div>
+            <textarea id="pitchTarget" placeholder="Who is your target audience?" style="width:100%;min-height:80px;padding:12px;border-radius:10px;border:1px solid #e0e0e0;font-size:14px;line-height:1.5;resize:vertical;outline:none;box-sizing:border-box;font-family:inherit;" onfocus="this.style.borderColor='#00d9ff'" onblur="this.style.borderColor='#e0e0e0'">Software developers and engineering teams at startups and mid-size tech companies who spend too much time on repetitive coding tasks.</textarea>
+          </div>
+          
+          <!-- What It Solves -->
+          <div style="background:#fff;border-radius:16px;padding:16px;margin-bottom:16px;border-left:4px solid #00ff88;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+            <div style="display:flex;align-items:center;justify-content:between;margin-bottom:10px;">
+              <div style="display:flex;align-items:center;gap:8px;flex:1;">
+                <span style="font-size:20px;">🔧</span>
+                <span style="font-size:14px;font-weight:700;color:#00cc6a;text-transform:uppercase;">What It Solves</span>
+              </div>
+              <button onclick="getAgentHelp('problem','science')" style="padding:6px 12px;border-radius:8px;border:1px solid #7B61FF;background:rgba(123,97,255,0.1);color:#7B61FF;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;">🔬 Ask Scientist</button>
+            </div>
+            <textarea id="pitchProblem" placeholder="What problem does it solve?" style="width:100%;min-height:80px;padding:12px;border-radius:10px;border:1px solid #e0e0e0;font-size:14px;line-height:1.5;resize:vertical;outline:none;box-sizing:border-box;font-family:inherit;" onfocus="this.style.borderColor='#00ff88'" onblur="this.style.borderColor='#e0e0e0'">Developers waste 40% of their time on repetitive tasks like code formatting, boilerplate generation, and routine debugging. This kills productivity and leads to burnout.</textarea>
+          </div>
+          
+          <!-- How It Works -->
+          <div style="background:#fff;border-radius:16px;padding:16px;margin-bottom:20px;border-left:4px solid #ffd93d;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+            <div style="display:flex;align-items:center;justify-content:between;margin-bottom:10px;">
+              <div style="display:flex;align-items:center;gap:8px;flex:1;">
+                <span style="font-size:20px;">⚙️</span>
+                <span style="font-size:14px;font-weight:700;color:#e6a800;text-transform:uppercase;">How It Works</span>
+              </div>
+              <button onclick="getAgentHelp('solution','developer')" style="padding:6px 12px;border-radius:8px;border:1px solid #F59E0B;background:rgba(245,158,11,0.1);color:#F59E0B;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;">💻 Ask Developer</button>
+            </div>
+            <textarea id="pitchSolution" placeholder="How does your solution work? Include business model." style="width:100%;min-height:100px;padding:12px;border-radius:10px;border:1px solid #e0e0e0;font-size:14px;line-height:1.5;resize:vertical;outline:none;box-sizing:border-box;font-family:inherit;" onfocus="this.style.borderColor='#ffd93d'" onblur="this.style.borderColor='#e0e0e0'">1) TechFlow observes your coding patterns using our VS Code extension. 2) Our AI identifies repetitive workflows. 3) With one click, automate any repeated task. 4) Revenue: $29/mo per developer, $199/mo for teams.</textarea>
+          </div>
+          
+          <!-- Generate Button -->
+          <button onclick="previewPitchDeck()" style="width:100%;padding:16px;border-radius:14px;border:none;background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);color:#fff;font-weight:700;font-size:16px;cursor:pointer;box-shadow:0 4px 15px rgba(102,126,234,0.4);">🚀 Preview Pitch Deck</button>
         </div>
       </div>
     </div>
     
-    <!-- ─ Pitch Deck View ─ -->
-    <div class="screen-view" id="fnd-pitch-deck">
+    <!-- ─ Pitch Deck Preview ─ -->
+    <div class="screen-view" id="fnd-pitch-preview">
       <div style="display:flex;flex-direction:column;height:100%;background:linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);">
         <!-- Header -->
         <div style="padding:16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(255,255,255,0.1);">
-          <button onclick="closePitchDeck()" style="width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,0.3);background:transparent;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;">←</button>
+          <button onclick="closePitchPreview()" style="width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,0.3);background:transparent;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;">←</button>
           <div style="flex:1;">
-            <div style="font-size:18px;font-weight:700;color:#fff;">Your Pitch Deck</div>
+            <div style="font-size:18px;font-weight:700;color:#fff;">Pitch Deck Preview</div>
             <div style="font-size:12px;color:rgba(255,255,255,0.7);">Red Bull Basement Style</div>
           </div>
+          <button onclick="editPitchDeck()" style="padding:8px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.3);background:transparent;color:#fff;font-weight:600;font-size:13px;cursor:pointer;margin-right:8px;">✏️ Edit</button>
           <button onclick="downloadPitchDeck()" style="padding:8px 16px;border-radius:8px;border:none;background:#e94560;color:#fff;font-weight:600;font-size:13px;cursor:pointer;">📥 Save</button>
         </div>
         
@@ -2311,53 +2368,88 @@ function sendAgentMessage() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PITCH DECK GENERATOR (Red Bull Basement Style)
+// PITCH DECK BUILDER (Red Bull Basement Style - Editable)
 // ─────────────────────────────────────────────────────────────────────────────
 
-const DEMO_IDEAS = {
-  techflow: {
-    title: 'TechFlow AI',
-    theIdea: 'An AI-powered workflow automation platform that learns from developer patterns and automatically replicates repetitive tasks, saving 10+ hours per week.',
-    theTarget: 'Software developers and engineering teams at startups and mid-size tech companies who spend too much time on repetitive coding tasks.',
-    whatItSolves: 'Developers waste 40% of their time on repetitive tasks like code formatting, boilerplate generation, and routine debugging. This kills productivity and leads to burnout.',
-    howItWorks: '1) TechFlow observes your coding patterns using our VS Code extension. 2) Our AI identifies repetitive workflows. 3) With one click, automate any repeated task. 4) Revenue: $29/mo per developer, $199/mo for teams.'
+// Agent suggestions for each pitch deck section
+const AGENT_SUGGESTIONS = {
+  idea: {
+    business: [
+      "Consider leading with the unique value: 'The only AI that learns YOUR specific coding patterns to automate YOUR repetitive tasks - not generic templates.'",
+      "Strengthen with metrics: 'AI-powered automation that has saved beta users an average of 12.5 hours per week, with ROI positive in the first month.'",
+    ],
+    marketing: [
+      "Make it more compelling: 'Stop coding the same thing twice. TechFlow AI watches, learns, and automates your repetitive tasks in one click.'",
+    ],
   },
-  edumatch: {
-    title: 'EduMatch',
-    theIdea: 'An AI-powered tutoring marketplace that matches students with the perfect tutor based on learning style, personality, and academic needs.',
-    theTarget: 'K-12 students and their parents seeking personalized tutoring, plus qualified tutors looking to grow their practice.',
-    whatItSolves: 'Finding the right tutor is trial-and-error. 60% of students switch tutors multiple times before finding a good match, wasting time and money.',
-    howItWorks: '1) Students take a 5-minute learning style assessment. 2) Our AI matches them with compatible tutors. 3) Built-in video sessions and progress tracking. 4) We take 15% commission on each session booked.'
+  target: {
+    marketing: [
+      "Be more specific: 'Senior developers (5+ years) at Series A-C startups who manage 3+ repositories and spend over 15 hours/week on code reviews and boilerplate.'",
+      "Add psychographics: 'Productivity-obsessed developers who use tools like Raycast, Alfred, and already automate parts of their workflow - but want more.'",
+    ],
+    business: [
+      "Consider segmentation: 'Primary: Individual developers ($29/mo). Secondary: Engineering teams 5-50 people ($199/mo). Enterprise: 50+ with custom pricing.'",
+    ],
   },
-  greengrid: {
-    title: 'GreenGrid',
-    theIdea: 'A smart energy management platform for residential buildings that uses AI to reduce electricity costs by 30% while optimizing for renewable energy usage.',
-    theTarget: 'Property managers of multi-unit residential buildings and eco-conscious homeowners in areas with time-of-use electricity pricing.',
-    whatItSolves: 'Energy costs are rising 8% annually. Most buildings waste 25-30% of electricity through poor timing and inefficient load distribution.',
-    howItWorks: '1) Install our smart meter integration (15 min setup). 2) AI learns usage patterns and utility rates. 3) Automatically shifts non-critical loads to off-peak hours. 4) SaaS model: $15/unit/month for property managers.'
-  }
+  problem: {
+    science: [
+      "Add data: 'Studies show developers spend 42% of their time on non-coding tasks (GitClear 2024). Of that, 60% is repetitive and automatable.'",
+      "Quantify the pain: 'At $150k avg salary, each developer wastes $31,500/year on automatable tasks. For a 10-person team, that's $315k annually.'",
+    ],
+    business: [
+      "Frame as opportunity cost: 'Every hour on repetitive tasks is an hour not spent on features that drive revenue and user growth.'",
+    ],
+  },
+  solution: {
+    developer: [
+      "Technical clarity: '1) VS Code extension uses local ML model (no code leaves your machine). 2) Pattern detection after ~50 repetitions. 3) One-click macro generation. 4) Sync across team via encrypted cloud.'",
+      "Add architecture: 'Built on Transformer-based sequence prediction, similar to GitHub Copilot but for workflows, not code completion. Works offline.'",
+    ],
+    business: [
+      "Strengthen business model: 'Freemium: 5 automations free. Pro: Unlimited at $29/mo. Team: Shared library + analytics at $199/mo. Enterprise: SSO, audit logs, custom.'",
+    ],
+  },
 };
 
-function generatePitchDeck() {
-  const select = document.getElementById('pitchDeckIdeaSelect');
-  const ideaKey = select.value;
-  const idea = DEMO_IDEAS[ideaKey];
+function getAgentHelp(section, agentType) {
+  const suggestions = AGENT_SUGGESTIONS[section]?.[agentType] || [];
+  if (suggestions.length === 0) {
+    alert(`The ${agentType} agent is thinking... (In the full app, this would call the AI API)`);
+    return;
+  }
   
-  const btn = document.getElementById('generatePitchBtn');
-  btn.textContent = '⏳ Generating...';
-  btn.disabled = true;
+  const suggestion = suggestions[Math.floor(Math.random() * suggestions.length)];
   
-  // Simulate API call delay
-  setTimeout(() => {
-    renderPitchDeck(idea);
-    // Hide all screen views and show pitch deck
-    const phone = document.getElementById('founderPhone');
-    phone.querySelectorAll('.screen-view').forEach(v => v.classList.remove('active'));
-    document.getElementById('fnd-pitch-deck').classList.add('active');
-    
-    btn.textContent = '🚀 Generate My Pitch Deck';
-    btn.disabled = false;
-  }, 1200);
+  // Map section to textarea ID
+  const fieldMap = {
+    idea: 'pitchIdea',
+    target: 'pitchTarget',
+    problem: 'pitchProblem',
+    solution: 'pitchSolution',
+  };
+  
+  const field = document.getElementById(fieldMap[section]);
+  if (field && confirm(`💡 Agent Suggestion:\n\n"${suggestion}"\n\nApply this suggestion?`)) {
+    field.value = suggestion;
+    field.style.borderColor = '#00cc6a';
+    setTimeout(() => { field.style.borderColor = '#e0e0e0'; }, 1500);
+  }
+}
+
+function previewPitchDeck() {
+  const idea = {
+    title: document.getElementById('pitchTitle').value || 'My Startup',
+    theIdea: document.getElementById('pitchIdea').value || 'An innovative solution...',
+    theTarget: document.getElementById('pitchTarget').value || 'Our target audience...',
+    whatItSolves: document.getElementById('pitchProblem').value || 'The problem we solve...',
+    howItWorks: document.getElementById('pitchSolution').value || 'How our solution works...',
+  };
+  
+  renderPitchDeck(idea);
+  
+  const phone = document.getElementById('founderPhone');
+  phone.querySelectorAll('.screen-view').forEach(v => v.classList.remove('active'));
+  document.getElementById('fnd-pitch-preview').classList.add('active');
 }
 
 function renderPitchDeck(idea) {
@@ -2410,20 +2502,23 @@ function renderPitchDeck(idea) {
     <!-- Footer Badge -->
     <div style="text-align:center;padding:20px 0;">
       <div style="display:inline-block;background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);padding:12px 24px;border-radius:30px;">
-        <span style="font-size:14px;font-weight:700;color:#fff;">✨ Generated with IdeaPad AI</span>
+        <span style="font-size:14px;font-weight:700;color:#fff;">✨ Built with IdeaPad AI</span>
       </div>
     </div>
   `;
 }
 
-function closePitchDeck() {
+function closePitchPreview() {
   const phone = document.getElementById('founderPhone');
   phone.querySelectorAll('.screen-view').forEach(v => v.classList.remove('active'));
-  document.getElementById('fnd-agents').classList.add('active');
+  document.getElementById('fnd-pitch-builder').classList.add('active');
+}
+
+function editPitchDeck() {
+  closePitchPreview();
 }
 
 function downloadPitchDeck() {
-  // In a real app, this would generate a PDF or image
   alert('In the full app, this would download your pitch deck as a PDF or shareable image. For now, you can take a screenshot!');
 }
 </script>
