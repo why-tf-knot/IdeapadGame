@@ -4,16 +4,20 @@
  */
 
 import mongoose from 'mongoose';
-import bcrypt from 'bcrypt';
-import User from './src/models/User';
-import Idea from './src/models/Idea';
-import AiCreditWallet from './src/models/AiCreditWallet';
-import IdeaAiBalance from './src/models/IdeaAiBalance';
-import AiCreditAllocation from './src/models/AiCreditAllocation';
-import AiCreditTransaction from './src/models/AiCreditTransaction';
-import InvestorIdeaStatus from './src/models/InvestorIdeaStatus';
+import bcrypt from 'bcryptjs';
+import { User } from './src/models/User';
+import { Idea } from './src/models/Idea';
+import { AiCreditWallet } from './src/models/AiCreditWallet';
+import { IdeaAiBalance } from './src/models/IdeaAiBalance';
+import { AiCreditAllocation } from './src/models/AiCreditAllocation';
+import { AiCreditTransaction } from './src/models/AiCreditTransaction';
+import { InvestorIdeaStatus } from './src/models/InvestorIdeaStatus';
+import dotenv from 'dotenv';
 
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/buildpaper-demo';
+// Load environment variables
+dotenv.config();
+
+const MONGO_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/buildpaper';
 
 async function createDemoData() {
   try {

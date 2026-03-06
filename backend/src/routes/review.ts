@@ -49,7 +49,7 @@ router.post(
   roleMiddleware(['INVESTOR']),
   async (req: AuthRequest, res: Response) => {
     try {
-      const { ideaId } = req.params;
+      const ideaId = req.params.ideaId as string;
 
       if (!Types.ObjectId.isValid(ideaId as string)) {
         return res.status(400).json({ error: 'Invalid idea ID format' });
@@ -97,7 +97,7 @@ router.post(
   roleMiddleware(['INVESTOR']),
   async (req: AuthRequest, res: Response) => {
     try {
-      const { ideaId } = req.params;
+      const ideaId = req.params.ideaId as string;
 
       if (!Types.ObjectId.isValid(ideaId as string)) {
         return res.status(400).json({ error: 'Invalid idea ID format' });
